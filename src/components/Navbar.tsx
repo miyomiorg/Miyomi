@@ -1,6 +1,6 @@
 "use client";
 
-import { X, ChevronDown, Github, Instagram, Youtube, Facebook, Plus, Search, Menu } from 'lucide-react';
+import { X, ChevronDown, Github, Instagram, Youtube, Facebook, Plus, Search, Menu, Heart } from 'lucide-react';
 import React, { useState, useEffect, useRef } from 'react';
 import { ThemeToggle } from './ThemeToggle';
 import { SearchModal } from './SearchModal';
@@ -237,6 +237,20 @@ export function Navbar({ onNavigate }: NavbarProps) {
               Contribute
             </button>
 
+            {/* Donate Button — highlighted */}
+            <button
+              onClick={() => handleClick('/donate')}
+              className="relative flex items-center gap-1.5 text-sm py-1.5 px-3.5 rounded-full bg-gradient-to-r from-pink-500 to-rose-500 text-white font-medium font-['Inter',sans-serif] hover:shadow-lg hover:shadow-pink-500/25 hover:scale-105 active:scale-95 transition-all duration-200"
+            >
+              <Heart className="w-3.5 h-3.5 fill-current" />
+              Donate
+              {/* Subtle ping animation */}
+              <span className="absolute -top-0.5 -right-0.5 flex h-2.5 w-2.5">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-pink-300 opacity-75" />
+                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-pink-200" />
+              </span>
+            </button>
+
             {/* Divider */}
             <div className="w-px h-6 bg-[var(--divider)]"></div>
 
@@ -398,6 +412,18 @@ export function Navbar({ onNavigate }: NavbarProps) {
                 style={{ fontWeight: 500 }}
               >
                 Contribute
+              </button>
+              <div className="border-b border-[var(--divider)] mt-3"></div>
+            </div>
+
+            {/* Donate Link — highlighted in mobile */}
+            <div className="mb-3">
+              <button
+                onClick={() => handleClick('/donate')}
+                className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-gradient-to-r from-pink-500 to-rose-500 text-white font-medium font-['Inter',sans-serif] hover:shadow-lg transition-all"
+              >
+                <Heart className="w-4 h-4 fill-current" />
+                Support Miyomi
               </button>
               <div className="border-b border-[var(--divider)] mt-3"></div>
             </div>

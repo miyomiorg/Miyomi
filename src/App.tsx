@@ -16,6 +16,7 @@ import { AppDetailPage } from "./pages/AppDetailPage";
 import { ExtensionDetailPage } from "./pages/ExtensionDetailPage";
 import { NotFoundPage } from "./pages/NotFoundPage";
 import { SearchPage } from "./pages/SearchPage";
+import { DonatePage } from "./pages/DonatePage";
 import { SubmitPage } from "./pages/SubmitPage";
 import { ChristmasSnow } from './components/ChristmasSnow';
 import { AdminLoginPage } from './pages/admin/AdminLoginPage';
@@ -32,6 +33,7 @@ import { AdminFAQEditorPage } from './pages/admin/AdminFAQEditorPage';
 import { AdminSubmissionsPage } from './pages/admin/AdminSubmissionsPage';
 import { AdminLikesPage } from './pages/admin/AdminLikesPage';
 import { AdminNoticesPage } from './pages/admin/AdminNoticesPage';
+import { AdminDonationsPage } from './pages/admin/AdminDonationsPage';
 import { AdminThemesPage } from './pages/admin/AdminThemesPage';
 import { AdminSettingsPage } from './pages/admin/AdminSettingsPage';
 import { AdminLogsPage } from './pages/admin/AdminLogsPage';
@@ -133,6 +135,7 @@ function AppContent() {
             <Route path="submissions" element={<AdminSubmissionsPage />} />
             <Route path="likes" element={<AdminLikesPage />} />
             <Route path="notices" element={<AdminNoticesPage />} />
+            <Route path="donations" element={<AdminDonationsPage />} />
             <Route path="themes" element={<AdminThemesPage />} />
             <Route path="settings" element={<AdminSettingsPage />} />
             <Route path="logs" element={<AdminLogsPage />} />
@@ -206,6 +209,7 @@ function AppContent() {
           <Route path="/faq" element={<FAQPage />} />
           <Route path="/about" element={<AboutPage />} />
           <Route path="/contribute" element={<SubmitPage />} />
+          <Route path="/donate" element={<DonatePage />} />
 
           {/* Fallback for unknown routes */}
           <Route path="/unauthorized" element={<UnauthorizedPage />} />

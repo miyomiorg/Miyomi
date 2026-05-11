@@ -35,6 +35,14 @@ export function Footer() {
             >
               Disclaimer
             </a>
+            <span className="hidden sm:inline">|</span>
+            <a
+              href="/donate"
+              className="inline-flex items-center gap-1 hover:text-pink-400 transition-colors group"
+            >
+              <Heart className="w-3.5 h-3.5 text-pink-400 group-hover:fill-pink-400 transition-all" />
+              Support Us
+            </a>
           </div>
 
           {/* Right side - Made with love */}

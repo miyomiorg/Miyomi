@@ -716,6 +716,66 @@ export type Database = {
         }
         Relationships: []
       }
+      donation_settings: {
+        Row: {
+          key: string
+          updated_at: string | null
+          value: Json
+        }
+        Insert: {
+          key: string
+          updated_at?: string | null
+          value?: Json
+        }
+        Update: {
+          key?: string
+          updated_at?: string | null
+          value?: Json
+        }
+        Relationships: []
+      }
+      donations: {
+        Row: {
+          amount: number
+          created_at: string | null
+          currency: string
+          date: string | null
+          donor_name: string
+          id: string
+          is_public: boolean
+          message: string | null
+          payment_method: string | null
+          show_amount: boolean
+          updated_at: string | null
+        }
+        Insert: {
+          amount?: number
+          created_at?: string | null
+          currency?: string
+          date?: string | null
+          donor_name: string
+          id?: string
+          is_public?: boolean
+          message?: string | null
+          payment_method?: string | null
+          show_amount?: boolean
+          updated_at?: string | null
+        }
+        Update: {
+          amount?: number
+          created_at?: string | null
+          currency?: string
+          date?: string | null
+          donor_name?: string
+          id?: string
+          is_public?: boolean
+          message?: string | null
+          payment_method?: string | null
+          show_amount?: boolean
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       user_likes_summary: {
@@ -878,3 +938,27 @@ export const Constants = {
     },
   },
 } as const
+
+/* ─── Donation System Types ─── */
+
+export interface DonationGoal {
+  title: string;
+  description: string;
+  targetAmount: number;
+  currentAmount: number;
+  currency: string;
+}
+
+export interface PaymentMethod {
+  id: string;
+  label: string;
+  description: string;
+  url: string;
+  enabled: boolean;
+  iconHint: string;
+}
+
+export interface TransparencyItem {
+  label: string;
+  value: string;
+}
