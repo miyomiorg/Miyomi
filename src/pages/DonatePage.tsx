@@ -124,46 +124,59 @@ interface DonatorCardProps {
   showDonationAmounts: boolean;
 }
 
-const DonatorCard: React.FC<DonatorCardProps> = ({ donator, index, showDonationAmounts }) => {
-  const initials = donator.name
-    .split(' ')
-    .map((w) => w[0])
-    .join('')
-    .slice(0, 2)
-    .toUpperCase();
+/* generate a consistent random avatar URL from the donor name */
+function avatarUrl(name: string) {
+  const seed = encodeURIComponent(name.trim().toLowerCase());
+  return `https://api.dicebear.com/9.x/adventurer-neutral/svg?seed=${seed}&backgroundColor=b6e3f4,c0aede,d1d4f9,ffd5dc,ffdfbf`;
+}
 
+const DonatorCard: React.FC<DonatorCardProps> = ({ donator, index, showDonationAmounts }) => {
   return (
     <motion.div
-      initial={{ opacity: 0, y: 12 }}
+      initial={{ opacity: 0, y: 10 }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true }}
-      transition={{ duration: 0.3, delay: index * 0.05 }}
+      transition={{ duration: 0.25, delay: Math.min(index * 0.03, 0.6) }}
+      className="h-full"
     >
-      <div className="flex items-start gap-3 p-4 bg-[var(--bg-surface)] border border-[var(--divider)] rounded-xl hover:border-[var(--brand)]/30 transition-colors">
+      <div className="flex gap-3 p-3 bg-[var(--bg-surface)] border border-[var(--divider)] rounded-xl hover:border-[var(--brand)]/30 transition-colors h-full">
         {/* Avatar */}
-        <div className="flex-shrink-0 w-10 h-10 rounded-full bg-gradient-to-br from-[var(--brand)] to-[var(--chart-3)] flex items-center justify-center text-white text-sm font-bold">
-          {initials}
-        </div>
+        <img
+          src={avatarUrl(donator.name)}
+          alt={donator.name}
+          className="w-9 h-9 rounded-full flex-shrink-0 bg-[var(--chip-bg)] mt-0.5"
+          loading="lazy"
+        />
 
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="font-['Poppins',sans-serif] text-[var(--text-primary)] text-sm font-semibold truncate">
-              {donator.name}
-            </span>
+        <div className="flex-1 min-w-0 flex flex-col">
+          {/* Row 1: Name */}
+          <span className="font-['Poppins',sans-serif] text-[var(--text-primary)] text-[13px] font-semibold truncate leading-tight">
+            {donator.name}
+          </span>
+
+          {/* Row 2: Badges (amount + method + date) */}
+          <div className="flex items-center gap-1.5 flex-wrap mt-1">
             {showDonationAmounts && donator.showAmount && (
-              <span className="text-xs px-2 py-0.5 rounded-full bg-[var(--chip-bg)] text-[var(--brand)] font-medium">
+              <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-[var(--chip-bg)] text-[var(--brand)] font-medium leading-none">
                 ${donator.amount}
               </span>
             )}
+            {donator.paymentMethod && (
+              <span className="text-[10px] px-1.5 py-0.5 rounded-full border border-[var(--divider)] text-[var(--text-secondary)] font-medium leading-none">
+                {donator.paymentMethod}
+              </span>
+            )}
+            {donator.date && (
+              <span className="text-[10px] text-[var(--text-secondary)] opacity-50 leading-none">
+                {donator.date}
+              </span>
+            )}
           </div>
-          {donator.message && (
-            <p className="text-[var(--text-secondary)] text-xs mt-1 leading-relaxed line-clamp-2">
-              "{donator.message}"
-            </p>
-          )}
-          <span className="text-[var(--text-secondary)] text-[10px] mt-1 block opacity-60">
-            {donator.date}
-          </span>
+
+          {/* Row 3: Message (always reserve space) */}
+          <p className="text-[var(--text-secondary)] text-[11px] mt-1 leading-snug line-clamp-1 min-h-[15px]">
+            {donator.message ? `"${donator.message}"` : '\u00A0'}
+          </p>
         </div>
       </div>
     </motion.div>
@@ -328,7 +341,6 @@ export function DonatePage() {
     transparencyLastUpdated,
     loading,
   } = useDonations();
-  const [showAllDonators, setShowAllDonators] = useState(false);
   const [selectedMethod, setSelectedMethod] = useState<PaymentMethod | null>(null);
 
   const progressPercent = donationGoal.targetAmount > 0
@@ -336,7 +348,6 @@ export function DonatePage() {
     : 0;
 
   const enabledMethods = paymentMethods.filter((m) => m.enabled);
-  const visibleDonators = showAllDonators ? donators : donators.slice(0, 6);
 
   return (
     <div className="max-w-4xl mx-auto px-4 md:px-6 py-6 md:py-12">
@@ -592,30 +603,11 @@ export function DonatePage() {
               </p>
             </div>
           ) : (
-            <>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {visibleDonators.map((donator, i) => (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                {donators.map((donator, i) => (
                   <DonatorCard key={`${donator.name}-${i}`} donator={donator} index={i} showDonationAmounts={showDonationAmounts} />
                 ))}
               </div>
-
-              {donators.length > 6 && (
-                <button
-                  onClick={() => setShowAllDonators(!showAllDonators)}
-                  className="mt-4 mx-auto flex items-center gap-1.5 text-sm text-[var(--brand)] hover:text-[var(--brand-strong)] transition-colors font-medium"
-                >
-                  {showAllDonators ? (
-                    <>
-                      Show Less <ChevronUp className="w-4 h-4" />
-                    </>
-                  ) : (
-                    <>
-                      Show All ({donators.length}) <ChevronDown className="w-4 h-4" />
-                    </>
-                  )}
-                </button>
-              )}
-            </>
           )}
         </Card>
       </motion.section>

@@ -1,10 +1,10 @@
 {
   "goal": {
-    "title": "Help Keep Miyomi Running",
+    "title": "Keep Miyomi Online - Infrastructure Fund",
     "currency": "USD",
-    "description": "Help us cover our monthly server and infrastructure costs so Miyomi stays free for everyone.",
-    "targetAmount": 325,
-    "currentAmount": 100
+    "description": "Helps cover hosting, domain, and infrastructure costs so Miyomi can stay online and continue growing.",
+    "targetAmount": 320,
+    "currentAmount": 0
   },
   "paymentMethods": [
     {
@@ -26,7 +26,7 @@
       "type": "link",
       "label": "Ko-fi",
       "details": {},
-      "enabled": false,
+      "enabled": true,
       "iconHint": "kofi",
       "description": "Buy us a coffee"
     },
@@ -39,16 +39,6 @@
       "enabled": false,
       "iconHint": "buymeacoffee",
       "description": "Support via BMC"
-    },
-    {
-      "id": "patreon",
-      "url": "https://www.patreon.com/c/Miyomi",
-      "type": "link",
-      "label": "Patreon",
-      "details": {},
-      "enabled": true,
-      "iconHint": "patreon",
-      "description": "Monthly support via Patreon"
     },
     {
       "id": "github_sponsors",
@@ -135,7 +125,7 @@
         "email": "farhanisteak84@gmail.com",
         "number": "+880 1650-078236",
         "accountName": "",
-        "instructions": "Send Money to this bKash number"
+        "instructions": "Send your donation to this bKash (personal) number. Please include your name and any reference message in the payment reference box."
       },
       "enabled": true,
       "iconHint": "bkash",
@@ -312,6 +302,21 @@
       "enabled": true,
       "iconHint": "contact",
       "description": "Reach out for custom payment options"
+    },
+    {
+      "id": "binance",
+      "url": "#",
+      "type": "details",
+      "label": "Binance",
+      "details": {
+        "address": "380507616",
+        "qrCodeUrl": "https://telemage.pages.dev/file/QWdBQ0FnVUFBeUVHQUFTdExOM0xBQU94YWduTlFJZnRGY0o0U0k3cUMxc28yUWY4OG9rQUFwZ1RheHR6cVZCVWdOd3JWOUxaS3hvQkFBTUNBQU40QUFNN0JB",
+        "accountName": "Hanime",
+        "instructions": "Send your donation using the Binance UID transfer option. Please include your name and any reference message in the transfer note/message section."
+      },
+      "enabled": true,
+      "iconHint": "Binance",
+      "description": "Send via Binance Pay."
     }
   ],
   "transparencyItems": [
@@ -334,11 +339,191 @@
   },
   "donators": [
     {
-      "name": "Mikio",
-      "amount": 20,
+      "name": "Ali a*******",
+      "amount": 8.75,
       "currency": "USD",
-      "message": "I'm first :3",
-      "date": "2026-05-14",
+      "message": "Greeeeaat work",
+      "date": "2026-05-19",
+      "isPublic": true,
+      "showAmount": true
+    },
+    {
+      "name": "Eero K****",
+      "amount": 11.45,
+      "currency": "USD",
+      "message": "",
+      "date": "2026-05-18",
+      "isPublic": true,
+      "showAmount": true
+    },
+    {
+      "name": "Michael W*****",
+      "amount": 32.42,
+      "currency": "USD",
+      "message": "",
+      "date": "",
+      "isPublic": true,
+      "showAmount": true
+    },
+    {
+      "name": "Rolly M*****",
+      "amount": 4.54,
+      "currency": "USD",
+      "message": "",
+      "date": "2026-05-18",
+      "isPublic": true,
+      "showAmount": true
+    },
+    {
+      "name": "Solomon C****",
+      "amount": 6.89,
+      "currency": "USD",
+      "message": "",
+      "date": "2026-05-18",
+      "isPublic": true,
+      "showAmount": true
+    },
+    {
+      "name": "Jose D****",
+      "amount": 2.37,
+      "currency": "USD",
+      "message": "",
+      "date": "2026-05-18",
+      "isPublic": true,
+      "showAmount": true
+    },
+    {
+      "name": "Darius E****",
+      "amount": 9.55,
+      "currency": "USD",
+      "message": "",
+      "date": "",
+      "isPublic": true,
+      "showAmount": true
+    },
+    {
+      "name": "Anna D****",
+      "amount": 19.16,
+      "currency": "USD",
+      "message": "",
+      "date": "2026-05-18",
+      "isPublic": true,
+      "showAmount": true
+    },
+    {
+      "name": "Carlos m****",
+      "amount": 13.88,
+      "currency": "USD",
+      "message": "",
+      "date": "2026-05-18",
+      "isPublic": true,
+      "showAmount": true
+    },
+    {
+      "name": "Heathberr ",
+      "amount": 23.9,
+      "currency": "USD",
+      "message": "",
+      "date": "2026-05-18",
+      "isPublic": true,
+      "showAmount": true
+    },
+    {
+      "name": "DeAndres",
+      "amount": 4.79,
+      "currency": "USD",
+      "message": "",
+      "date": "2026-05-18",
+      "isPublic": true,
+      "showAmount": true
+    },
+    {
+      "name": "Anonymous 286",
+      "amount": 0.41,
+      "currency": "USD",
+      "message": "Miyomi support",
+      "date": "2026-05-18",
+      "isPublic": true,
+      "showAmount": true
+    },
+    {
+      "name": "Anonymous 626",
+      "amount": 0.41,
+      "currency": "USD",
+      "message": "Miyomi support",
+      "date": "2026-05-18",
+      "isPublic": true,
+      "showAmount": true
+    },
+    {
+      "name": "Anonymous 269",
+      "amount": 0.16,
+      "currency": "USD",
+      "message": "Miyomi support",
+      "date": "2026-05-18",
+      "isPublic": true,
+      "showAmount": true
+    },
+    {
+      "name": "Mohtasim",
+      "amount": 0.81,
+      "currency": "USD",
+      "message": "Thank you for your heard work.",
+      "date": "2026-05-17",
+      "isPublic": true,
+      "showAmount": true
+    },
+    {
+      "name": "carigo p****",
+      "amount": 2.11,
+      "currency": "USD",
+      "message": "🫡",
+      "date": "2026-05-17",
+      "isPublic": true,
+      "showAmount": true
+    },
+    {
+      "name": "Anthony L*****",
+      "amount": 19.17,
+      "currency": "USD",
+      "message": "Keep up the great work",
+      "date": "2026-05-17",
+      "isPublic": true,
+      "showAmount": true
+    },
+    {
+      "name": "Vincente",
+      "amount": 45.54,
+      "currency": "USD",
+      "message": "For miyomi",
+      "date": "2026-05-17",
+      "isPublic": true,
+      "showAmount": true
+    },
+    {
+      "name": "Ivan",
+      "amount": 5.08,
+      "currency": "USD",
+      "message": "Thank you for your work",
+      "date": "2026-05-17",
+      "isPublic": true,
+      "showAmount": true
+    },
+    {
+      "name": "Jp Navales",
+      "amount": 1.62,
+      "currency": "USD",
+      "message": "Supporting miyomi",
+      "date": "2026-05-17",
+      "isPublic": true,
+      "showAmount": true
+    },
+    {
+      "name": "avalanchelynn",
+      "amount": 14.05,
+      "currency": "PHP",
+      "message": "Thank you for the work",
+      "date": "2026-05-17",
       "isPublic": true,
       "showAmount": true
     }

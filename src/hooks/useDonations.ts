@@ -11,6 +11,7 @@ export interface Donator {
   date: string;
   isPublic: boolean;
   showAmount: boolean;
+  paymentMethod?: string;
 }
 
 interface UseDonationsReturn {
@@ -93,6 +94,7 @@ export function useDonations(): UseDonationsReturn {
             date: r.date || '',
             isPublic: r.is_public,
             showAmount: r.show_amount,
+            paymentMethod: r.payment_method || '',
           }));
         }
       } catch (e) {
