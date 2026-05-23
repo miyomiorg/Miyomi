@@ -541,8 +541,8 @@ export function ExtensionDetailPage({ extensionId, onNavigate }: ExtensionDetail
                         allowFullScreen
                       ></iframe>
                     </div>
-                    <div className="flex items-start gap-3">
-                      <div className="mt-0.5 flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-[var(--chip-bg)] text-[var(--brand)]">
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-[var(--chip-bg)] text-[var(--brand)]">
                         <PlayCircle className="w-5 h-5" />
                       </div>
                       <div className="min-w-0">
@@ -569,8 +569,8 @@ export function ExtensionDetailPage({ extensionId, onNavigate }: ExtensionDetail
                   className="group flex flex-col gap-3 rounded-2xl border border-[var(--divider)] bg-[var(--bg-surface)] p-4 sm:p-5 hover:border-[var(--brand)] hover:shadow-lg transition-all"
                   style={{ boxShadow: '0 6px 20px 0 rgba(0,0,0,0.06)' }}
                 >
-                  <div className="flex items-start gap-3">
-                    <div className="mt-0.5 flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-[var(--chip-bg)] text-[var(--brand)]">
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-[var(--chip-bg)] text-[var(--brand)]">
                       <BookOpen className="w-5 h-5" />
                     </div>
                     <div className="min-w-0">
@@ -620,7 +620,7 @@ export function ExtensionDetailPage({ extensionId, onNavigate }: ExtensionDetail
             ]}
             className="w-full relative"
           >
-            <div className="absolute -top-12 right-0 flex gap-2">
+            <div className="absolute -top-12 right-0 hidden sm:flex gap-2">
               <CarouselPrevious className="relative left-0 top-0 translate-y-0 h-8 w-8" />
               <CarouselNext className="relative right-0 top-0 translate-y-0 h-8 w-8" />
             </div>
