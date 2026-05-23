@@ -274,7 +274,16 @@ export function AboutPage() {
                   rel="noopener noreferrer"
                   className="text-[var(--brand)] hover:underline"
                 >
-                  Wotaku Wiki
+                  Wotaku Wiki{' '}
+                </a>
+                &{' '}
+                <a
+                  href="https://everythingmoe.com"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-[var(--brand)] hover:underline"
+                >
+                  EverythingMoe
                 </a>
               </h3>
               <p className="text-[var(--text-secondary)] text-sm">
