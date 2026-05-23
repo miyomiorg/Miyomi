@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAdminLogger } from '@/hooks/useAdminLogger';
 import type { Tables } from '@/integrations/supabase/types';
-import { Inbox, User, Check, X as XIcon, Eye, Trash2, AlertTriangle, Save, RotateCcw } from 'lucide-react';
+import { Inbox, User, Check, X as XIcon, Eye, Trash2, AlertTriangle, Save, RotateCcw, Package, Puzzle } from 'lucide-react';
 import { AdminButton, StatusBadge, EmptyState } from '@/components/admin/AdminFormElements';
 import { ConfirmDialog } from '@/components/admin/ConfirmDialog';
 import { SubmissionEditForm } from '@/components/admin/SubmissionEditForm';
@@ -20,6 +20,7 @@ export function AdminSubmissionsPage() {
 
   const [bulkDeleteTarget, setBulkDeleteTarget] = useState<'approved' | 'rejected' | 'pending' | 'all' | null>(null);
   const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'approved' | 'rejected'>('all');
+  const [typeFilter, setTypeFilter] = useState<'all' | 'app' | 'extension'>('all');
 
   useEffect(() => { fetchData(); }, []);
 
@@ -180,16 +181,26 @@ export function AdminSubmissionsPage() {
     }
   }
 
+  const typeFiltered = typeFilter === 'all'
+    ? submissions
+    : submissions.filter(s => s.submission_type === typeFilter);
+
   const counts = {
-    active: submissions.filter(s => s.status === 'approved').length,
-    rejected: submissions.filter(s => s.status === 'rejected').length,
-    pending: submissions.filter(s => s.status === 'pending').length,
-    all: submissions.length
+    active: typeFiltered.filter(s => s.status === 'approved').length,
+    rejected: typeFiltered.filter(s => s.status === 'rejected').length,
+    pending: typeFiltered.filter(s => s.status === 'pending').length,
+    all: typeFiltered.length
+  };
+
+  const typeCounts = {
+    all: submissions.length,
+    app: submissions.filter(s => s.submission_type === 'app').length,
+    extension: submissions.filter(s => s.submission_type === 'extension').length,
   };
 
   const filteredSubmissions = statusFilter === 'all'
-    ? submissions
-    : submissions.filter(s => s.status === statusFilter);
+    ? typeFiltered
+    : typeFiltered.filter(s => s.status === statusFilter);
 
   const filterTabs = [
     { key: 'all' as const, label: 'All', count: counts.all },
@@ -198,26 +209,55 @@ export function AdminSubmissionsPage() {
     { key: 'rejected' as const, label: 'Rejected', count: counts.rejected },
   ].filter(t => t.key === 'all' || t.count > 0);
 
+  const typeTabs = [
+    { key: 'all' as const, label: 'All', count: typeCounts.all, icon: null },
+    { key: 'app' as const, label: 'Apps', count: typeCounts.app, icon: Package },
+    { key: 'extension' as const, label: 'Extensions', count: typeCounts.extension, icon: Puzzle },
+  ].filter(t => t.key === 'all' || t.count > 0);
+
   return (
     <div className="animate-in fade-in duration-500">
       <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-6 mb-8">
         <h1 className="text-2xl font-bold font-['Poppins',sans-serif]" style={{ color: 'var(--text-primary)' }}>Submissions</h1>
 
-        {/* Status Filter Tabs */}
-        <div className="flex gap-2 flex-wrap">
-          {filterTabs.map(tab => (
-            <button
-              key={tab.key}
-              onClick={() => setStatusFilter(tab.key)}
-              className={`px-4 py-1.5 rounded-full text-sm font-medium transition-all border ${statusFilter === tab.key
-                ? 'bg-[var(--brand)] text-white border-[var(--brand)] shadow-md shadow-[var(--brand)]/20'
-                : 'bg-[var(--bg-elev-1)] text-[var(--text-secondary)] border-[var(--divider)] hover:border-[var(--brand)] hover:text-[var(--text-primary)]'
-                }`}
-            >
-              {tab.label}
-              <span className={`ml-1.5 text-xs ${statusFilter === tab.key ? 'opacity-80' : 'opacity-60'}`}>({tab.count})</span>
-            </button>
-          ))}
+        <div className="flex flex-col sm:flex-row gap-3 flex-wrap">
+          {/* Type Filter */}
+          <div className="flex gap-1.5 p-1 rounded-xl bg-[var(--bg-elev-1)] border border-[var(--divider)]">
+            {typeTabs.map(tab => {
+              const Icon = tab.icon;
+              return (
+                <button
+                  key={tab.key}
+                  onClick={() => setTypeFilter(tab.key)}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${typeFilter === tab.key
+                    ? 'bg-[var(--brand)] text-white shadow-sm'
+                    : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-surface)]'
+                    }`}
+                >
+                  {Icon && <Icon className="w-3.5 h-3.5" />}
+                  {tab.label}
+                  <span className={`text-xs ${typeFilter === tab.key ? 'opacity-80' : 'opacity-50'}`}>({tab.count})</span>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Status Filter */}
+          <div className="flex gap-2 flex-wrap">
+            {filterTabs.map(tab => (
+              <button
+                key={tab.key}
+                onClick={() => setStatusFilter(tab.key)}
+                className={`px-4 py-1.5 rounded-full text-sm font-medium transition-all border ${statusFilter === tab.key
+                  ? 'bg-[var(--brand)] text-white border-[var(--brand)] shadow-md shadow-[var(--brand)]/20'
+                  : 'bg-[var(--bg-elev-1)] text-[var(--text-secondary)] border-[var(--divider)] hover:border-[var(--brand)] hover:text-[var(--text-primary)]'
+                  }`}
+              >
+                {tab.label}
+                <span className={`ml-1.5 text-xs ${statusFilter === tab.key ? 'opacity-80' : 'opacity-60'}`}>({tab.count})</span>
+              </button>
+            ))}
+          </div>
         </div>
 
         {/* Bulk Actions Buttons */}
