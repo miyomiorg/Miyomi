@@ -7,9 +7,6 @@ import { useExtensions } from '../hooks/useExtensions';
 import { ExtensionGridCard } from '../components/ExtensionGridCard';
 import { Skeleton } from '../components/ui/skeleton';
 import { ExtensionListCard } from '../components/ExtensionListCard';
-import { FeedbackPanel } from '../components/FeedbackPanel';
-import { FeedbackTrigger } from '../components/FeedbackTrigger';
-import { useFeedbackState } from '../hooks/useFeedbackState';
 import { AnimatePresence } from 'motion/react';
 import { useLikes } from '../context/LikeContext';
 
@@ -107,7 +104,6 @@ export function ExtensionsPage({ onNavigate }: ExtensionsPageProps) {
 
 
 
-  const { isFeedbackOpen, handleToggle, handleClose } = useFeedbackState();
   const { getLikeData } = useLikes();
   const [highlightedId, setHighlightedId] = useState<string | null>(null);
   const navType = useNavigationType();
@@ -276,21 +272,11 @@ export function ExtensionsPage({ onNavigate }: ExtensionsPageProps) {
           >
             Extensions
           </h1>
-          <FeedbackTrigger isOpen={isFeedbackOpen} onToggle={handleToggle} title="Extensions" />
         </div>
         <p className="text-[var(--text-secondary)] font-['Inter',sans-serif]" style={{ fontSize: '16px' }}>
           Extension repositories and sources for Mihon, Aniyomi, Dantotsu, and compatible apps.
         </p>
       </div>
-
-      {/* Inline Feedback Panel */}
-      <AnimatePresence>
-        {isFeedbackOpen && (
-          <div className="mb-8">
-            <FeedbackPanel page="extensions" onClose={handleClose} />
-          </div>
-        )}
-      </AnimatePresence>
 
       {/* Filters and Search */}
       <div className="grid gap-2 grid-cols-1 md:grid-cols-2 mb-6 sm:mb-8 space-y-4">

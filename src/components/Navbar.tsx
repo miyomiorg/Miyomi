@@ -1,7 +1,8 @@
 "use client";
 
-import { X, ChevronDown, Github, Instagram, Youtube, Facebook, Plus, Search, Menu, Heart, HelpCircle, Info, ArrowUpCircle } from 'lucide-react';
+import { X, ChevronDown, Github, Instagram, Youtube, Facebook, Plus, Search, Menu, Heart, HelpCircle, Info, ArrowUpCircle, MessageSquare } from 'lucide-react';
 import React, { useState, useEffect, useRef } from 'react';
+import { FeedbackPanel } from './FeedbackPanel';
 import { ThemeToggle } from './ThemeToggle';
 import { SearchModal } from './SearchModal';
 import { useSeasonalAsset } from '../hooks/useSeasonalAsset';
@@ -47,6 +48,7 @@ export function Navbar({
   const [pagesDropdownOpen, setPagesDropdownOpen] = useState(false);
   const [guidesDropdownOpen, setGuidesDropdownOpen] = useState(false);
   const [searchModalOpen, setSearchModalOpen] = useState(false);
+  const [isFeedbackOpen, setIsFeedbackOpen] = useState(false);
   const hoverTimeouts = useRef<{ pages: number | null; guides: number | null }>({
     pages: null,
     guides: null,
@@ -171,6 +173,9 @@ export function Navbar({
   return (
     <>
       <SearchModal isOpen={searchModalOpen} onClose={() => setSearchModalOpen(false)} />
+      {isFeedbackOpen && (
+        <FeedbackPanel page="global" onClose={() => setIsFeedbackOpen(false)} />
+      )}
 
       <nav
         className={`h-16 fixed top-0 left-0 right-0 z-[999] transition-all duration-300 ${scrolled
@@ -270,6 +275,18 @@ export function Navbar({
 
             {/* Divider */}
             <div className="w-px h-6 bg-[var(--divider)]"></div>
+
+            {/* Feedback Button */}
+            <button
+              onClick={() => setIsFeedbackOpen(true)}
+              className="p-2 text-[var(--text-secondary)] hover:text-[var(--brand)] transition-colors relative group"
+              aria-label="Feedback"
+            >
+              <MessageSquare className="w-5 h-5" />
+              <span className="absolute -bottom-8 left-1/2 -translate-x-1/2 px-2 py-1 bg-[var(--bg-surface)] border border-[var(--divider)] rounded text-xs text-[var(--text-secondary)] opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap">
+                Feedback
+              </span>
+            </button>
 
             {/* Search Button */}
             <button
@@ -381,6 +398,18 @@ export function Navbar({
             >
               <ArrowUpCircle className="w-5 h-5 opacity-70" />
               <span className="text-sm font-['Inter',sans-serif]">Contribute</span>
+            </button>
+
+            {/* Feedback Link */}
+            <button
+              onClick={() => {
+                setIsFeedbackOpen(true);
+                setMobileMenuOpen(false);
+              }}
+              className="w-full flex items-center gap-3 py-3 px-4 rounded-xl transition-all text-left text-[var(--text-primary)] hover:bg-[var(--bg-elev-1)] hover:text-[var(--brand)]"
+            >
+              <MessageSquare className="w-5 h-5 opacity-70" />
+              <span className="text-sm font-['Inter',sans-serif]">Feedback</span>
             </button>
           </div>
 

@@ -1,6 +1,7 @@
 import { Heart, Compass, Users, Github, ArrowUpRight, Globe2, Sparkles, ScanEye, Mail, MessageCircle, Send, AlertCircle, Code2 } from 'lucide-react';
 import { motion } from 'motion/react';
-import type { ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
+import { FeedbackPanel } from '../components/FeedbackPanel';
 
 interface LinkItem {
   label: string;
@@ -93,8 +94,13 @@ function Card({ children, className = '' }: { children: ReactNode; className?: s
 }
 
 export function AboutPage() {
+  const [isFeedbackOpen, setIsFeedbackOpen] = useState(false);
+
   return (
     <div className="max-w-6xl mx-auto px-4 md:px-6 py-6 md:py-12">
+      {isFeedbackOpen && (
+        <FeedbackPanel page="about" onClose={() => setIsFeedbackOpen(false)} />
+      )}
       {/* HERO */}
       <section className="mb-8 md:mb-12">
         <Chip>About Miyomi</Chip>
@@ -343,10 +349,13 @@ export function AboutPage() {
               <MessageCircle className="h-6 w-6" />
             </div>
             <h3 className="font-semibold">Send Feedback</h3>
-            <p className="text-sm text-[var(--text-secondary)]">Drop suggestions, flag dead links, or submit new sources right from the feedback bubble.</p>
-            <span className="inline-flex items-center gap-1.5 text-[var(--brand)] text-sm mt-2">
-              Tap the chat bubble in the corner to start.
-            </span>
+            <p className="text-sm text-[var(--text-secondary)]">Drop suggestions, flag dead links, or submit new sources.</p>
+            <button
+              onClick={() => setIsFeedbackOpen(true)}
+              className="inline-flex items-center gap-1.5 text-[var(--brand)] hover:underline text-sm mt-2"
+            >
+              Open feedback form <ArrowUpRight className="h-4 w-4" />
+            </button>
           </Card>
           <Card className="text-center">
             <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-[var(--chip-bg)] text-[var(--brand)]">

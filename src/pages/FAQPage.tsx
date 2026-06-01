@@ -2,9 +2,6 @@ import { ChevronDown } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { dataService } from '../services/dataService';
 import type { FAQData } from '../types/data';
-import { FeedbackPanel } from '../components/FeedbackPanel';
-import { FeedbackTrigger } from '../components/FeedbackTrigger';
-import { useFeedbackState } from '../hooks/useFeedbackState';
 import { AnimatePresence } from 'motion/react';
 import { MarkdownRenderer } from '../components/MarkdownRenderer';
 import DOMPurify from 'dompurify';
@@ -14,7 +11,6 @@ marked.setOptions({ breaks: true, gfm: true });
 
 export function FAQPage() {
   const [openIndex, setOpenIndex] = useState<number | null>(0);
-  const { isFeedbackOpen, handleToggle, handleClose } = useFeedbackState();
   const [faqs, setFaqs] = useState<FAQData[]>([]);
 
   useEffect(() => {
@@ -34,20 +30,12 @@ export function FAQPage() {
         >
           FAQs
         </h1>
-        <FeedbackTrigger isOpen={isFeedbackOpen} onToggle={handleToggle} title="FAQ" />
       </div>
       <p className="text-[var(--text-secondary)] font-['Inter',sans-serif] mb-8" style={{ fontSize: '16px' }}>
         Find answers to common questions about apps and extensions.
       </p>
 
-      {/* Inline Feedback Panel */}
-      <AnimatePresence>
-        {isFeedbackOpen && (
-          <div className="mb-8">
-            <FeedbackPanel page="faq" onClose={handleClose} />
-          </div>
-        )}
-      </AnimatePresence>
+      {/* FAQs List */}
 
       <div className="space-y-3">
         {faqs.map((faq, index) => {

@@ -1,5 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import { getCorsHeaders } from "../_shared/cors.ts";
+import { sendTelegramNotification, sanitizeHTML } from "../_shared/notifier.ts";
 
 const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
 const RATE_LIMIT_MAX = 10; // max 10 feedback per IP per hour
@@ -23,13 +24,12 @@ function isRateLimited(ip: string): boolean {
 }
 
 interface FeedbackRequest {
-    type: string;
     message: string;
     page: string;
     timestamp: string;
 }
 
-Deno.serve(async (req) => {
+Deno.serve(async (req: Request) => {
     const corsHeaders = getCorsHeaders(req);
 
     if (req.method === "OPTIONS") {
@@ -61,17 +61,9 @@ Deno.serve(async (req) => {
 
         const body: FeedbackRequest = await req.json();
 
-        if (!body.message || !body.type) {
+        if (!body.message) {
             return new Response(
                 JSON.stringify({ error: "Missing required fields" }),
-                { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-            );
-        }
-
-        const allowedTypes = ["submit", "update", "report", "suggest", "love", "other"];
-        if (!allowedTypes.includes(body.type)) {
-            return new Response(
-                JSON.stringify({ error: "Invalid feedback type" }),
                 { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
             );
         }
@@ -83,86 +75,20 @@ Deno.serve(async (req) => {
             );
         }
 
-        const { data: botTokenSetting } = await supabase
-            .from("settings")
-            .select("value")
-            .eq("key", "telegram_bot_token")
-            .single();
-
-        const { data: chatIdsSetting } = await supabase
-            .from("settings")
-            .select("value")
-            .eq("key", "telegram_chat_ids")
-            .single();
-
-        let botToken = Deno.env.get("TELEGRAM_BOT_TOKEN") || "";
-        let chatIds: string[] = [];
-
-        if (botTokenSetting?.value && typeof botTokenSetting.value === "string" && botTokenSetting.value.trim() !== "") {
-            botToken = botTokenSetting.value;
-        }
-
-        if (chatIdsSetting?.value && Array.isArray(chatIdsSetting.value) && chatIdsSetting.value.length > 0) {
-            chatIds = chatIdsSetting.value;
-        } else {
-            const envChatId = Deno.env.get("TELEGRAM_CHAT_ID");
-            if (envChatId) {
-                chatIds = [envChatId];
-            }
-        }
-
-        if (!botToken || chatIds.length === 0) {
-            console.error("Telegram not configured: token or chat IDs missing");
-            return new Response(
-                JSON.stringify({ error: "Feedback service not configured" }),
-                { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-            );
-        }
-
-        const emojiMap: Record<string, string> = {
-            submit: "➕",
-            update: "❗",
-            report: "❌",
-            suggest: "💡",
-            love: "❤️",
-            other: "💬",
-        };
-
-        const emoji = emojiMap[body.type] || "💬";
-        const typeLabel = body.type.charAt(0).toUpperCase() + body.type.slice(1);
-
-        const sanitize = (str: string) => str.replace(/[<>&]/g, (c) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;' }[c] || c));
-
         const telegramMessage = `
-${emoji} <b>New Feedback - Miyomi</b>
+💬 <b>New Feedback - Miyomi</b>
 
-<b>Type:</b> ${sanitize(typeLabel)}
-<b>Page:</b> ${sanitize(body.page || "unknown")}
+<b>Page:</b> ${sanitizeHTML(body.page || "unknown")}
 <b>Time:</b> ${new Date(body.timestamp).toLocaleString()}
 
 <b>Message:</b>
-${sanitize(body.message)}
+${sanitizeHTML(body.message)}
     `.trim();
 
-        const telegramUrl = `https://api.telegram.org/bot${botToken}/sendMessage`;
-
-        const sendPromises = chatIds.map((chatId: string) =>
-            fetch(telegramUrl, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    chat_id: chatId,
-                    text: telegramMessage,
-                    parse_mode: "HTML",
-                }),
-            })
-        );
-
-        const results = await Promise.allSettled(sendPromises);
-
-        const allFailed = results.every((r) => r.status === "rejected");
-        if (allFailed) {
-            console.error("All Telegram sends failed");
+        const success = await sendTelegramNotification(supabase, telegramMessage);
+        
+        if (!success) {
+            console.error("Failed to send telegram feedback notification.");
             return new Response(
                 JSON.stringify({ error: "Failed to send feedback" }),
                 { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }

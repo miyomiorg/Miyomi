@@ -256,21 +256,11 @@ export function SoftwarePage({ onNavigate }: SoftwarePageProps) {
           >
             Software
           </h1>
-          <FeedbackTrigger isOpen={isFeedbackOpen} onToggle={handleToggle} title="Software" />
         </div>
         <p className="text-[var(--text-secondary)] font-['Inter',sans-serif]" style={{ fontSize: '16px' }}>
           Apps and software for reading manga, watching anime, and more across all platforms.
         </p>
       </div>
-
-      {/* Inline Feedback Panel */}
-      <AnimatePresence>
-        {isFeedbackOpen && (
-          <div className="mb-8">
-            <FeedbackPanel page="software" onClose={handleClose} />
-          </div>
-        )}
-      </AnimatePresence>
 
       {/* Filters and Search */}
       <div className="grid gap-2 grid-cols-1 md:grid-cols-2 mb-6 sm:mb-8 space-y-4">

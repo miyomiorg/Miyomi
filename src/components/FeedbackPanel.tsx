@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { X, Send } from 'lucide-react';
-import { motion } from 'motion/react';
+import { X, Send, Smile } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
 import { toast } from 'sonner';
 
 interface FeedbackPanelProps {
@@ -11,6 +11,7 @@ interface FeedbackPanelProps {
 export function FeedbackPanel({ page, onClose }: FeedbackPanelProps) {
   const [message, setMessage] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSuccess, setIsSuccess] = useState(false);
 
   const handleSubmit = async () => {
     if (!message.trim()) {
@@ -31,7 +32,6 @@ export function FeedbackPanel({ page, onClose }: FeedbackPanelProps) {
           'apikey': supabaseAnonKey,
         },
         body: JSON.stringify({
-          type: 'general',
           message: message.trim(),
           page,
           timestamp: new Date().toISOString(),
@@ -39,9 +39,12 @@ export function FeedbackPanel({ page, onClose }: FeedbackPanelProps) {
       });
 
       if (response.ok) {
-        toast.success('Thank you for your feedback!');
-        setMessage('');
-        onClose();
+        setIsSuccess(true);
+        setTimeout(() => {
+          setIsSuccess(false);
+          setMessage('');
+          onClose();
+        }, 3000);
       } else {
         toast.error('Failed to send feedback. Please try again.');
       }
@@ -54,15 +57,50 @@ export function FeedbackPanel({ page, onClose }: FeedbackPanelProps) {
   };
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: 8 }}
-      transition={{ duration: 0.2 }}
-      className="mx-auto w-full max-w-3xl"
-    >
-      <div className="rounded-2xl border border-[var(--divider)] bg-[var(--bg-surface)] p-5 shadow-[0_8px_20px_rgba(0,0,0,0.12)] sm:p-6">
-        <div className="mb-5 flex items-start justify-between gap-4">
+    <AnimatePresence>
+      <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
+        {/* Blurry Backdrop */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          onClick={() => {
+            if (!isSubmitting) {
+              setMessage('');
+              onClose();
+            }
+          }}
+          className="fixed inset-0 bg-black/40 backdrop-blur-sm"
+        />
+
+        {/* Modal Content */}
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95, y: 10 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          exit={{ opacity: 0, scale: 0.95, y: 10 }}
+          transition={{ duration: 0.2, type: 'spring', bounce: 0.25 }}
+          className="relative w-full max-w-lg z-10"
+        >
+          <div className="rounded-2xl border border-[var(--divider)] bg-[var(--bg-surface)] p-6 shadow-2xl overflow-hidden">
+            {isSuccess ? (
+              <motion.div 
+                initial={{ opacity: 0, scale: 0.9 }} 
+                animate={{ opacity: 1, scale: 1 }}
+                className="flex flex-col items-center justify-center py-10 text-center"
+              >
+                <div className="w-16 h-16 rounded-full bg-green-500/10 flex items-center justify-center mb-4 text-green-500">
+                  <Smile className="w-8 h-8" />
+                </div>
+                <h3 className="text-xl font-bold font-['Poppins',sans-serif] text-[var(--text-primary)] mb-2">
+                  Thank you!
+                </h3>
+                <p className="text-[var(--text-secondary)] font-['Inter',sans-serif]">
+                  Your feedback helps us improve Miyomi for everyone.
+                </p>
+              </motion.div>
+            ) : (
+              <>
+                <div className="mb-5 flex items-start justify-between gap-4">
           <div>
             <p className="font-['Inter',sans-serif] text-xs uppercase tracking-[0.3em] text-[var(--text-secondary)]">
               Feedback
@@ -118,9 +156,13 @@ export function FeedbackPanel({ page, onClose }: FeedbackPanelProps) {
               {isSubmitting ? 'Sending...' : 'Send Feedback'}
               <Send className="h-4 w-4 ml-2" />
             </button>
+                </div>
+              </div>
+            </>
+          )}
           </div>
-        </div>
+        </motion.div>
       </div>
-    </motion.div>
+    </AnimatePresence>
   );
 }

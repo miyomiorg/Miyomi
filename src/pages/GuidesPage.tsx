@@ -4,9 +4,6 @@ import { useLocation, useNavigationType } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { dataService } from '../services/dataService';
 import type { GuideCategoryData } from '../types/data';
-import { FeedbackPanel } from '../components/FeedbackPanel';
-import { FeedbackTrigger } from '../components/FeedbackTrigger';
-import { useFeedbackState } from '../hooks/useFeedbackState';
 import { DevBanner } from '@/components/DevBanner';
 
 interface GuidesPageProps {
@@ -19,7 +16,6 @@ export function GuidesPage({ onNavigate }: GuidesPageProps) {
   const location = useLocation();
   const navigationType = useNavigationType();
   const scrollContainerRef = useRef<HTMLDivElement>(null);
-  const { isFeedbackOpen, handleToggle, handleClose } = useFeedbackState();
   const [guideCategories, setGuideCategories] = useState<GuideCategoryData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -192,7 +188,6 @@ export function GuidesPage({ onNavigate }: GuidesPageProps) {
           >
             Guides
           </h1>
-          <FeedbackTrigger isOpen={isFeedbackOpen} onToggle={handleToggle} title="Guides" />
         </div>
 
         <p className="text-[var(--text-secondary)] font-['Inter',sans-serif] mb-6" style={{ fontSize: '17px', lineHeight: '1.6' }}>
@@ -246,15 +241,6 @@ export function GuidesPage({ onNavigate }: GuidesPageProps) {
           </div>
         </div>
       </div>
-
-      {/* Inline Feedback Panel */}
-      <AnimatePresence>
-        {isFeedbackOpen && (
-          <div className="mb-8">
-            <FeedbackPanel page="guides" onClose={handleClose} />
-          </div>
-        )}
-      </AnimatePresence>
 
       {/* Guide Categories */}
       <div className="space-y-4 mb-12">

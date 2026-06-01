@@ -1,7 +1,8 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import { getCorsHeaders } from "../_shared/cors.ts";
+import { sendTelegramNotification, sanitizeHTML } from "../_shared/notifier.ts";
 
-Deno.serve(async (req) => {
+Deno.serve(async (req: Request) => {
   const corsHeaders = getCorsHeaders(req);
 
   if (req.method === "OPTIONS") {
@@ -89,7 +90,7 @@ Deno.serve(async (req) => {
         .limit(5);
 
       if (matches && matches.length > 0) {
-        duplicateResults = matches.map((m) => ({
+        duplicateResults = matches.map((m: any) => ({
           id: m.slug || m.id,
           name: m.name,
         }));
@@ -118,6 +119,26 @@ Deno.serve(async (req) => {
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
+
+    const typeLabel = submissionType === "app" ? "App" : "Extension";
+    const nameStr = sanitizeHTML(submittedData.name || "Unknown");
+    const authorStr = sanitizeHTML(submittedData.author || "Unknown");
+
+    const telegramMessage = `
+🚀 <b>New ${typeLabel} Submission - Miyomi</b>
+
+<b>Name:</b> ${nameStr}
+<b>Author:</b> ${authorStr}
+<b>Submitter Name:</b> ${sanitizeHTML(submitterName || "Anonymous")}
+<b>Time:</b> ${new Date().toLocaleString()}
+
+Please review this submission in the admin dashboard.
+    `.trim();
+
+    // Fire and forget the telegram notification so we don't delay the user
+    sendTelegramNotification(supabase, telegramMessage).catch(err => {
+      console.error("Error sending submission telegram alert:", err);
+    });
 
     return new Response(
       JSON.stringify({
