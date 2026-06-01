@@ -13,21 +13,15 @@ const tagColors = {
 export function TagBadge({ tag, mobile = false }: TagBadgeProps) {
   const colors = tagColors[tag] || tagColors['Multi']; // Fallback
 
-  const getShortText = () => {
-    if (!mobile) return tag;
+  const shortTag = (() => {
     switch (tag) {
-      case 'Anime':
-        return 'A';
-      case 'Manga':
-        return 'M';
-      case 'Light Novel':
-        return 'LN';
-      case 'Multi':
-        return 'All';
-      default:
-        return tag;
+      case 'Anime': return 'A';
+      case 'Manga': return 'M';
+      case 'Light Novel': return 'LN';
+      case 'Multi': return 'All';
+      default: return tag;
     }
-  };
+  })();
 
   return (
     <span
@@ -38,7 +32,8 @@ export function TagBadge({ tag, mobile = false }: TagBadgeProps) {
         fontWeight: 500,
       }}
     >
-      {getShortText()}
+      <span className="sm:hidden">{shortTag}</span>
+      <span className="hidden sm:inline">{tag}</span>
     </span>
   );
 }
