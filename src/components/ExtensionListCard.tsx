@@ -6,6 +6,7 @@ import { FlagDisplay } from './FlagDisplay';
 import { useAccentColor } from '../hooks/useAccentColor';
 import { LoveButton } from './LoveButton';
 import { AppLogo } from './AppLogo';
+import { TagBadge } from './TagBadge';
 
 interface ExtensionListCardProps {
   extension: ExtensionData;
@@ -50,17 +51,19 @@ export function ExtensionListCard({ extension, isHighlighted, onSelect }: Extens
           {extension.name}
         </h3>
 
-        <div className="flex items-center gap-2 text-xs text-[var(--text-secondary)] mb-1">
-          <FlagDisplay region={extension.language || extension.region || ''} size="small" />
-          <span className="text-[var(--divider)]">|</span>
-          <span className="font-['Inter',sans-serif] tracking-wide text-[11px]" style={{ fontWeight: 600 }}>
-            {extension.types.join(' + ')}
-          </span>
+        <div className="flex flex-wrap items-center gap-1.5 mb-1">
+          {extension.types.map((tag, index) => (
+            <React.Fragment key={index}>
+              <TagBadge tag={tag} />
+            </React.Fragment>
+          ))}
+          {extension.types.length > 0 && <span className="h-4 w-px bg-[var(--divider)]" aria-hidden="true"></span>}
+          <FlagDisplay region={extension.language || (extension as any).region || ''} size="small" />
         </div>
 
-        {(extension.info || extension.shortDescription) && (
+        {(extension.shortDescription || extension.info) && (
           <p className="text-[var(--text-secondary)] font-['Inter',sans-serif] text-xs line-clamp-1">
-            {extension.info || extension.shortDescription}
+            {extension.shortDescription || extension.info}
           </p>
         )}
       </div>

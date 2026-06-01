@@ -55,9 +55,8 @@ export function FlagDisplay({ region, size = 'medium', className = '' }: FlagDis
   // Handle ALL/Global region
   if (countryCodes.includes('all')) {
     return (
-      <span className={`inline-flex items-center gap-1 text-sm ${className}`}>
+      <span className={`inline-flex items-center gap-1 text-sm ${className}`} title="Global">
         <Globe className="w-4 h-4 text-[var(--text-secondary)]" />
-        <span className="text-[var(--text-secondary)]">Global</span>
       </span>
     );
   }

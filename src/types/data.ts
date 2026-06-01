@@ -1,6 +1,6 @@
 
 
-export type ContentType = 'Manga' | 'Anime' | 'Light Novel';
+export type ContentType = 'Manga' | 'Anime' | 'Light Novel' | 'Novel' | 'Movie' | 'Comics' | 'Webtoon' | 'Multi' | (string & {});
 export type Platform = 'Android' | 'iOS' | 'Windows' | 'Mac' | 'Linux' | 'Web';
 export type CommunityPlatform = 'Discord' | 'GitHub' | 'Reddit' | 'Telegram' | 'Matrix';
 export type WebsiteCategory = 'Manga' | 'Anime' | 'Light Novel' | 'Tracker' | 'Community';

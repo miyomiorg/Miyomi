@@ -1,11 +1,12 @@
+import React, { useState } from 'react';
 import { Download, Info, ExternalLink } from 'lucide-react';
 import { motion } from 'motion/react';
 import type { ExtensionData } from '../types/data';
 import { FlagDisplay } from './FlagDisplay';
 import { StarRating } from './StarRating';
 import { useAccentColor } from '../hooks/useAccentColor';
-import { useState } from 'react';
 import { LoveButton } from './LoveButton';
+import { TagBadge } from './TagBadge';
 
 interface ExtensionGridCardProps {
   key?: string | number;
@@ -72,20 +73,23 @@ export function ExtensionGridCard({ extension, isHighlighted, onSelect }: Extens
           >
             {extension.name}
           </h3>
-          <div className="text-xs text-[var(--text-secondary)] flex items-center justify-center sm:justify-start gap-1.5 mb-1">
-            <FlagDisplay region={extension.language || extension.region || ''} size="small" />
-          </div>
-          <div className="text-xs text-[var(--text-secondary)] flex items-center justify-center sm:justify-start gap-1">
-            <span>{extension.types.join(' + ')}</span>
+          <div className="flex items-center justify-center sm:justify-start gap-1.5 flex-wrap mb-1">
+            {extension.types.map((tag, index) => (
+              <React.Fragment key={index}>
+                <TagBadge tag={tag} />
+              </React.Fragment>
+            ))}
+            {extension.types.length > 0 && <span className="h-4 w-px bg-[var(--divider)]" aria-hidden="true"></span>}
+            <FlagDisplay region={extension.language || (extension as any).region || ''} size="small" />
           </div>
         </div>
       </div>
 
 
-      {extension.info && (
+      {(extension.shortDescription || extension.info) && (
         <div className="flex-grow">
           <p className="text-sm text-[var(--text-secondary)] font-['Inter',sans-serif] line-clamp-2 mb-2 sm:mb-4 text-center sm:text-left overflow-hidden" style={{ fontSize: '12px', lineHeight: '1.5', maxHeight: '3em' }}>
-            {extension.info}
+            {extension.shortDescription || extension.info}
           </p>
         </div>
       )}
@@ -99,10 +103,10 @@ export function ExtensionGridCard({ extension, isHighlighted, onSelect }: Extens
             event.stopPropagation();
             handleSelect();
           }}
-          className="flex items-center gap-1.5 text-xs font-semibold text-[var(--text-secondary)] hover:text-[var(--brand)] transition-colors px-2 py-1"
+          className="flex items-center justify-center text-xs font-semibold text-[var(--text-secondary)] hover:text-[var(--brand)] transition-colors p-1.5 rounded-md hover:bg-[var(--divider)]"
+          title="View Details"
         >
-          <span>View Details</span>
-          <ExternalLink className="w-3 h-3" />
+          <ExternalLink className="w-4 h-4" />
         </button>
       </div>
     </motion.div>

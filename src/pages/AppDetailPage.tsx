@@ -434,13 +434,17 @@ export function AppDetailPage({ appId, onNavigate }: AppDetailPageProps) {
             {/* Tags and Platforms */}
             <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-2">
               {app.contentTypes.map((tag, index) => (
-                <TagBadge key={index} tag={tag} />
+                <React.Fragment key={index}>
+                  <TagBadge tag={tag} forceFull />
+                </React.Fragment>
               ))}
               {(app.contentTypes.length > 0 && app.platforms.length > 0) && (
                 <div className="h-4 w-px bg-[var(--divider)] mx-1"></div>
               )}
               {app.platforms.map((platform, index) => (
-                <PlatformBadge key={index} platform={platform} />
+                <React.Fragment key={`${platform}-${index}`}>
+                  <PlatformBadge platform={platform} />
+                </React.Fragment>
               ))}
             </div>
 

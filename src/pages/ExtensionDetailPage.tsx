@@ -11,6 +11,7 @@ import { FlagDisplay } from '../components/FlagDisplay';
 import { useAccentColor } from '../hooks/useAccentColor';
 import { LoveButton } from '../components/LoveButton';
 import { useExtension } from '../hooks/useExtension';
+import { TagBadge } from '../components/TagBadge';
 import { useAppMeta } from '../hooks/useAppMeta';
 import { Skeleton } from '../components/ui/skeleton';
 import { PlatformIcon } from '../components/admin/CommunityUrlInput';
@@ -438,35 +439,19 @@ export function ExtensionDetailPage({ extensionId, onNavigate }: ExtensionDetail
 
             {/* Types Chips */}
             {/* Types & Region */}
-            <div className="flex flex-wrap items-center justify-center gap-2">
-              {extension.types.map((type, index) => (
-                <span
-                  key={index}
-                  className="rounded-full bg-[var(--chip-bg)] px-3 py-1 font-['Inter',sans-serif] text-[var(--text-primary)] border border-[var(--divider)]"
-                  style={{ fontWeight: 600, fontSize: '13px' }}
-                >
-                  {type}
-                </span>
+            <div className="flex flex-wrap items-center justify-center gap-1.5">
+              {extension.types.map((tag, index) => (
+                <React.Fragment key={index}>
+                  <TagBadge tag={tag} forceFull />
+                </React.Fragment>
               ))}
 
               {extension.types.length > 0 && (
-                <span className="text-[var(--text-tertiary)] opacity-50 mx-1">|</span>
+                <span className="h-5 w-px bg-[var(--divider)] mx-1" aria-hidden="true"></span>
               )}
 
-              <div
-                className="rounded-full bg-[var(--chip-bg)] px-3 py-1 font-['Inter',sans-serif] text-[var(--text-primary)] border border-[var(--divider)] flex items-center gap-1.5"
-                style={{ fontWeight: 600, fontSize: '13px' }}
-              >
-                {(!(extension.language || extension.region) || (extension.language || extension.region)?.toLowerCase() === 'all' || (extension.language || extension.region)?.toLowerCase() === 'global') ? (
-                  <>
-                    <Globe className="w-3.5 h-3.5" />
-                    <span>Global</span>
-                  </>
-                ) : (
-                  <>
-                    <FlagDisplay region={extension.language || extension.region || ''} size="small" />
-                  </>
-                )}
+              <div className="flex items-center">
+                <FlagDisplay region={extension.language || (extension as any).region || ''} size="medium" />
               </div>
             </div>
 
