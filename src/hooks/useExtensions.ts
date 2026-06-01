@@ -15,12 +15,13 @@ export function useExtensions(): { extensions: ExtensionData[]; loading: boolean
             id: ext.id,
             slug: ext.slug,
             name: ext.name,
-            info: ext.info || '',
+            info: ext.short_description || ext.description || '',
+            shortDescription: ext.short_description,
             logoUrl: ext.icon_url,
-            types: ext.types || [],
+            types: ext.types || ext.tags || [],
             region: ext.region || 'Global',
             language: ext.language || '',
-            accentColor: ext.accent_color,
+            accentColor: ext.accent_color || ext.icon_color,
             autoUrl: ext.auto_url,
             manualUrl: ext.manual_url,
             installUrls: (() => {
@@ -38,8 +39,13 @@ export function useExtensions(): { extensions: ExtensionData[]; loading: boolean
             overview: ext.description || undefined,
             github: ext.repo_url,
             website: ext.source_url || undefined,
-            keywords: [],
-            tutorials: [],
+            keywords: ext.tags || [],
+            tutorials: Array.isArray(ext.tutorials) ? ext.tutorials : [],
+            socialUrls: (Array.isArray(ext.social_urls) && ext.social_urls.length > 0)
+                ? ext.social_urls.filter((u: string) => u)
+                : (ext.discord_url ? [ext.discord_url] : []),
+            rating: 0,
+            downloadCount: ext.download_count || 0,
             likes: ext.likes_count || 0,
             createdAt: ext.created_at || undefined
         }));
