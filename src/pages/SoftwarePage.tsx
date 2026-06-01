@@ -51,8 +51,13 @@ export function SoftwarePage({ onNavigate }: SoftwarePageProps) {
   const [view, setView] = useState<'grid' | 'list'>(() => {
     if (typeof window === 'undefined') return 'grid';
     const v = new URLSearchParams(window.location.search).get('view');
-    return (v === 'grid' || v === 'list') ? v : 'grid';
+    if (v === 'grid' || v === 'list') return v;
+    return (localStorage.getItem('miyomi_view_mode') as 'grid' | 'list') || 'grid';
   });
+
+  useEffect(() => {
+    localStorage.setItem('miyomi_view_mode', view);
+  }, [view]);
 
   const [sortBy, setSortBy] = useState<SortOption>(() => {
     if (typeof window === 'undefined') return 'name-asc';
