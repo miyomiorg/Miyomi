@@ -1,6 +1,6 @@
 "use client";
 
-import { X, ChevronDown, Github, Instagram, Youtube, Facebook, Plus, Search, Menu, Heart } from 'lucide-react';
+import { X, ChevronDown, Github, Instagram, Youtube, Facebook, Plus, Search, Menu, Heart, HelpCircle, Info, ArrowUpCircle } from 'lucide-react';
 import React, { useState, useEffect, useRef } from 'react';
 import { ThemeToggle } from './ThemeToggle';
 import { SearchModal } from './SearchModal';
@@ -19,6 +19,8 @@ import { DiscordIcon } from './DiscordIcon';
 
 interface NavbarProps {
   onNavigate?: (path: string) => void;
+  mobileMenuOpen?: boolean;
+  setMobileMenuOpen?: (open: boolean) => void;
 }
 
 function NavbarParticles() {
@@ -31,8 +33,15 @@ function NavbarParticles() {
   }
 }
 
-export function Navbar({ onNavigate }: NavbarProps) {
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+export function Navbar({
+  onNavigate,
+  mobileMenuOpen: propsMobileMenuOpen,
+  setMobileMenuOpen: propsSetMobileMenuOpen,
+}: NavbarProps) {
+  const [localMobileMenuOpen, localSetMobileMenuOpen] = useState(false);
+  const mobileMenuOpen = propsMobileMenuOpen !== undefined ? propsMobileMenuOpen : localMobileMenuOpen;
+  const setMobileMenuOpen = propsSetMobileMenuOpen !== undefined ? propsSetMobileMenuOpen : localSetMobileMenuOpen;
+
   const [scrolled, setScrolled] = useState(false);
   const [expandedSection, setExpandedSection] = useState<string | null>(null);
   const [pagesDropdownOpen, setPagesDropdownOpen] = useState(false);
@@ -292,172 +301,116 @@ export function Navbar({ onNavigate }: NavbarProps) {
 
           {/* Mobile Actions */}
           <div className="md:hidden flex items-center gap-2">
-            {/* Search Button */}
-            <button
-              onClick={() => setSearchModalOpen(true)}
-              className="p-2 text-[var(--text-secondary)] hover:text-[var(--brand)] transition-colors"
-              aria-label="Search"
-            >
-              <Search className="w-5 h-5" />
-            </button>
-
-            {/* Mobile Menu Button */}
-            <button
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="p-2 text-[var(--text-primary)] transition-colors"
-              aria-label="Toggle menu"
-            >
-              {mobileMenuOpen ? (
-                <X className="w-6 h-6" />
-              ) : (
-                <Menu className="w-6 h-6" />
-              )}
-            </button>
+            <ThemeToggle />
           </div>
         </div>
       </nav>
 
       {/* Mobile Menu Overlay (Backdrop) */}
       <div
-        className={`fixed inset-0 top-16 z-[997] md:hidden transition-all duration-300 ${mobileMenuOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
+        className={`fixed inset-0 z-[997] md:hidden transition-opacity duration-300 ${mobileMenuOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
           }`}
         style={{
-          backgroundColor: 'rgba(0,0,0,0.2)',
-          backdropFilter: 'blur(10px)',
-          WebkitBackdropFilter: 'blur(10px)',
+          backgroundColor: 'rgba(0,0,0,0.4)',
+          backdropFilter: 'blur(4px)',
+          WebkitBackdropFilter: 'blur(4px)',
         }}
         onClick={() => setMobileMenuOpen(false)}
       />
 
-      {/* Mobile Menu Dropdown (Content) */}
+      {/* Mobile Menu Drawer (Slide-in from Bottom) */}
       <div
-        className={`fixed top-16 left-0 right-0 z-[998] md:hidden bg-[var(--bg-page)]/95 backdrop-blur-xl border-b border-[var(--divider)] shadow-lg transition-all duration-300 origin-top ${mobileMenuOpen ? 'translate-y-0 opacity-100 scale-y-100' : '-translate-y-4 opacity-0 scale-y-95 pointer-events-none'
-          }`}
+        className={`fixed left-0 right-0 bottom-0 max-h-[80vh] w-full z-[998] md:hidden bg-[var(--bg-page)]/95 backdrop-blur-xl border-t border-[var(--divider)]/50 shadow-2xl rounded-t-3xl flex flex-col transition-transform duration-300 ease-in-out ${
+          mobileMenuOpen ? 'translate-y-0' : 'translate-y-full'
+        }`}
       >
-        <div className="max-h-[calc(100vh-5rem)] overflow-y-auto w-full">
-          <div className="px-6 py-6 max-w-lg mx-auto">
-            {/* Pages Section */}
-            <div className="mb-3">
-              <button
-                onClick={() => toggleSection('pages')}
-                className="w-full flex items-center justify-between py-2.5 text-[var(--text-primary)] font-['Inter',sans-serif]"
-                style={{ fontWeight: 500 }}
-              >
-                <span>Pages</span>
-                <Plus
-                  className={`w-5 h-5 transition-transform duration-200 ${expandedSection === 'pages' ? 'rotate-45' : ''
-                    }`}
-                />
-              </button>
-              <div
-                className={`overflow-hidden transition-all duration-200 ${expandedSection === 'pages' ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'
-                  }`}
-              >
-                <div className="space-y-0.5 mt-2">
-                  {mainNavItems.map((item) => (
-                    <button
-                      key={item.path}
-                      onClick={() => handleClick(item.path)}
-                      className={`w-full text-left py-2 px-4 pl-8 rounded-lg transition-colors ${isActive(item.path)
-                        ? 'text-[var(--brand)] bg-[var(--chip-bg)]'
-                        : 'text-[var(--text-secondary)] hover:bg-[var(--bg-elev-1)]'
-                        }`}
-                      style={{ fontWeight: isActive(item.path) ? 600 : 400 }}
-                    >
-                      {item.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-              <div className="border-b border-[var(--divider)] mt-3"></div>
-            </div>
+        {/* Drawer Header */}
+        <div className="pt-6 pb-4 px-6 border-b border-[var(--divider)]/50 flex items-center justify-between">
+          <span className="text-[var(--brand)] font-['Poppins',sans-serif] text-lg font-semibold">
+            Menu
+          </span>
+          <button
+            onClick={() => setMobileMenuOpen(false)}
+            className="p-2 text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors focus:outline-none cursor-pointer"
+            aria-label="Close menu"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
 
-            {/* Guides Section */}
-            <div className="mb-3">
-              <button
-                onClick={() => toggleSection('guides')}
-                className="w-full flex items-center justify-between py-2.5 text-[var(--text-primary)] font-['Inter',sans-serif]"
-                style={{ fontWeight: 500 }}
-              >
-                <span>Guides</span>
-                <Plus
-                  className={`w-5 h-5 transition-transform duration-200 ${expandedSection === 'guides' ? 'rotate-45' : ''
-                    }`}
-                />
-              </button>
-              <div
-                className={`overflow-hidden transition-all duration-200 ${expandedSection === 'guides' ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'
-                  }`}
-              >
-                <div className="space-y-0.5 mt-2">
-                  {guidesNavItems.map((item) => (
-                    <button
-                      key={item.path}
-                      onClick={() => handleClick(item.path)}
-                      className={`w-full text-left py-2 px-4 pl-8 rounded-lg transition-colors ${isActive(item.path)
-                        ? 'text-[var(--brand)] bg-[var(--chip-bg)]'
-                        : 'text-[var(--text-secondary)] hover:bg-[var(--bg-elev-1)]'
-                        }`}
-                      style={{ fontWeight: isActive(item.path) ? 600 : 400 }}
-                    >
-                      {item.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-              <div className="border-b border-[var(--divider)] mt-3"></div>
-            </div>
+        {/* Drawer Content */}
+        <div className="flex-1 overflow-y-auto px-6 pt-6 pb-24 space-y-6">
+          <div className="space-y-1">
+            {/* FAQ Link */}
+            <button
+              onClick={() => handleClick('/faq')}
+              className={`w-full flex items-center gap-3 py-3 px-4 rounded-xl transition-all text-left ${
+                isActive('/faq')
+                  ? 'text-[var(--brand)] bg-[var(--chip-bg)] font-semibold'
+                  : 'text-[var(--text-primary)] hover:bg-[var(--bg-elev-1)] hover:text-[var(--brand)]'
+              }`}
+            >
+              <HelpCircle className="w-5 h-5 opacity-70" />
+              <span className="text-sm font-['Inter',sans-serif]">FAQ</span>
+            </button>
+
+            {/* About Link */}
+            <button
+              onClick={() => handleClick('/about')}
+              className={`w-full flex items-center gap-3 py-3 px-4 rounded-xl transition-all text-left ${
+                isActive('/about')
+                  ? 'text-[var(--brand)] bg-[var(--chip-bg)] font-semibold'
+                  : 'text-[var(--text-primary)] hover:bg-[var(--bg-elev-1)] hover:text-[var(--brand)]'
+              }`}
+            >
+              <Info className="w-5 h-5 opacity-70" />
+              <span className="text-sm font-['Inter',sans-serif]">About</span>
+            </button>
 
             {/* Contribute Link */}
-            <div className="mb-3">
-              <button
-                onClick={() => handleClick('/contribute')}
-                className={`w-full text-left py-2.5 text-[var(--text-primary)] font-['Inter',sans-serif] flex justify-between items-center ${isActive('/contribute') ? 'text-[var(--brand)] font-medium' : 'hover:text-[var(--brand)]'}`}
-                style={{ fontWeight: 500 }}
-              >
-                Contribute
-              </button>
-              <div className="border-b border-[var(--divider)] mt-3"></div>
-            </div>
+            <button
+              onClick={() => handleClick('/contribute')}
+              className={`w-full flex items-center gap-3 py-3 px-4 rounded-xl transition-all text-left ${
+                isActive('/contribute')
+                  ? 'text-[var(--brand)] bg-[var(--chip-bg)] font-semibold'
+                  : 'text-[var(--text-primary)] hover:bg-[var(--bg-elev-1)] hover:text-[var(--brand)]'
+              }`}
+            >
+              <ArrowUpCircle className="w-5 h-5 opacity-70" />
+              <span className="text-sm font-['Inter',sans-serif]">Contribute</span>
+            </button>
+          </div>
 
-            {/* Donate Link — highlighted in mobile */}
-            <div className="mb-3">
-              <button
-                onClick={() => handleClick('/donate')}
-                className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-gradient-to-r from-pink-500 to-rose-500 text-white font-medium font-['Inter',sans-serif] hover:shadow-lg transition-all"
-              >
-                <Heart className="w-4 h-4 fill-current" />
-                Support Miyomi
-              </button>
-              <div className="border-b border-[var(--divider)] mt-3"></div>
-            </div>
+          {/* Support Miyomi Button */}
+          <div>
+            <button
+              onClick={() => handleClick('/donate')}
+              className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-gradient-to-r from-pink-500 to-rose-500 text-white font-medium font-['Inter',sans-serif] hover:shadow-lg transition-all cursor-pointer"
+            >
+              <Heart className="w-4 h-4 fill-current" />
+              Support Miyomi
+            </button>
+          </div>
 
-            {/* Appearance Section */}
-            <div className="mb-4">
-              <div className="flex items-center justify-between py-2.5">
-                <span className="text-[var(--text-primary)] font-['Inter',sans-serif]" style={{ fontWeight: 500 }}>
-                  appearance
-                </span>
-                <ThemeToggle />
-              </div>
-            </div>
-
-            {/* Social Icons */}
-            <div className="pt-3 border-t border-[var(--divider)]">
-              <div className="flex items-center justify-center gap-4">
-                {socialLinks.map((social, index) => (
-                  <a
-                    key={index}
-                    href={social.link}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="p-2.5 text-[var(--text-secondary)] hover:text-[var(--brand)] transition-colors"
-                    aria-label={social.label}
-                  >
-                    {social.icon}
-                  </a>
-                ))}
-              </div>
+          {/* Socials section */}
+          <div className="pt-6 border-t border-[var(--divider)]/50">
+            <h4 className="text-xs font-semibold text-[var(--text-secondary)] mb-3 uppercase tracking-wider">
+              Join Our Community
+            </h4>
+            <div className="flex flex-wrap gap-2">
+              {socialLinks.map((social, index) => (
+                <a
+                  key={index}
+                  href={social.link}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="p-2.5 bg-[var(--bg-surface)] hover:bg-[var(--chip-bg)] border border-[var(--divider)] hover:border-[var(--brand)] text-[var(--text-secondary)] hover:text-[var(--brand)] rounded-xl transition-all flex items-center justify-center flex-1"
+                  aria-label={social.label}
+                  title={social.label}
+                >
+                  {React.cloneElement(social.icon, { className: 'w-5 h-5' })}
+                </a>
+              ))}
             </div>
           </div>
         </div>
