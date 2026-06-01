@@ -246,7 +246,9 @@ export function ExtensionDetailPage({ extensionId, onNavigate }: ExtensionDetail
       Icon: any;
     }[];
 
-    if (quickLinks.length === 0) {
+    const hasSocialUrls = extension.socialUrls && extension.socialUrls.length > 0;
+
+    if (quickLinks.length === 0 && !hasSocialUrls) {
       return null;
     }
 
