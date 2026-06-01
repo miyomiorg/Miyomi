@@ -320,9 +320,8 @@ export function Navbar({
 
       {/* Mobile Menu Drawer (Slide-in from Bottom) */}
       <div
-        className={`fixed left-0 right-0 bottom-0 max-h-[80vh] w-full z-[998] md:hidden bg-[var(--bg-page)]/95 backdrop-blur-xl border-t border-[var(--divider)]/50 shadow-2xl rounded-t-3xl flex flex-col transition-transform duration-300 ease-in-out ${
-          mobileMenuOpen ? 'translate-y-0' : 'translate-y-full'
-        }`}
+        className={`fixed left-0 right-0 bottom-0 max-h-[80vh] w-full z-[998] md:hidden bg-[var(--bg-page)]/95 backdrop-blur-xl border-t border-[var(--divider)]/50 shadow-2xl rounded-t-3xl flex flex-col transition-transform duration-300 ease-in-out ${mobileMenuOpen ? 'translate-y-0' : 'translate-y-full'
+          }`}
       >
         {/* Drawer Header */}
         <div className="pt-6 pb-4 px-6 border-b border-[var(--divider)]/50 flex items-center justify-between">
@@ -339,16 +338,15 @@ export function Navbar({
         </div>
 
         {/* Drawer Content */}
-        <div className="flex-1 overflow-y-auto px-6 pt-6 pb-24 space-y-6">
+        <div className="flex-1 overflow-y-auto px-6 pt-6 pb-10 space-y-6">
           <div className="space-y-1">
             {/* FAQ Link */}
             <button
               onClick={() => handleClick('/faq')}
-              className={`w-full flex items-center gap-3 py-3 px-4 rounded-xl transition-all text-left ${
-                isActive('/faq')
-                  ? 'text-[var(--brand)] bg-[var(--chip-bg)] font-semibold'
-                  : 'text-[var(--text-primary)] hover:bg-[var(--bg-elev-1)] hover:text-[var(--brand)]'
-              }`}
+              className={`w-full flex items-center gap-3 py-3 px-4 rounded-xl transition-all text-left ${isActive('/faq')
+                ? 'text-[var(--brand)] bg-[var(--chip-bg)] font-semibold'
+                : 'text-[var(--text-primary)] hover:bg-[var(--bg-elev-1)] hover:text-[var(--brand)]'
+                }`}
             >
               <HelpCircle className="w-5 h-5 opacity-70" />
               <span className="text-sm font-['Inter',sans-serif]">FAQ</span>
@@ -357,11 +355,10 @@ export function Navbar({
             {/* About Link */}
             <button
               onClick={() => handleClick('/about')}
-              className={`w-full flex items-center gap-3 py-3 px-4 rounded-xl transition-all text-left ${
-                isActive('/about')
-                  ? 'text-[var(--brand)] bg-[var(--chip-bg)] font-semibold'
-                  : 'text-[var(--text-primary)] hover:bg-[var(--bg-elev-1)] hover:text-[var(--brand)]'
-              }`}
+              className={`w-full flex items-center gap-3 py-3 px-4 rounded-xl transition-all text-left ${isActive('/about')
+                ? 'text-[var(--brand)] bg-[var(--chip-bg)] font-semibold'
+                : 'text-[var(--text-primary)] hover:bg-[var(--bg-elev-1)] hover:text-[var(--brand)]'
+                }`}
             >
               <Info className="w-5 h-5 opacity-70" />
               <span className="text-sm font-['Inter',sans-serif]">About</span>
@@ -370,11 +367,10 @@ export function Navbar({
             {/* Contribute Link */}
             <button
               onClick={() => handleClick('/contribute')}
-              className={`w-full flex items-center gap-3 py-3 px-4 rounded-xl transition-all text-left ${
-                isActive('/contribute')
-                  ? 'text-[var(--brand)] bg-[var(--chip-bg)] font-semibold'
-                  : 'text-[var(--text-primary)] hover:bg-[var(--bg-elev-1)] hover:text-[var(--brand)]'
-              }`}
+              className={`w-full flex items-center gap-3 py-3 px-4 rounded-xl transition-all text-left ${isActive('/contribute')
+                ? 'text-[var(--brand)] bg-[var(--chip-bg)] font-semibold'
+                : 'text-[var(--text-primary)] hover:bg-[var(--bg-elev-1)] hover:text-[var(--brand)]'
+                }`}
             >
               <ArrowUpCircle className="w-5 h-5 opacity-70" />
               <span className="text-sm font-['Inter',sans-serif]">Contribute</span>

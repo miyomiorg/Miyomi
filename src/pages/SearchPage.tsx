@@ -1,9 +1,9 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useGlobalSearch, SearchResultType } from '../hooks/useGlobalSearch';
 import { AppListCard } from '../components/AppListCard';
 import { ExtensionListCard } from '../components/ExtensionListCard';
-import { Search, Filter } from 'lucide-react';
+import { Search, Filter, Smartphone, Puzzle, BookOpen } from 'lucide-react';
 import { SearchBar } from '../components/SearchBar';
 import { FilterChip } from '../components/FilterChip';
 import { motion } from 'motion/react';
@@ -15,10 +15,33 @@ interface SearchPageProps {
 export function SearchPage({ onNavigate }: SearchPageProps) {
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
-  const query = searchParams.get('q') || '';
-  const results = useGlobalSearch(query);
-
+  
+  const urlQuery = searchParams.get('q') || '';
+  const [localQuery, setLocalQuery] = useState(urlQuery);
   const [activeFilter, setActiveFilter] = useState<SearchResultType | 'all'>('all');
+
+  // Sync urlQuery to localQuery when urlQuery changes (e.g. back navigation)
+  useEffect(() => {
+    setLocalQuery(urlQuery);
+  }, [urlQuery]);
+
+  // Debounced URL updates
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      const currentQueryParam = searchParams.get('q') || '';
+      if (localQuery.trim() !== currentQueryParam.trim()) {
+        if (localQuery.trim()) {
+          setSearchParams({ q: localQuery });
+        } else {
+          setSearchParams({});
+        }
+      }
+    }, 250);
+
+    return () => clearTimeout(handler);
+  }, [localQuery, setSearchParams, searchParams]);
+
+  const results = useGlobalSearch(localQuery);
 
   const filteredResults = useMemo(() => {
     if (activeFilter === 'all') return results;
@@ -26,11 +49,12 @@ export function SearchPage({ onNavigate }: SearchPageProps) {
   }, [results, activeFilter]);
 
   const handleSearch = (value: string) => {
-    if (value.trim()) {
-      setSearchParams({ q: value });
-    } else {
-      setSearchParams({});
-    }
+    setLocalQuery(value);
+  };
+
+  const handleChipClick = (term: string) => {
+    setLocalQuery(term);
+    setSearchParams({ q: term });
   };
 
   const handleResultClick = (result: any) => {
@@ -56,6 +80,8 @@ export function SearchPage({ onNavigate }: SearchPageProps) {
     };
   }, [results]);
 
+  const popularTerms = ['aniyomi', 'mihon', 'dantotsu', 'cloudstream', 'manga', 'anime', 'light novel'];
+
   return (
     <div className="max-w-6xl mx-auto">
       <div className="mb-8">
@@ -73,7 +99,7 @@ export function SearchPage({ onNavigate }: SearchPageProps) {
           />
         </div>
 
-        {query && (
+        {localQuery && (
           <div className="flex items-center gap-3 mb-4 flex-wrap">
             <span className="text-sm text-[var(--text-secondary)]">Filter by:</span>
             <FilterChip
@@ -100,15 +126,81 @@ export function SearchPage({ onNavigate }: SearchPageProps) {
         )}
       </div>
 
-      {!query ? (
-        <div className="text-center py-16">
-          <Search className="w-16 h-16 text-[var(--text-tertiary)] mx-auto mb-4" />
-          <h2 className="text-xl font-semibold text-[var(--text-primary)] mb-2">
-            Start your search
-          </h2>
-          <p className="text-[var(--text-secondary)]">
-            Search for apps, extensions, or guides
-          </p>
+      {!localQuery ? (
+        <div className="max-w-4xl mx-auto py-4">
+          {/* Quick Categories */}
+          <div className="mb-8">
+            <h2 className="text-sm font-semibold text-[var(--text-secondary)] mb-4 uppercase tracking-wider">
+              Browse Categories
+            </h2>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <button
+                onClick={() => onNavigate('/software')}
+                className="flex items-start gap-4 p-5 bg-[var(--bg-surface)] border border-[var(--divider)] rounded-2xl hover:shadow-md hover:border-[var(--brand)] hover:scale-[1.02] transition-all text-left focus:outline-none"
+                style={{ boxShadow: '0 4px 12px 0 rgba(0,0,0,0.03)' }}
+              >
+                <div className="w-12 h-12 rounded-xl bg-blue-500/10 text-blue-500 flex items-center justify-center flex-shrink-0">
+                  <Smartphone className="w-6 h-6" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-[var(--text-primary)] mb-1">Software</h3>
+                  <p className="text-xs text-[var(--text-secondary)] leading-relaxed">
+                    Explore apps for Android, iOS, Windows, macOS, and Linux.
+                  </p>
+                </div>
+              </button>
+
+              <button
+                onClick={() => onNavigate('/extensions')}
+                className="flex items-start gap-4 p-5 bg-[var(--bg-surface)] border border-[var(--divider)] rounded-2xl hover:shadow-md hover:border-[var(--brand)] hover:scale-[1.02] transition-all text-left focus:outline-none"
+                style={{ boxShadow: '0 4px 12px 0 rgba(0,0,0,0.03)' }}
+              >
+                <div className="w-12 h-12 rounded-xl bg-purple-500/10 text-purple-500 flex items-center justify-center flex-shrink-0">
+                  <Puzzle className="w-6 h-6" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-[var(--text-primary)] mb-1">Extensions</h3>
+                  <p className="text-xs text-[var(--text-secondary)] leading-relaxed">
+                    Find repositories & sources for Aniyomi, Mihon, and Dantotsu.
+                  </p>
+                </div>
+              </button>
+
+              <button
+                onClick={() => onNavigate('/guides')}
+                className="flex items-start gap-4 p-5 bg-[var(--bg-surface)] border border-[var(--divider)] rounded-2xl hover:shadow-md hover:border-[var(--brand)] hover:scale-[1.02] transition-all text-left focus:outline-none"
+                style={{ boxShadow: '0 4px 12px 0 rgba(0,0,0,0.03)' }}
+              >
+                <div className="w-12 h-12 rounded-xl bg-amber-500/10 text-amber-500 flex items-center justify-center flex-shrink-0">
+                  <BookOpen className="w-6 h-6" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-[var(--text-primary)] mb-1">Guides</h3>
+                  <p className="text-xs text-[var(--text-secondary)] leading-relaxed">
+                    Read setups, troubleshooting, and general configuration tutorials.
+                  </p>
+                </div>
+              </button>
+            </div>
+          </div>
+
+          {/* Popular terms */}
+          <div className="bg-[var(--bg-elev-1)] border border-[var(--divider)] rounded-2xl p-6">
+            <h3 className="text-sm font-semibold text-[var(--text-primary)] mb-3">
+              Popular Search Terms
+            </h3>
+            <div className="flex flex-wrap gap-2">
+              {popularTerms.map((term) => (
+                <button
+                  key={term}
+                  onClick={() => handleChipClick(term)}
+                  className="px-3.5 py-1.5 bg-[var(--bg-surface)] hover:bg-[var(--chip-bg)] border border-[var(--divider)] hover:border-[var(--brand)] text-[var(--text-primary)] rounded-full text-xs font-medium transition-all hover:scale-105 active:scale-95 focus:outline-none"
+                >
+                  #{term}
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
       ) : filteredResults.length === 0 ? (
         <div className="text-center py-16">

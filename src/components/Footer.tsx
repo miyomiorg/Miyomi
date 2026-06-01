@@ -6,7 +6,7 @@ export function Footer() {
   const { commit, loading } = useGitHubLastCommit('tas33n/miyomi');
 
   return (
-    <footer className="border-t border-[var(--divider)] mt-16 py-8 px-4 sm:px-8 lg:px-[120px]">
+    <footer className="border-t border-[var(--divider)] mt-6 py-8 pb-[calc(2rem+4rem+env(safe-area-inset-bottom))] md:pb-8 px-4 sm:px-8 lg:px-[120px]">
       <div className="max-w-7xl mx-auto">
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4 text-[var(--text-secondary)] font-['Inter',sans-serif] text-sm">
           <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-2 flex-wrap">
