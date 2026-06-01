@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useLocation, useNavigationType } from 'react-router-dom';
 import { Search } from 'lucide-react';
 import { FilterDropdown } from '../components/FilterDropdown';
@@ -352,46 +352,48 @@ export function SoftwarePage({ onNavigate }: SoftwarePageProps) {
         view === 'grid' ? (
           <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-6">
             {filteredAndSortedApps.map((app) => (
-              <AppGridCard
-                key={app.id}
-                appId={app.id}
-                name={app.name}
-                description={app.shortDescription || app.description}
-                tags={app.contentTypes as any}
-                platforms={app.platforms as any}
-                iconColor={app.accentColor || app.iconColor}
-                logoUrl={app.logoUrl}
-                rating={app.rating}
-                downloads={app.downloads}
-                likes={app.likes}
+              <React.Fragment key={app.id}>
+                <AppGridCard
+                  appId={app.id}
+                  name={app.name}
+                  description={app.shortDescription || app.description}
+                  tags={app.contentTypes as any}
+                  platforms={app.platforms as any}
+                  accentColor={app.accentColor}
+                  logoUrl={app.logoUrl}
+                  rating={app.rating}
+                  downloads={app.downloads}
+                  likes={app.likes}
 
-                forkOf={app.forkOf}
-                upstreamUrl={app.upstreamUrl}
-                isHighlighted={highlightedId === app.id || highlightedId === app.slug}
-                onClick={() => handleAppClick(app.slug || app.id)}
-              />
+                  forkOf={app.forkOf}
+                  upstreamUrl={app.upstreamUrl}
+                  isHighlighted={highlightedId === app.id || highlightedId === app.slug}
+                  onClick={() => handleAppClick(app.slug || app.id)}
+                />
+              </React.Fragment>
             ))}
           </div>
         ) : (
           <div className="flex flex-col gap-3">
             {filteredAndSortedApps.map((app) => (
-              <AppListCard
-                key={app.id}
-                appId={app.id}
-                name={app.name}
-                description={app.shortDescription || app.description}
-                tags={app.contentTypes as any}
-                platforms={app.platforms as any}
-                iconColor={app.accentColor || app.iconColor}
-                logoUrl={app.logoUrl}
-                rating={app.rating}
-                downloads={app.downloads}
-                likes={app.likes}
-                forkOf={app.forkOf}
-                upstreamUrl={app.upstreamUrl}
-                isHighlighted={highlightedId === app.id || highlightedId === app.slug}
-                onClick={() => handleAppClick(app.slug || app.id)}
-              />
+              <React.Fragment key={app.id}>
+                <AppListCard
+                  appId={app.id}
+                  name={app.name}
+                  description={app.shortDescription || app.description}
+                  tags={app.contentTypes as any}
+                  platforms={app.platforms as any}
+                  accentColor={app.accentColor}
+                  logoUrl={app.logoUrl}
+                  rating={app.rating}
+                  downloads={app.downloads}
+                  likes={app.likes}
+                  forkOf={app.forkOf}
+                  upstreamUrl={app.upstreamUrl}
+                  isHighlighted={highlightedId === app.id || highlightedId === app.slug}
+                  onClick={() => handleAppClick(app.slug || app.id)}
+                />
+              </React.Fragment>
             ))}
           </div>
         )

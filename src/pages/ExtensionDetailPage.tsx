@@ -622,7 +622,7 @@ export function ExtensionDetailPage({ extensionId, onNavigate }: ExtensionDetail
                       description={app.shortDescription || app.description}
                       tags={app.contentTypes as any}
                       platforms={app.platforms as any}
-                      iconColor={app.accentColor || app.iconColor}
+                      accentColor={app.accentColor}
                       logoUrl={app.logoUrl}
                       rating={app.rating}
                       downloads={app.downloads}

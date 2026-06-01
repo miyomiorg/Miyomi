@@ -1,3 +1,4 @@
+import React from 'react';
 import { TagBadge } from './TagBadge';
 import { PlatformBadge } from './PlatformBadge';
 import { Download, GitFork } from 'lucide-react';
@@ -13,7 +14,7 @@ interface AppGridCardProps {
   description: string;
   tags: Array<'Manga' | 'Anime' | 'Light Novel' | 'Multi'>;
   platforms: Array<'Windows' | 'Mac' | 'Android' | 'iOS' | 'Linux' | 'Web'>;
-  iconColor?: string;
+  accentColor?: string;
   logoUrl?: string;
   rating?: number;
   downloads?: number;
@@ -30,7 +31,7 @@ export function AppGridCard({
   description,
   tags,
   platforms,
-  iconColor,
+  accentColor,
   logoUrl,
   rating,
   downloads,
@@ -45,7 +46,7 @@ export function AppGridCard({
   const displayedPlatforms = platforms.slice(0, 3);
   const extraPlatforms = platforms.length - displayedPlatforms.length;
   const showPlatformDivider = displayedTags.length > 0 && platforms.length > 0;
-  const accentColor = useAccentColor({ logoUrl, preferredColor: iconColor });
+  const colorToUse = useAccentColor({ logoUrl, preferredColor: accentColor });
 
   // Only use layoutId on desktop for morphing effect
   const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
@@ -67,7 +68,7 @@ export function AppGridCard({
           <AppLogo
             name={name}
             logoUrl={logoUrl}
-            iconColor={accentColor}
+            iconColor={colorToUse}
             className="w-12 h-12 sm:w-16 sm:h-16"
             roundedClass="rounded-xl sm:rounded-2xl"
             textClassName="text-lg sm:text-2xl"
@@ -79,12 +80,16 @@ export function AppGridCard({
           </h3>
           <div className="flex items-center justify-center sm:justify-start gap-1.5 flex-wrap">
             {displayedTags.map((tag, index) => (
-              <TagBadge key={index} tag={tag} mobile={isMobile} />
+              <React.Fragment key={index}>
+                <TagBadge tag={tag} mobile={isMobile} />
+              </React.Fragment>
             ))}
             {showPlatformDivider && <span className="hidden sm:inline h-4 w-px bg-[var(--divider)]" aria-hidden="true"></span>}
             <div className="flex items-center gap-1.5 flex-wrap justify-center sm:justify-start">
               {displayedPlatforms.map((platform, index) => (
-                <PlatformBadge key={`${platform}-${index}`} platform={platform} small />
+                <React.Fragment key={`${platform}-${index}`}>
+                  <PlatformBadge platform={platform} small />
+                </React.Fragment>
               ))}
               {extraPlatforms > 0 && (
                 <span className="text-[11px] text-[var(--text-secondary)] font-['Inter',sans-serif]" style={{ fontWeight: 500 }}>

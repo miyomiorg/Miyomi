@@ -21,7 +21,7 @@ export function useExtensions(): { extensions: ExtensionData[]; loading: boolean
             types: ext.types || ext.tags || [],
             region: ext.region || 'Global',
             language: ext.language || '',
-            accentColor: ext.accent_color || ext.icon_color,
+            accentColor: ext.icon_color || ext.accent_color,
             autoUrl: ext.auto_url,
             manualUrl: ext.manual_url,
             installUrls: (() => {

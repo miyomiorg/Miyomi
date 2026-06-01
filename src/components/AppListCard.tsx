@@ -1,3 +1,4 @@
+import React from 'react';
 import { TagBadge } from './TagBadge';
 import { ExternalLink, Download, GitFork } from 'lucide-react';
 import { AppLogo } from './AppLogo';
@@ -13,7 +14,7 @@ interface AppListCardProps {
   description: string;
   tags: Array<'Manga' | 'Anime' | 'Light Novel' | 'Multi'>;
   platforms: Array<'Windows' | 'Mac' | 'Android' | 'iOS' | 'Linux' | 'Web'>;
-  iconColor?: string;
+  accentColor?: string;
   logoUrl?: string;
   rating?: number;
   downloads?: number;
@@ -30,7 +31,7 @@ export function AppListCard({
   description,
   tags,
   platforms,
-  iconColor,
+  accentColor,
   logoUrl,
   rating,
   downloads,
@@ -44,7 +45,7 @@ export function AppListCard({
   const displayedPlatforms = platforms.slice(0, 3);
   const extraPlatforms = platforms.length - displayedPlatforms.length;
   const showPlatformDivider = displayedTags.length > 0 && platforms.length > 0;
-  const accentColor = useAccentColor({ logoUrl, preferredColor: iconColor });
+  const colorToUse = useAccentColor({ logoUrl, preferredColor: accentColor });
 
   // Only use layoutId on desktop
   const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
@@ -59,14 +60,14 @@ export function AppListCard({
         ? 'ring-2 ring-[var(--brand)] shadow-[0_8px_30px_rgba(0,0,0,0.12),0_0_0_4px_rgba(var(--brand-rgb),0.2)]'
         : 'shadow-[0_4px_12px_0_rgba(0,0,0,0.05)]'
         }`}
-      style={{ borderLeftColor: accentColor }}
+      style={{ borderLeftColor: colorToUse }}
     >
       {/* App Icon - Fixed size, full height */}
       <div className="flex-shrink-0 group-hover:scale-105 transition-transform">
         <AppLogo
           name={name}
           logoUrl={logoUrl}
-          iconColor={accentColor}
+          iconColor={colorToUse}
           className="w-14 h-14"
           roundedClass="rounded-xl"
           textClassName="text-lg"
@@ -80,13 +81,17 @@ export function AppListCard({
         </h3>
         <div className="flex flex-wrap items-center gap-1.5 mb-1">
           {displayedTags.map((tag, index) => (
-            <TagBadge key={index} tag={tag} mobile={isMobile} />
+            <React.Fragment key={index}>
+              <TagBadge tag={tag} mobile={isMobile} />
+            </React.Fragment>
           ))}
           {showPlatformDivider && <span className="h-4 w-px bg-[var(--divider)]" aria-hidden="true"></span>}
           {platforms.length > 0 && (
             <>
               {displayedPlatforms.map((platform, index) => (
-                <PlatformBadge key={`${platform}-${index}`} platform={platform} small />
+                <React.Fragment key={`${platform}-${index}`}>
+                  <PlatformBadge platform={platform} small />
+                </React.Fragment>
               ))}
               {extraPlatforms > 0 && (
                 <span className="text-[10px] text-[var(--text-secondary)] font-['Inter',sans-serif]" style={{ fontWeight: 500 }}>

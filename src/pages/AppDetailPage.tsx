@@ -76,7 +76,7 @@ export function AppDetailPage({ appId, onNavigate }: AppDetailPageProps) {
 
   const accentColor = useAccentColor({
     logoUrl: app?.logoUrl,
-    preferredColor: app?.accentColor || app?.iconColor,
+    preferredColor: app?.accentColor,
     defaultColor: 'var(--brand)',
   });
 
