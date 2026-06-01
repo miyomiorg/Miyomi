@@ -1,19 +1,27 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
+import { getCorsHeaders } from "../_shared/cors.ts";
 
-const ALLOWED_ORIGINS = [
-  "https://miyomi.pages.dev",
-  "http://localhost:5173",
-  "http://localhost:8080",
-];
-
-function getCorsHeaders(req: Request) {
-  const origin = req.headers.get("Origin") || "";
-  const allowedOrigin = ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0];
-  return {
-    "Access-Control-Allow-Origin": allowedOrigin,
-    "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-    "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-  };
+async function getItemLikesCount(
+  supabase: any,
+  itemId: string,
+  itemType: string
+): Promise<number> {
+  const tableName = itemType === "extension" ? "extensions" : "apps";
+  try {
+    const { data, error } = await supabase
+      .from(tableName)
+      .select("likes_count")
+      .eq("id", itemId)
+      .maybeSingle();
+    if (error) {
+      console.error(`Error reading likes_count from ${tableName}:`, error.message);
+      return 0;
+    }
+    return data?.likes_count || 0;
+  } catch (err) {
+    console.error(`Exception reading likes_count:`, err);
+    return 0;
+  }
 }
 
 Deno.serve(async (req) => {
@@ -28,76 +36,54 @@ Deno.serve(async (req) => {
   const supabase = createClient(supabaseUrl, serviceKey);
 
   const url = new URL(req.url);
-  const itemId = url.searchParams.get("itemId");
-  const itemType = url.searchParams.get("itemType") || "app";
   const fingerprint = url.searchParams.get("fingerprint");
 
   try {
     if (req.method === "GET") {
-      // Get all vote counts + user's votes
-      if (!itemId) {
-        const { data: counts } = await supabase
-          .from("likes")
-          .select("item_id, item_type");
+      // Read likes_count from apps & extensions tables (authoritative)
+      const [appsRes, extsRes] = await Promise.all([
+        supabase.from("apps").select("id, likes_count"),
+        supabase.from("extensions").select("id, likes_count"),
+      ]);
 
-        // Count votes per item
-        const countMap: Record<string, number> = {};
-        for (const v of counts || []) {
-          countMap[v.item_id] = (countMap[v.item_id] || 0) + 1;
-        }
-
-        // Check user's votes
-        let userVotes: string[] = [];
-        if (fingerprint) {
-          const { data: uv } = await supabase
-            .from("likes")
-            .select("item_id")
-            .eq("device_fingerprint", fingerprint);
-          userVotes = (uv || []).map((v) => v.item_id);
-        }
-
-        const response: Record<string, { count: number; loved: boolean }> = {};
-        for (const [id, count] of Object.entries(countMap)) {
-          response[id] = { count, loved: userVotes.includes(id) };
-        }
-        for (const id of userVotes) {
-          if (!response[id]) {
-            response[id] = { count: 0, loved: true };
-          }
-        }
-
-        return new Response(JSON.stringify(response), {
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
+      const countMap: Record<string, number> = {};
+      for (const app of appsRes.data || []) {
+        countMap[app.id] = app.likes_count || 0;
+      }
+      for (const ext of extsRes.data || []) {
+        countMap[ext.id] = ext.likes_count || 0;
       }
 
-      // Single item vote count
-      const { count } = await supabase
-        .from("likes")
-        .select("id", { count: "exact", head: true })
-        .eq("item_id", itemId);
-
-      let loved = false;
+      // User's liked items
+      let userLikes: string[] = [];
       if (fingerprint) {
-        const { data } = await supabase
+        const { data: ul } = await supabase
           .from("likes")
-          .select("id")
-          .eq("item_id", itemId)
-          .eq("device_fingerprint", fingerprint)
-          .limit(1);
-        loved = (data?.length || 0) > 0;
+          .select("item_id")
+          .eq("device_fingerprint", fingerprint);
+        userLikes = (ul || []).map((v: any) => v.item_id);
       }
 
-      return new Response(JSON.stringify({ count: count || 0, loved }), {
+      const response: Record<string, { count: number; loved: boolean }> = {};
+      for (const [id, count] of Object.entries(countMap)) {
+        response[id] = { count, loved: userLikes.includes(id) };
+      }
+      for (const id of userLikes) {
+        if (!response[id]) {
+          response[id] = { count: 0, loved: true };
+        }
+      }
+
+      return new Response(JSON.stringify(response), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
     if (req.method === "POST") {
       const body = await req.json().catch(() => ({}));
-      const postItemId = itemId || body.itemId;
+      const postItemId = url.searchParams.get("itemId") || body.itemId;
       const postFingerprint = fingerprint || body.fingerprint;
-      const postItemType = body.itemType || itemType;
+      const postItemType = body.itemType || url.searchParams.get("itemType") || "app";
 
       if (!postItemId || !postFingerprint) {
         return new Response(
@@ -106,7 +92,6 @@ Deno.serve(async (req) => {
         );
       }
 
-      // Validate fingerprint format (basic sanity check)
       if (typeof postFingerprint !== "string" || postFingerprint.length < 8 || postFingerprint.length > 128) {
         return new Response(
           JSON.stringify({ error: "Invalid fingerprint format" }),
@@ -114,22 +99,25 @@ Deno.serve(async (req) => {
         );
       }
 
-      // Rate limiting: max 30 votes per fingerprint per hour
+      // Rate limiting
       const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
-      const { count: recentVotes } = await supabase
+      const { count: recentLikes } = await supabase
         .from("likes")
         .select("id", { count: "exact", head: true })
         .eq("device_fingerprint", postFingerprint)
         .gte("liked_at", oneHourAgo);
 
-      if ((recentVotes || 0) >= 30) {
+      if ((recentLikes || 0) >= 30) {
         return new Response(
           JSON.stringify({ error: "Rate limit exceeded" }),
           { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
 
-      // Toggle vote: check if exists
+      // Read current likes_count BEFORE toggling
+      const currentCount = await getItemLikesCount(supabase, postItemId, postItemType);
+
+      // Toggle like
       const { data: existing } = await supabase
         .from("likes")
         .select("id")
@@ -137,14 +125,16 @@ Deno.serve(async (req) => {
         .eq("device_fingerprint", postFingerprint)
         .limit(1);
 
+      let loved: boolean;
+      let finalCount: number;
+
       if (existing && existing.length > 0) {
-        // Remove like
+        // Remove like — on_vote_change trigger decrements likes_count by 1
         await supabase.from("likes").delete().eq("id", existing[0].id);
-        return new Response(JSON.stringify({ loved: false }), {
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
+        loved = false;
+        finalCount = Math.max(0, currentCount - 1);
       } else {
-        // Add like with device info
+        // Add like — on_vote_change trigger increments likes_count by 1
         const deviceInfo = body.deviceInfo || {};
         await supabase.from("likes").insert({
           item_id: postItemId,
@@ -167,15 +157,18 @@ Deno.serve(async (req) => {
           language: deviceInfo.language || null,
           referrer: deviceInfo.referrer || null,
         });
-        return new Response(JSON.stringify({ loved: true }), {
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
+        loved = true;
+        finalCount = currentCount + 1;
       }
+
+      return new Response(JSON.stringify({ loved, count: finalCount }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     return new Response("Method not allowed", { status: 405, headers: corsHeaders });
   } catch (error) {
-    console.error("Vote error:", error);
+    console.error("Like error:", error);
     return new Response(
       JSON.stringify({ error: "Internal server error" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }

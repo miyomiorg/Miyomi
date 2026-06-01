@@ -1,8 +1,8 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Heart, TrendingUp, Search, Download, User, Monitor } from 'lucide-react';
 import { AdminSearchBar } from '@/components/admin/AdminSearchBar';
-import { useAdminCache } from '@/hooks/useAdminCache';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 
 interface LikeData {
     id: string;
@@ -10,6 +10,7 @@ interface LikeData {
     item_type: string;
     liked_at: string;
     anonymous_id: string | null;
+    device_fingerprint: string;
     browser: string | null;
     os: string | null;
     device_type: string | null;
@@ -28,28 +29,54 @@ interface LikeStats {
 }
 
 export function AdminLikesPage() {
-    const { data: likes, loading } = useAdminCache<any>({ table: 'likes', orderBy: 'liked_at' });
+    const [likes, setLikes] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [stats, setStats] = useState<LikeStats>({
+        total: 0,
+        byType: {},
+        byBrowser: {},
+        byOS: {},
+        byDeviceType: {}
+    });
+
     const [search, setSearch] = useState('');
     const [browserFilter, setBrowserFilter] = useState('');
     const [osFilter, setOSFilter] = useState('');
     const [deviceTypeFilter, setDeviceTypeFilter] = useState('');
+    const [page, setPage] = useState(1);
+    const [rowsPerPage, setRowsPerPage] = useState(50);
 
-    // Calculate statistics
-    const stats: LikeStats = useMemo(() => {
-        const byType: Record<string, number> = {};
-        const byBrowser: Record<string, number> = {};
-        const byOS: Record<string, number> = {};
-        const byDeviceType: Record<string, number> = {};
+    // Fetch latest 100 likes and global stats via RPC
+    useEffect(() => {
+        const fetchLikesAndStats = async () => {
+            setLoading(true);
+            try {
+                // Fetch the latest 100 likes for the table
+                const { data: latestLikes, error: likesError } = await supabase
+                    .from('likes')
+                    .select('*')
+                    .order('liked_at', { ascending: false })
+                    .limit(100);
 
-        likes.forEach((like: any) => {
-            byType[like.item_type] = (byType[like.item_type] || 0) + 1;
-            if (like.browser) byBrowser[like.browser] = (byBrowser[like.browser] || 0) + 1;
-            if (like.os) byOS[like.os] = (byOS[like.os] || 0) + 1;
-            if (like.device_type) byDeviceType[like.device_type] = (byDeviceType[like.device_type] || 0) + 1;
-        });
+                if (likesError) throw likesError;
+                setLikes(latestLikes || []);
 
-        return { total: likes.length, byType, byBrowser, byOS, byDeviceType };
-    }, [likes]);
+                const { data: statsData, error: statsError } = await (supabase.rpc as any)('get_likes_stats');
+
+                if (statsError) {
+                    console.error("Failed to fetch likes stats via RPC:", statsError);
+                } else if (statsData) {
+                    setStats(statsData as LikeStats);
+                }
+            } catch (err) {
+                console.error("Failed to fetch likes or stats", err);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchLikesAndStats();
+    }, []);
 
     // Filtered likes
     const filtered = useMemo(() => {
@@ -57,6 +84,7 @@ export function AdminLikesPage() {
             const matchesSearch = !search ||
                 like.item_id?.toLowerCase().includes(search.toLowerCase()) ||
                 like.anonymous_id?.toLowerCase().includes(search.toLowerCase()) ||
+                like.device_fingerprint?.toLowerCase().includes(search.toLowerCase()) ||
                 like.item_type?.toLowerCase().includes(search.toLowerCase());
 
             const matchesBrowser = !browserFilter || like.browser === browserFilter;
@@ -67,13 +95,21 @@ export function AdminLikesPage() {
         });
     }, [likes, search, browserFilter, osFilter, deviceTypeFilter]);
 
+    // Reset page when filters change
+    useEffect(() => {
+        setPage(1);
+    }, [search, browserFilter, osFilter, deviceTypeFilter, rowsPerPage]);
+
+    const totalPages = Math.ceil(filtered.length / rowsPerPage);
+    const paginatedLikes = filtered.slice((page - 1) * rowsPerPage, page * rowsPerPage);
+
     // Export to CSV
     const handleExport = () => {
         const headers = ['Item ID', 'Type', 'Anonymous ID', 'Browser', 'OS', 'Device Type', 'IP', 'Resolution', 'Timezone', 'Language', 'Liked At'];
         const rows = filtered.map((like: any) => [
             like.item_id,
             like.item_type,
-            like.anonymous_id || '',
+            like.anonymous_id || like.device_fingerprint || '',
             like.browser || '',
             like.os || '',
             like.device_type || '',
@@ -144,7 +180,7 @@ export function AdminLikesPage() {
                                 <Monitor className="w-4 h-4" /> Browser Breakdown
                             </h3>
                             <div className="space-y-2">
-                                {Object.entries(stats.byBrowser).sort((a, b) => b[1] - a[1]).slice(0, 5).map(([browser, count]) => (
+                                {Object.entries(stats.byBrowser || {}).sort((a, b) => Number(b[1]) - Number(a[1])).slice(0, 5).map(([browser, count]) => (
                                     <div key={browser} className="flex items-center justify-between">
                                         <span style={{ color: 'var(--text-secondary)' }}>{browser}</span>
                                         <span className="font-semibold" style={{ color: 'var(--text-primary)' }}>{count}</span>
@@ -158,7 +194,7 @@ export function AdminLikesPage() {
                                 <Monitor className="w-4 h-4" /> OS Breakdown
                             </h3>
                             <div className="space-y-2">
-                                {Object.entries(stats.byOS).sort((a, b) => b[1] - a[1]).slice(0, 5).map(([os, count]) => (
+                                {Object.entries(stats.byOS || {}).sort((a, b) => Number(b[1]) - Number(a[1])).slice(0, 5).map(([os, count]) => (
                                     <div key={os} className="flex items-center justify-between">
                                         <span style={{ color: 'var(--text-secondary)' }}>{os}</span>
                                         <span className="font-semibold" style={{ color: 'var(--text-primary)' }}>{count}</span>
@@ -241,12 +277,12 @@ export function AdminLikesPage() {
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {filtered.slice(0, 50).map((like: any) => (
+                                    {paginatedLikes.map((like: any) => (
                                         <tr key={like.id} className="border-t" style={{ borderColor: 'var(--divider)' }}>
                                             <td className="px-4 py-3 font-mono text-xs" style={{ color: 'var(--text-primary)' }}>{like.item_id.slice(0, 8)}…</td>
                                             <td className="px-4 py-3 capitalize" style={{ color: 'var(--text-secondary)' }}>{like.item_type}</td>
                                             <td className="px-4 py-3 font-mono text-xs" style={{ color: 'var(--text-secondary)' }}>
-                                                {like.anonymous_id ? `${like.anonymous_id.slice(0, 8)}…` : '-'}
+                                                {like.anonymous_id ? `${like.anonymous_id.slice(0, 8)}…` : (like.device_fingerprint ? `${like.device_fingerprint.slice(0, 8)}…` : '-')}
                                             </td>
                                             <td className="px-4 py-3" style={{ color: 'var(--text-secondary)' }}>
                                                 {like.browser ? `${like.browser} ${like.browser_version || ''}`.trim() : '-'}
@@ -265,11 +301,9 @@ export function AdminLikesPage() {
                                 </tbody>
                             </table>
                         </div>
-                        {filtered.length > 50 && (
-                            <div className="px-4 py-3 text-sm text-center" style={{ color: 'var(--text-secondary)', background: 'var(--bg-elev-1)' }}>
-                                Showing 50 of {filtered.length} likes
-                            </div>
-                        )}
+                        <div className="px-4 py-3 text-sm text-center" style={{ color: 'var(--text-secondary)', background: 'var(--bg-elev-1)' }}>
+                            Showing top {filtered.length} recent likes
+                        </div>
                     </div>
                 </>
             )}

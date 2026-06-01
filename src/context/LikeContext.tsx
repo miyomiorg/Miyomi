@@ -26,7 +26,7 @@ export function useLikes(): LikeContextValue {
 }
 
 export function LikeProvider({ children }: { children: React.ReactNode }) {
-    const [registry, setRegistry] = useState<VoteRegistry>({});
+    const [registry, setRegistry] = useState<VoteRegistry>(() => voteStorage.get());
     const [loading, setLoading] = useState(true);
     const fingerprintRef = useRef<string | null>(null);
     const toggleLockRef = useRef<Set<string>>(new Set());
@@ -34,8 +34,6 @@ export function LikeProvider({ children }: { children: React.ReactNode }) {
     useEffect(() => { registryRef.current = registry; }, [registry]);
 
     useEffect(() => {
-        voteStorage.set({});
-
         const init = async () => {
             try {
                 const { fingerprint } = await getDeviceFingerprint();

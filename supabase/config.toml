@@ -1,7 +1,7 @@
 project_id = "qijruodreazuicbcyhvk"
 
 # Public-facing functions (no JWT required, auth handled internally or not needed)
-[functions.vote]
+[functions.like]
 verify_jwt = false
 
 [functions.submit-content]
