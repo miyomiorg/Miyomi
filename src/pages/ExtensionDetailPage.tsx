@@ -19,6 +19,7 @@ import { detectPlatform, getPlatform } from '../utils/communityPlatforms';
 
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious, type CarouselApi } from '../components/ui/carousel';
 import Autoplay from 'embla-carousel-autoplay';
+import { detectGitProvider, getProviderIcon } from '../utils/gitProviders';
 
 interface ExtensionDetailPageProps {
   extensionId: string;
@@ -175,9 +176,12 @@ export function ExtensionDetailPage({ extensionId, onNavigate }: ExtensionDetail
                 target="_blank"
                 rel="noopener noreferrer"
                 className="p-3 bg-[var(--bg-elev-1)] border border-[var(--divider)] rounded-xl hover:bg-[var(--chip-bg)] hover:border-[var(--brand)] transition-all text-[var(--text-secondary)] hover:text-[var(--brand)]"
-                title="GitHub"
+                title={detectGitProvider(extension.github) === 'Other' ? 'Repository' : detectGitProvider(extension.github)}
               >
-                <Github className="w-5 h-5" />
+                {(() => {
+                  const ProviderIcon = getProviderIcon(detectGitProvider(extension.github));
+                  return <ProviderIcon className="w-5 h-5" />;
+                })()}
               </a>
             )}
             {extension.website && (
@@ -225,9 +229,9 @@ export function ExtensionDetailPage({ extensionId, onNavigate }: ExtensionDetail
     const quickLinks = [
       extension.github && {
         href: extension.github,
-        label: 'GitHub',
+        label: detectGitProvider(extension.github) === 'Other' ? 'Repository' : detectGitProvider(extension.github),
         description: 'Project repository',
-        Icon: Github,
+        Icon: getProviderIcon(detectGitProvider(extension.github)),
       },
       extension.website && {
         href: extension.website,
@@ -239,7 +243,7 @@ export function ExtensionDetailPage({ extensionId, onNavigate }: ExtensionDetail
       href: string;
       label: string;
       description: string;
-      Icon: typeof Github;
+      Icon: any;
     }[];
 
     if (quickLinks.length === 0) {

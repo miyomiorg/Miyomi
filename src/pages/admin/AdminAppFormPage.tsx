@@ -4,10 +4,11 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAdminLogger } from '@/hooks/useAdminLogger';
 import { AdminFormField, AdminInput, AdminTextarea, AdminSelect, AdminButton, Label } from '@/components/admin/AdminFormElements';
 import { AdminSmartSelect } from '@/components/admin/AdminSmartSelect';
-import { ArrowLeft, Save, Loader2, Github, Download, Palette, HelpCircle } from 'lucide-react';
+import { ArrowLeft, Save, Loader2, Github, Download, Palette, HelpCircle, GitBranch } from 'lucide-react';
 import { toast } from 'sonner';
 import { extractColorFromImage } from '@/utils/extractColorFromImage';
 import { SocialUrlsInput } from '@/components/admin/SocialUrlsInput';
+import { detectGitProvider } from '@/utils/gitProviders';
 
 function slugify(text: string): string {
     return text
@@ -51,6 +52,7 @@ export function AdminAppFormPage() {
     const [extractingColor, setExtractingColor] = useState(false);
     const [errors, setErrors] = useState<Record<string, string>>({});
     const [slugManuallyEdited, setSlugManuallyEdited] = useState(false);
+    const [repoProvider, setRepoProvider] = useState('github');
 
     const [guideOptions, setGuideOptions] = useState<string[]>([]);
     const [guidesData, setGuidesData] = useState<any[]>([]);
@@ -188,6 +190,9 @@ export function AdminAppFormPage() {
                     download_count: appData.download_count || 0,
                     likes_count: appData.likes_count || 0
                 });
+                if (appData.repo_url) {
+                    setRepoProvider(detectGitProvider(appData.repo_url).toLowerCase());
+                }
                 setSelectedGuideTitles(loadedTutorials.map((t: any) => t.title).filter(Boolean));
             }
         } catch (err: any) {
@@ -369,13 +374,27 @@ export function AdminAppFormPage() {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 {/* Main Info */}
                 <div className="lg:col-span-2 space-y-6">
-                    {/* GitHub Import */}
+                    {/* Source Repository */}
                     <div className="p-6 rounded-2xl border border-[var(--divider)] bg-[var(--bg-surface)] space-y-4">
                         <h3 className="text-lg font-semibold text-[var(--text-primary)] flex items-center gap-2">
-                            <Github className="w-5 h-5" /> GitHub Integration
+                            <GitBranch className="w-5 h-5" /> Source Repository
                         </h3>
-                        <div className="flex gap-3 items-end">
-                            <AdminFormField label="Repository URL" className="flex-1">
+                        <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-end">
+                            <AdminFormField label="Provider" className="w-full sm:w-40">
+                                <AdminSelect
+                                    value={repoProvider}
+                                    onChange={e => setRepoProvider(e.target.value)}
+                                >
+                                    <option value="github">GitHub</option>
+                                    <option value="gitlab">GitLab</option>
+                                    <option value="codeberg">Codeberg</option>
+                                    <option value="bitbucket">Bitbucket</option>
+                                    <option value="forgejo">Forgejo</option>
+                                    <option value="gitea">Gitea</option>
+                                    <option value="other">Other</option>
+                                </AdminSelect>
+                            </AdminFormField>
+                            <AdminFormField label="Repository URL" className="flex-1 w-full">
                                 {errors.repo_url && <div className="text-red-500 text-xs font-semibold mb-1 animate-pulse">⚠️ {errors.repo_url}</div>}
                                 <AdminInput
                                     value={form.repo_url}
@@ -383,14 +402,21 @@ export function AdminAppFormPage() {
                                         setForm(f => ({ ...f, repo_url: e.target.value }));
                                         if (errors.repo_url) setErrors(prev => ({ ...prev, repo_url: '' }));
                                     }}
-                                    placeholder="https://github.com/owner/repo"
+                                    placeholder={
+                                        repoProvider === 'github' ? "https://github.com/owner/repo" :
+                                        repoProvider === 'gitlab' ? "https://gitlab.com/owner/repo" :
+                                        repoProvider === 'codeberg' ? "https://codeberg.org/owner/repo" :
+                                        "https://git.example.com/owner/repo"
+                                    }
                                     className={errors.repo_url ? 'border-red-500 shadow-[0_0_0_1px_rgba(239,68,68,0.5)]' : ''}
                                 />
                             </AdminFormField>
-                            <AdminButton onClick={handleGithubFetch} disabled={fetchingGithub || !form.repo_url} variant="secondary">
-                                {fetchingGithub ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
-                                <span className="ml-2 hidden sm:inline">Fetch Data</span>
-                            </AdminButton>
+                            {repoProvider === 'github' && (
+                                <AdminButton onClick={handleGithubFetch} disabled={fetchingGithub || !form.repo_url} variant="secondary" className="w-full sm:w-auto">
+                                    {fetchingGithub ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+                                    <span className="ml-2 hidden sm:inline">Fetch Data</span>
+                                </AdminButton>
+                            )}
                         </div>
                     </div>
 

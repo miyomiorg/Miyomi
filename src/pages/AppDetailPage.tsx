@@ -21,6 +21,7 @@ import Autoplay from 'embla-carousel-autoplay';
 import { DiscordIcon } from '../components/DiscordIcon';
 import { detectPlatform, getPlatform } from '../utils/communityPlatforms';
 import { PlatformIcon } from '../components/admin/CommunityUrlInput';
+import { detectGitProvider, getProviderIcon } from '../utils/gitProviders';
 
 type StatusStyle = {
   bg: string;
@@ -487,11 +488,14 @@ export function AppDetailPage({ appId, onNavigate }: AppDetailPageProps) {
                   className="group flex items-center gap-3 rounded-2xl border border-[var(--divider)] bg-[var(--bg-surface)]/50 px-4 py-3 text-left transition-all hover:border-[var(--brand)] hover:bg-[var(--bg-elev-1)]"
                 >
                   <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--chip-bg)] text-[var(--brand)] group-hover:scale-110 transition-transform">
-                    <Github className="w-5 h-5" />
+                    {(() => {
+                      const ProviderIcon = getProviderIcon(detectGitProvider(app.githubUrl));
+                      return <ProviderIcon className="w-5 h-5" />;
+                    })()}
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="font-['Inter',sans-serif] font-semibold text-[var(--text-primary)] text-sm">
-                      GitHub
+                      {detectGitProvider(app.githubUrl) === 'Other' ? 'Repository' : detectGitProvider(app.githubUrl)}
                     </p>
                     <p className="font-['Inter',sans-serif] text-xs text-[var(--text-secondary)] truncate">
                       Project repository
