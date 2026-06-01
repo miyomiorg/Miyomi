@@ -339,11 +339,13 @@ export function AppDetailPage({ appId, onNavigate }: AppDetailPageProps) {
         animate={{ opacity: 1, x: 0 }}
         transition={{ delay: 0.2 }}
         onClick={handleBackClick}
-        className="flex items-center gap-2 text-[var(--text-secondary)] hover:text-[var(--brand)] transition-colors mb-6 font-['Inter',sans-serif]"
+        className="flex items-center gap-2 text-[var(--text-secondary)] hover:text-[var(--brand)] transition-colors mb-6 sm:mb-8 font-['Inter',sans-serif] group"
         style={{ fontWeight: 500 }}
       >
-        <ArrowLeft className="w-4 h-4" />
-        Back to Software
+        <div className="flex items-center justify-center w-10 h-10 sm:w-auto sm:h-auto rounded-full bg-[var(--bg-surface)] sm:bg-transparent border border-[var(--divider)] sm:border-transparent group-hover:border-[var(--brand)] shadow-sm sm:shadow-none transition-all">
+          <ArrowLeft className="w-5 h-5 sm:w-4 sm:h-4" />
+        </div>
+        <span className="hidden sm:inline">Back to Software</span>
       </motion.button>
 
       {/* App Header */}
