@@ -595,7 +595,7 @@ export function AppDetailPage({ appId, onNavigate }: AppDetailPageProps) {
             ]}
             className="w-full relative"
           >
-            <div className="absolute -top-12 right-0 flex gap-2">
+            <div className="absolute -top-12 right-0 hidden sm:flex gap-2">
               <CarouselPrevious className="relative left-0 top-0 translate-y-0 h-8 w-8" />
               <CarouselNext className="relative right-0 top-0 translate-y-0 h-8 w-8" />
             </div>
