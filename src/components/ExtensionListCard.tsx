@@ -65,32 +65,9 @@ export function ExtensionListCard({ extension, isHighlighted, onSelect }: Extens
         )}
       </div>
 
-      {/* Action - Love Button & View */}
+      {/* Action - Love Button */}
       <div className="flex items-center gap-2 flex-shrink-0">
         <LoveButton itemId={extension.id} itemType="extension" fallbackCount={extension.likes || 0} />
-
-        <button
-          onClick={(event) => {
-            event.stopPropagation();
-            handleSelect();
-          }}
-          className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 bg-[var(--chip-bg)] group-hover:bg-[var(--brand)] text-[var(--text-primary)] group-hover:text-white rounded-lg transition-all"
-        >
-          <ExternalLink className="w-3.5 h-3.5" />
-          <span className="text-xs font-['Inter',sans-serif]" style={{ fontWeight: 600 }}>
-            View
-          </span>
-        </button>
-
-        <button
-          onClick={(event) => {
-            event.stopPropagation();
-            handleSelect();
-          }}
-          className="sm:hidden w-8 h-8 rounded-lg bg-[var(--chip-bg)] group-hover:bg-[var(--brand)] flex items-center justify-center transition-all"
-        >
-          <ExternalLink className="w-4 h-4 text-[var(--text-primary)] group-hover:text-white transition-colors" />
-        </button>
       </div>
     </motion.div>
   );
