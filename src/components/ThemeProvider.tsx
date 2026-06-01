@@ -1,44 +1,94 @@
 import { createContext, useContext, useEffect, useState, type PropsWithChildren } from 'react';
-import { useThemeEngine, ThemeEngineContext, type ThemeEngineState } from '@/hooks/useThemeEngine';
+import { useThemeEngine, ThemeEngineContext } from '@/hooks/useThemeEngine';
 
-type Theme = 'light' | 'dark';
+export type ThemeMode = 'light' | 'dark' | 'auto';
+export type Theme = 'light' | 'dark';
 
 interface ThemeContextType {
+  themeMode: ThemeMode;
   theme: Theme;
+  setThemeMode: (mode: ThemeMode) => void;
   toggleTheme: () => void;
 }
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 export function ThemeProvider({ children }: PropsWithChildren) {
+  const [themeMode, setThemeMode] = useState<ThemeMode>('auto');
   const [theme, setTheme] = useState<Theme>('light');
   const [mounted, setMounted] = useState(false);
   const themeEngine = useThemeEngine(theme);
 
   useEffect(() => {
-    const stored = localStorage.getItem('miyomi-theme') as Theme | null;
-    if (stored === 'dark' || stored === 'light') {
-      setTheme(stored);
-    } else if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
-      setTheme('dark');
+    const stored = localStorage.getItem('miyomi-theme-mode') as ThemeMode | null;
+    if (stored === 'dark' || stored === 'light' || stored === 'auto') {
+      setThemeMode(stored);
+    } else {
+      // Migrate from old miyomi-theme if exists
+      const oldTheme = localStorage.getItem('miyomi-theme');
+      if (oldTheme === 'dark' || oldTheme === 'light') {
+        setThemeMode(oldTheme);
+      } else {
+        setThemeMode('auto');
+      }
     }
     setMounted(true);
   }, []);
 
+  // Update theme based on themeMode and system preferences
   useEffect(() => {
     if (!mounted) return;
+
+    const determineTheme = (): Theme => {
+      if (themeMode === 'auto') {
+        return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+      }
+      return themeMode;
+    };
+
+    const activeTheme = determineTheme();
+    setTheme(activeTheme);
+
     const root = document.documentElement;
     root.classList.remove('light', 'dark');
-    root.classList.add(theme);
-    localStorage.setItem('miyomi-theme', theme);
-  }, [theme, mounted]);
+    root.classList.add(activeTheme);
+    localStorage.setItem('miyomi-theme-mode', themeMode);
+  }, [themeMode, mounted]);
+
+  // Listen to system theme changes if mode is 'auto'
+  useEffect(() => {
+    if (!mounted || themeMode !== 'auto') return;
+
+    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+    const handleChange = () => {
+      const activeTheme = mediaQuery.matches ? 'dark' : 'light';
+      setTheme(activeTheme);
+      const root = document.documentElement;
+      root.classList.remove('light', 'dark');
+      root.classList.add(activeTheme);
+    };
+
+    if (mediaQuery.addEventListener) {
+      mediaQuery.addEventListener('change', handleChange);
+      return () => mediaQuery.removeEventListener('change', handleChange);
+    } else {
+      mediaQuery.addListener(handleChange);
+      return () => mediaQuery.removeListener(handleChange);
+    }
+  }, [themeMode, mounted]);
 
   const toggleTheme = () => {
-    setTheme(prev => (prev === 'light' ? 'dark' : 'light'));
+    setThemeMode(prev => {
+      if (prev === 'auto') {
+        // Toggle to explicit state opposite to active system theme
+        return theme === 'light' ? 'dark' : 'light';
+      }
+      return prev === 'light' ? 'dark' : 'light';
+    });
   };
 
   return (
-    <ThemeContext.Provider value={{ theme, toggleTheme }}>
+    <ThemeContext.Provider value={{ themeMode, theme, setThemeMode, toggleTheme }}>
       <ThemeEngineContext.Provider value={themeEngine}>
         {children}
       </ThemeEngineContext.Provider>
