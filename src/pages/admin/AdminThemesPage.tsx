@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
-import { Palette, Plus, ChevronDown, ChevronUp, Sparkles, Snowflake, Leaf, Cherry, Settings, CloudRain, Pencil, Trash2, Save } from 'lucide-react';
-import { AdminButton, AdminInput, AdminFormField, AdminSelect, StatusBadge, EmptyState } from '@/components/admin/AdminFormElements';
+import { Palette, Plus, ChevronDown, ChevronUp, Sparkles, Snowflake, Leaf, Cherry, Settings, CloudRain, Pencil, Trash2, Save, FileJson, Copy } from 'lucide-react';
+import { AdminButton, AdminInput, AdminFormField, AdminSelect, StatusBadge, EmptyState, AdminTextarea } from '@/components/admin/AdminFormElements';
 import { useThemeEngineContext, type ThemeMode, type ParticleConfig, type ThemeAssets, type ThemeCssVariables, type ThemeRecord } from '@/hooks/useThemeEngine';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -281,6 +281,10 @@ export function AdminThemesPage() {
   const [activatingId, setActivatingId] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
 
+  const [rawMode, setRawMode] = useState(false);
+  const [rawJson, setRawJson] = useState('{\n  "light": {},\n  "dark": {}\n}');
+  const [missingFields, setMissingFields] = useState<string[]>([]);
+
 
   const [newName, setNewName] = useState('');
   const [newSlug, setNewSlug] = useState('');
@@ -355,8 +359,10 @@ export function AdminThemesPage() {
 
     if (vars && vars.light && vars.dark) {
       setManualOverrides(vars);
+      setRawJson(JSON.stringify(vars, null, 2));
     } else {
       setManualOverrides({});
+      setRawJson('{\n  "light": {},\n  "dark": {}\n}');
     }
 
     setNewSeasonal(theme.is_seasonal);
@@ -379,6 +385,9 @@ export function AdminThemesPage() {
     setNewActiveTo('');
     setNewParticleType('none');
     setManualOverrides({});
+    setRawJson('{\n  "light": {},\n  "dark": {}\n}');
+    setRawMode(false);
+    setMissingFields([]);
     setEditingId(null);
     setBuilderOpen(false);
   }
@@ -391,6 +400,72 @@ export function AdminThemesPage() {
         [key]: value
       }
     }));
+  }
+
+  const EXPECTED_KEYS = [
+    '--background', '--foreground', '--card', '--card-foreground', '--popover', '--popover-foreground',
+    '--primary', '--primary-foreground', '--secondary', '--secondary-foreground', '--muted', '--muted-foreground',
+    '--accent', '--accent-foreground', '--destructive', '--destructive-foreground', '--border', '--input', '--ring',
+    '--bg-page', '--bg-surface', '--bg-elev-1', '--text-primary', '--text-secondary', '--brand', '--brand-strong',
+    '--divider', '--bg-glass', '--glass-border'
+  ];
+
+  function handleCopyAIContext() {
+    const AI_CONTEXT_PROMPT = `You are an expert UI/UX designer. I need a JSON color palette for a theme named "${newName || '[THEME NAME]'}".
+The palette must have "light" and "dark" modes.
+Each mode needs the following CSS variables defined as valid CSS color strings (hex, rgb, rgba, hsl, hsla):
+
+${EXPECTED_KEYS.join(', ')}
+
+Output ONLY valid JSON matching this exact structure:
+{
+  "light": {
+    "--background": "...",
+    ...
+  },
+  "dark": {
+    "--background": "...",
+    ...
+  }
+}`;
+    navigator.clipboard.writeText(AI_CONTEXT_PROMPT);
+    toast.success('AI Context copied to clipboard!');
+  }
+
+  function handleApplyRaw() {
+    try {
+      const parsed = JSON.parse(rawJson);
+      if (!parsed.light || !parsed.dark) {
+        toast.error('JSON must contain "light" and "dark" objects');
+        return;
+      }
+      
+      const missing: string[] = [];
+      EXPECTED_KEYS.forEach(key => {
+        if (!parsed.light[key] || !parsed.dark[key]) {
+          missing.push(key);
+        }
+      });
+
+      setManualOverrides(parsed);
+      setMissingFields(missing);
+
+      if (missing.length > 0) {
+        toast.warning(`Missing ${missing.length} fields. Live preview might be incomplete.`);
+      } else {
+        toast.success('Raw JSON applied successfully!');
+      }
+    } catch (err: any) {
+      toast.error('Invalid JSON: ' + err.message);
+    }
+  }
+
+  function handleAutoFill() {
+    const newJson = JSON.stringify(finalPalette, null, 2);
+    setRawJson(newJson);
+    setManualOverrides(finalPalette);
+    setMissingFields([]);
+    toast.success('Missing fields auto-filled with base palette!');
   }
 
   async function handleCreateTheme() {
@@ -713,10 +788,36 @@ export function AdminThemesPage() {
 
               {/* Right: Granular Palette Editor */}
               <div className="md:col-span-1">
-                <div className="flex items-center justify-between mb-4">
-                  <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--text-secondary)' }}>
-                    Palette Editor
-                  </p>
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 gap-2">
+                  <div className="flex items-center gap-2">
+                    <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--text-secondary)' }}>
+                      Palette Editor
+                    </p>
+                    <button
+                      onClick={() => {
+                        if (!rawMode && Object.keys(manualOverrides).length === 0) {
+                           setRawJson(JSON.stringify(finalPalette, null, 2));
+                        } else if (!rawMode) {
+                           setRawJson(JSON.stringify(manualOverrides, null, 2));
+                        }
+                        setRawMode(!rawMode);
+                      }}
+                      className="px-2 py-1 text-[10px] uppercase font-bold rounded-md flex items-center gap-1 transition-colors"
+                      style={{ 
+                        background: rawMode ? 'var(--brand)' : 'var(--bg-elev-1)',
+                        color: rawMode ? 'white' : 'var(--text-primary)'
+                      }}
+                    >
+                      <FileJson className="w-3 h-3" /> {rawMode ? 'Visual Mode' : 'Raw JSON'}
+                    </button>
+                    <button
+                      onClick={handleCopyAIContext}
+                      className="px-2 py-1 text-[10px] uppercase font-bold rounded-md bg-[var(--brand)] text-white hover:opacity-90 transition-opacity flex items-center gap-1"
+                      title="Copy context prompt for AI"
+                    >
+                      <Copy className="w-3 h-3" /> AI Context
+                    </button>
+                  </div>
                   {/* Toggle Light/Dark preview for editor */}
                   <div className="flex rounded-lg overflow-hidden border" style={{ borderColor: 'var(--divider)' }}>
                     <button
@@ -745,46 +846,75 @@ export function AdminThemesPage() {
                 </div>
 
                 <div className="space-y-6 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
-                  {/* Variable Editors */}
-                  <div>
-                    <h4 className="text-sm font-semibold mb-3 flex items-center gap-2">
-                      <span>{previewMode === 'light' ? '☀️ Light' : '🌙 Dark'} Mode Colors</span>
-                    </h4>
-                    <div className="grid grid-cols-1 gap-3">
-                      {Object.entries(finalPalette[previewMode]).map(([key, val]) => (
-                        <div key={key} className="flex items-center gap-3 group">
-                          <div
-                            className="w-8 h-8 rounded-lg border shadow-sm flex-shrink-0 relative overflow-hidden"
-                            style={{ background: String(val), borderColor: 'var(--divider)' }}
-                          >
-                            <input
-                              type="color"
-                              value={String(val).startsWith('#') ? String(val) : '#000000'}
-                              onChange={e => updateOverride(previewMode, key, e.target.value)}
-                              className="opacity-0 absolute inset-0 w-full h-full cursor-pointer"
-                            />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-xs font-mono font-medium truncate" style={{ color: 'var(--text-primary)' }}>{key}</p>
-                            <p className="text-[10px] truncate opacity-70" style={{ color: 'var(--text-secondary)' }}>{String(val)}</p>
-                          </div>
-                          {((manualOverrides[previewMode] || {})[key]) && (
-                            <button
-                              onClick={() => {
-                                // Reset override for this key
-                                const newOverrides = { ...manualOverrides };
-                                if (newOverrides[previewMode]) delete newOverrides[previewMode][key];
-                                setManualOverrides(newOverrides);
-                              }}
-                              className="text-[10px] text-red-500 hover:underline"
-                            >
-                              Reset
-                            </button>
-                          )}
+                  {rawMode ? (
+                    <div className="space-y-3">
+                      <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
+                        Paste your generated JSON here. Ensure it contains both <code>light</code> and <code>dark</code> keys.
+                      </p>
+                      <AdminTextarea
+                        value={rawJson}
+                        onChange={e => setRawJson(e.target.value)}
+                        className="font-mono text-xs min-h-[300px]"
+                        placeholder={'{\n  "light": { ... },\n  "dark": { ... }\n}'}
+                      />
+                      <div className="flex gap-2">
+                        <AdminButton variant="secondary" onClick={handleApplyRaw} className="flex-1">
+                          Apply JSON
+                        </AdminButton>
+                        {missingFields.length > 0 && (
+                          <AdminButton variant="primary" onClick={handleAutoFill} className="flex-1 !bg-yellow-600 hover:!bg-yellow-700 !text-white border-none shadow-sm">
+                            Auto-fill Missing
+                          </AdminButton>
+                        )}
+                      </div>
+                      {missingFields.length > 0 && (
+                        <div className="text-[10px] text-yellow-700 bg-yellow-50 p-2 rounded-lg border border-yellow-200">
+                          <strong>Missing fields:</strong> {missingFields.join(', ')}
                         </div>
-                      ))}
+                      )}
                     </div>
-                  </div>
+                  ) : (
+                    /* Variable Editors */
+                    <div>
+                      <h4 className="text-sm font-semibold mb-3 flex items-center gap-2">
+                        <span>{previewMode === 'light' ? '☀️ Light' : '🌙 Dark'} Mode Colors</span>
+                      </h4>
+                      <div className="grid grid-cols-1 gap-3">
+                        {Object.entries(finalPalette[previewMode]).map(([key, val]) => (
+                          <div key={key} className="flex items-center gap-3 group">
+                            <div
+                              className="w-8 h-8 rounded-lg border shadow-sm flex-shrink-0 relative overflow-hidden"
+                              style={{ background: String(val), borderColor: 'var(--divider)' }}
+                            >
+                              <input
+                                type="color"
+                                value={String(val).startsWith('#') ? String(val) : '#000000'}
+                                onChange={e => updateOverride(previewMode, key, e.target.value)}
+                                className="opacity-0 absolute inset-0 w-full h-full cursor-pointer"
+                              />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-xs font-mono font-medium truncate" style={{ color: 'var(--text-primary)' }}>{key}</p>
+                              <p className="text-[10px] truncate opacity-70" style={{ color: 'var(--text-secondary)' }}>{String(val)}</p>
+                            </div>
+                            {((manualOverrides[previewMode] || {})[key]) && (
+                              <button
+                                onClick={() => {
+                                  // Reset override for this key
+                                  const newOverrides = { ...manualOverrides };
+                                  if (newOverrides[previewMode]) delete newOverrides[previewMode][key];
+                                  setManualOverrides(newOverrides);
+                                }}
+                                className="text-[10px] text-red-500 hover:underline"
+                              >
+                                Reset
+                              </button>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 <div className="mt-4 pt-4 border-t sticky bottom-0 bg-[var(--bg-surface)]" style={{ borderColor: 'var(--divider)' }}>
