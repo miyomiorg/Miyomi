@@ -178,9 +178,13 @@ export function Navbar({
           : 'bg-transparent'
           }`}
       >
-        {/* Navbar Content */}
-        <div className="relative z-10 h-full px-4 sm:px-8 lg:px-[120px] flex items-center justify-between w-full gap-4 overflow-hidden">
+        {/* Background Particles Wrapper */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
           <NavbarParticles />
+        </div>
+        
+        {/* Navbar Content */}
+        <div className="relative z-10 h-full px-4 sm:px-8 lg:px-[120px] flex items-center justify-between w-full gap-4">
           {/* Left Section: Logo */}
           <div className="flex items-center gap-4">
             <button
