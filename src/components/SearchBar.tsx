@@ -1,5 +1,5 @@
-import { Search } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { Search, X } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 
 interface SearchBarProps {
@@ -15,9 +15,7 @@ export function SearchBar({ placeholder = 'Search apps or extensions', onSearch 
 
   useEffect(() => {
     const queryParam = searchParams.get('q');
-    if (queryParam) {
-      setValue(queryParam);
-    }
+    setValue(queryParam || '');
   }, [searchParams]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -40,7 +38,7 @@ export function SearchBar({ placeholder = 'Search apps or extensions', onSearch 
       }`}
       style={{ boxShadow: '0 6px 20px 0 rgba(0,0,0,0.08)' }}
     >
-      <Search className="w-5 h-5 text-[var(--text-secondary)]" />
+      <Search className="w-5 h-5 text-[var(--text-secondary)] flex-shrink-0" />
       <input
         type="text"
         placeholder={placeholder}
@@ -49,8 +47,20 @@ export function SearchBar({ placeholder = 'Search apps or extensions', onSearch 
         onKeyDown={handleKeyDown}
         onFocus={() => setIsFocused(true)}
         onBlur={() => setIsFocused(false)}
-        className="flex-1 bg-transparent outline-none text-[var(--text-primary)] placeholder:text-[var(--text-secondary)]"
+        className="flex-1 bg-transparent outline-none text-[var(--text-primary)] placeholder:text-[var(--text-secondary)] text-sm"
       />
+      {value && (
+        <button
+          onClick={() => {
+            setValue('');
+            onSearch?.('');
+          }}
+          className="p-1 hover:bg-[var(--chip-bg)] rounded-full text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors focus:outline-none cursor-pointer"
+          aria-label="Clear search"
+        >
+          <X className="w-4 h-4" />
+        </button>
+      )}
     </div>
   );
 }

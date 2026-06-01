@@ -3,6 +3,7 @@ import { Toaster } from "./components/ui/sonner";
 import { ThemeProvider } from "./components/ThemeProvider";
 import { LikeProvider } from "./context/LikeContext";
 import { Navbar } from "./components/Navbar";
+import { BottomNavigation } from "./components/BottomNavigation";
 import { Footer } from "./components/Footer";
 import { NoticeBanner } from "./components/NoticeBanner";
 import { QuotaRibbon } from "./components/QuotaRibbon";
@@ -58,11 +59,12 @@ function AppDetailPageWrapper({
 }) {
   const { appId } = useParams<{ appId: string }>();
   return (
-    <AppDetailPage
-      key={appId}
-      appId={appId || ""}
-      onNavigate={onNavigate}
-    />
+    <React.Fragment key={appId}>
+      <AppDetailPage
+        appId={appId || ""}
+        onNavigate={onNavigate}
+      />
+    </React.Fragment>
   );
 }
 
@@ -73,11 +75,12 @@ function ExtensionDetailPageWrapper({
 }) {
   const { slug } = useParams<{ slug: string }>();
   return (
-    <ExtensionDetailPage
-      key={slug}
-      extensionId={slug || ""}
-      onNavigate={onNavigate}
-    />
+    <React.Fragment key={slug}>
+      <ExtensionDetailPage
+        extensionId={slug || ""}
+        onNavigate={onNavigate}
+      />
+    </React.Fragment>
   );
 }
 
@@ -99,6 +102,11 @@ function AppContent() {
   const navigate = useNavigate();
   const location = useLocation();
   const isAdminRoute = location.pathname.startsWith('/admin');
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  useEffect(() => {
+    setMobileMenuOpen(false);
+  }, [location.pathname]);
 
   const handleNavigate = (path: string) => {
     const currentScrollY = window.scrollY;
@@ -153,10 +161,14 @@ function AppContent() {
       {/* <ChristmasSnow /> */}
       <Toaster position="top-center" />
 
-      <Navbar onNavigate={handleNavigate} />
+      <Navbar
+        onNavigate={handleNavigate}
+        mobileMenuOpen={mobileMenuOpen}
+        setMobileMenuOpen={setMobileMenuOpen}
+      />
 
       {/* Main Content */}
-      <main className="flex-1 px-4 sm:px-8 lg:px-[120px] pt-24 pb-12">
+      <main className="flex-1 px-4 sm:px-8 lg:px-[120px] pt-24 pb-[calc(4rem+2rem+env(safe-area-inset-bottom))] md:pb-12">
         <NoticeBanner />
         <QuotaRibbon />
         <Routes>
@@ -218,6 +230,12 @@ function AppContent() {
           <Route path="*" element={<NotFoundPage />} />
         </Routes>
       </main>
+
+      <BottomNavigation
+        onNavigate={handleNavigate}
+        mobileMenuOpen={mobileMenuOpen}
+        onMenuToggle={() => setMobileMenuOpen(!mobileMenuOpen)}
+      />
 
       {/* Footer */}
       <Footer />
