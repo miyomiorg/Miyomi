@@ -13,10 +13,17 @@ function slugify(text: string): string {
     return text
         .toLowerCase()
         .trim()
-        .replace(/[^\w\s-]/g, '')
-        .replace(/[\s_]+/g, '-')
+        .replace(/[^\w\s.-]/g, '')
+        .replace(/[\s]+/g, '-')
         .replace(/-+/g, '-')
         .replace(/^-+|-+$/g, '');
+}
+
+function formatSlugInput(text: string): string {
+    return text
+        .toLowerCase()
+        .replace(/[^\w\s.-]/g, '')
+        .replace(/[\s]+/g, '-');
 }
 
 const emptyApp = {
@@ -181,7 +188,6 @@ export function AdminAppFormPage() {
                     download_count: appData.download_count || 0,
                     likes_count: appData.likes_count || 0
                 });
-                if (appData.slug) setSlugManuallyEdited(true);
                 setSelectedGuideTitles(loadedTutorials.map((t: any) => t.title).filter(Boolean));
             }
         } catch (err: any) {
@@ -408,7 +414,7 @@ export function AdminAppFormPage() {
                                 value={form.slug}
                                 onChange={e => {
                                     setSlugManuallyEdited(true);
-                                    setForm(f => ({ ...f, slug: slugify(e.target.value) }));
+                                    setForm(f => ({ ...f, slug: formatSlugInput(e.target.value) }));
                                     if (errors.slug) setErrors(prev => ({ ...prev, slug: '' }));
                                 }}
                                 placeholder="auto-generated-from-name"
