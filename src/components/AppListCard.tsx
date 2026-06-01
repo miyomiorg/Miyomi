@@ -99,22 +99,22 @@ export function AppListCard({
         <p className="text-[var(--text-secondary)] font-['Inter',sans-serif] text-xs line-clamp-1">
           {description}
         </p>
-        {(rating || downloads) && (
+        {rating && (
           <div className="flex items-center gap-3 mt-2">
-            {rating && <StarRating rating={rating} size="sm" />}
-            {downloads && (
-              <div className="flex items-center gap-1 text-xs text-[var(--text-secondary)]">
-                <Download className="w-3 h-3" />
-                <span>{downloads >= 1000 ? `${(downloads / 1000).toFixed(1)}k` : downloads}</span>
-              </div>
-            )}
+            <StarRating rating={rating} size="sm" />
           </div>
         )}
       </div>
 
-      {/* Action - Love Button */}
-      <div className="flex items-center gap-2 flex-shrink-0">
+      {/* Right side: Action & Downloads */}
+      <div className="flex flex-col items-end justify-between self-stretch py-0.5 flex-shrink-0 pl-2 border-l border-[var(--divider)]/30 border-dashed ml-2">
         <LoveButton itemId={appId} fallbackCount={likes || 0} />
+        {downloads ? (
+          <div className="flex items-center gap-1 text-[10px] text-[var(--text-secondary)] font-medium font-sans bg-[var(--bg-elev-1)] px-1.5 py-1 rounded border border-[var(--divider)]">
+            <Download className="w-3 h-3 opacity-70" />
+            <span>{downloads >= 1000 ? `${(downloads / 1000).toFixed(1)}k` : downloads}</span>
+          </div>
+        ) : <div />}
       </div>
     </motion.button>
   );
