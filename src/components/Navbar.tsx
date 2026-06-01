@@ -182,7 +182,7 @@ export function Navbar({
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
           <NavbarParticles />
         </div>
-        
+
         {/* Navbar Content */}
         <div className="relative z-10 h-full px-4 sm:px-8 lg:px-[120px] flex items-center justify-between w-full gap-4">
           {/* Left Section: Logo */}
@@ -342,7 +342,10 @@ export function Navbar({
         </div>
 
         {/* Drawer Content */}
-        <div className="flex-1 overflow-y-auto px-6 pt-6 pb-10 space-y-6">
+        <div 
+          className="flex-1 overflow-y-auto px-6 pt-6 space-y-6"
+          style={{ paddingBottom: 'calc(4rem + env(safe-area-inset-bottom) + 1.5rem)' }}
+        >
           <div className="space-y-1">
             {/* FAQ Link */}
             <button

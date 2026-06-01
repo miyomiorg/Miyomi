@@ -43,7 +43,7 @@ export function ThemeToggle() {
       clearTimeout(timerRef.current);
       timerRef.current = null;
     }
-    
+
     // If it wasn't a long press (i.e. was a short click), toggle theme
     if (!isLongPress.current) {
       toggleTheme();
@@ -109,12 +109,11 @@ export function ThemeToggle() {
           <div className="px-3 py-1 text-[10px] font-semibold text-[var(--text-secondary)] uppercase tracking-wider mb-1">
             Theme Mode
           </div>
-          
+
           <button
             onClick={() => selectMode('light')}
-            className={`w-full flex items-center justify-between px-3 py-2 text-xs text-left transition-colors hover:bg-[var(--chip-bg)] ${
-              themeMode === 'light' ? 'text-[var(--brand)] font-semibold' : 'text-[var(--text-primary)]'
-            }`}
+            className={`w-full flex items-center justify-between px-3 py-2 text-xs text-left transition-colors hover:bg-[var(--chip-bg)] ${themeMode === 'light' ? 'text-[var(--brand)] font-semibold' : 'text-[var(--text-primary)]'
+              }`}
           >
             <span className="flex items-center gap-2">
               <Sun className="w-4 h-4" />
@@ -122,12 +121,11 @@ export function ThemeToggle() {
             </span>
             {themeMode === 'light' && <Check className="w-3.5 h-3.5" />}
           </button>
-          
+
           <button
             onClick={() => selectMode('dark')}
-            className={`w-full flex items-center justify-between px-3 py-2 text-xs text-left transition-colors hover:bg-[var(--chip-bg)] ${
-              themeMode === 'dark' ? 'text-[var(--brand)] font-semibold' : 'text-[var(--text-primary)]'
-            }`}
+            className={`w-full flex items-center justify-between px-3 py-2 text-xs text-left transition-colors hover:bg-[var(--chip-bg)] ${themeMode === 'dark' ? 'text-[var(--brand)] font-semibold' : 'text-[var(--text-primary)]'
+              }`}
           >
             <span className="flex items-center gap-2">
               <Moon className="w-4 h-4" />
@@ -135,12 +133,11 @@ export function ThemeToggle() {
             </span>
             {themeMode === 'dark' && <Check className="w-3.5 h-3.5" />}
           </button>
-          
+
           <button
             onClick={() => selectMode('auto')}
-            className={`w-full flex items-center justify-between px-3 py-2 text-xs text-left transition-colors hover:bg-[var(--chip-bg)] ${
-              themeMode === 'auto' ? 'text-[var(--brand)] font-semibold' : 'text-[var(--text-primary)]'
-            }`}
+            className={`w-full flex items-center justify-between px-3 py-2 text-xs text-left transition-colors hover:bg-[var(--chip-bg)] ${themeMode === 'auto' ? 'text-[var(--brand)] font-semibold' : 'text-[var(--text-primary)]'
+              }`}
           >
             <span className="flex items-center gap-2">
               <Monitor className="w-4 h-4" />
