@@ -34,26 +34,6 @@ export const emptyExt = {
     tutorials: [] as any[],
     download_count: 0, likes_count: 0
 };
-    const [copied, setCopied] = useState(false);
-    return (
-        <AdminButton
-            variant="secondary"
-            onClick={() => {
-                if (url) {
-                    navigator.clipboard.writeText(url);
-                    setCopied(true);
-                    toast.success('Copied to clipboard!');
-                    setTimeout(() => setCopied(false), 2000);
-                }
-            }}
-            disabled={!url}
-            className="px-3 shrink-0"
-        >
-            {copied ? <Check className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4" />}
-        </AdminButton>
-    );
-}
-
 export function AdminExtensionFormPage() {
     const { id } = useParams();
     const navigate = useNavigate();
@@ -122,7 +102,7 @@ export function AdminExtensionFormPage() {
                     if (extData.auto_url) loadedInstallUrls.push({ label: 'Auto Install', url: extData.auto_url, type: 'auto' });
                     if (extData.manual_url) loadedInstallUrls.push({ label: 'Copy URL', url: extData.manual_url, type: 'copy' });
                 }
-
+                setForm({
                     ...emptyExt,
                     ...extData,
                     tutorials: loadedTutorials,
