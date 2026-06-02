@@ -11,7 +11,8 @@ interface SocialUrlsInputProps {
 
 export function SocialUrlsInput({ value, onChange, max = 5, placeholder }: SocialUrlsInputProps) {
     // Ensure at least one empty entry if the array is empty
-    const urls = value.length > 0 ? value : [''];
+    const safeValue = Array.isArray(value) ? value : [];
+    const urls = safeValue.length > 0 ? safeValue : [''];
 
     function handleChange(index: number, url: string) {
         const updated = [...urls];

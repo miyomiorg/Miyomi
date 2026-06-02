@@ -105,6 +105,11 @@ export function AdminExtensionFormPage() {
                 setForm({
                     ...emptyExt,
                     ...extData,
+                    platforms: extData.platforms || [],
+                    tags: extData.tags || [],
+                    types: extData.types || [],
+                    compatible_with: extData.compatible_with || [],
+                    social_urls: extData.social_urls || [],
                     tutorials: loadedTutorials,
                     download_count: extData.download_count || 0,
                     likes_count: extData.likes_count || 0,

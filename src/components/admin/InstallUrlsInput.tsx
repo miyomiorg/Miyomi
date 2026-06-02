@@ -17,7 +17,8 @@ interface InstallUrlsInputProps {
 const DEFAULT_ENTRY: InstallUrlEntry = { label: '', url: '', type: 'auto' };
 
 export function InstallUrlsInput({ value, onChange, max = 10, compact = false }: InstallUrlsInputProps) {
-    const entries = value.length > 0 ? value : [];
+    const safeValue = Array.isArray(value) ? value : [];
+    const entries = safeValue.length > 0 ? safeValue : [];
 
     function addEntry() {
         if (entries.length >= max) return;

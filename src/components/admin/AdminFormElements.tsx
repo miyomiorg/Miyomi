@@ -39,9 +39,11 @@ interface AdminInputProps extends React.InputHTMLAttributes<HTMLInputElement> {
 }
 
 export function AdminInput({ className = '', ...props }: AdminInputProps) {
+  const value = props.value === null ? "" : props.value;
   return (
     <input
       {...props}
+      value={value}
       className={`w-full px-3.5 py-2.5 rounded-xl text-sm outline-none transition-all border focus:ring-2 ${className}`}
       style={{
         background: 'var(--bg-elev-1)',
@@ -62,9 +64,11 @@ interface AdminTextareaProps extends React.TextareaHTMLAttributes<HTMLTextAreaEl
 }
 
 export function AdminTextarea({ className = '', ...props }: AdminTextareaProps) {
+  const value = props.value === null ? "" : props.value;
   return (
     <textarea
       {...props}
+      value={value}
       className={`w-full px-3.5 py-2.5 rounded-xl text-sm outline-none transition-all border focus:ring-2 resize-y min-h-[80px] ${className}`}
       style={{
         background: 'var(--bg-elev-1)',
@@ -84,9 +88,11 @@ interface AdminSelectProps extends React.SelectHTMLAttributes<HTMLSelectElement>
 }
 
 export function AdminSelect({ className = '', children, ...props }: AdminSelectProps) {
+  const value = props.value === null ? "" : props.value;
   return (
     <select
       {...props}
+      value={value}
       className={`w-full px-3.5 py-2.5 rounded-xl text-sm outline-none transition-all border focus:ring-2 ${className}`}
       style={{
         background: 'var(--bg-elev-1)',

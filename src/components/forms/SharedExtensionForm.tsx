@@ -31,6 +31,11 @@ export function SharedExtensionForm({ form, setForm, errors, setErrors, isAdmin 
     const [guideOptions, setGuideOptions] = useState<string[]>([]);
     const [guidesData, setGuidesData] = useState<any[]>([]);
     const [selectedGuideTitles, setSelectedGuideTitles] = useState<string[]>([]);
+    const [imgCrossOrigin, setImgCrossOrigin] = useState<"anonymous" | undefined>("anonymous");
+
+    useEffect(() => {
+        setImgCrossOrigin("anonymous");
+    }, [form.icon_url]);
 
     useEffect(() => {
         fetchAppOptions();
@@ -107,12 +112,18 @@ export function SharedExtensionForm({ form, setForm, errors, setErrors, isAdmin 
     }
 
     async function handleColorExtraction(url: string) {
+        if (!url) return;
         setExtractingColor(true);
-        const color = await extractColorFromImage(url);
-        if (color) {
-            setForm((f: any) => ({ ...f, icon_color: color }));
+        try {
+            const color = await extractColorFromImage(url);
+            if (color) {
+                setForm((f: any) => ({ ...f, icon_color: color }));
+            }
+        } catch (e: any) {
+            console.error(e);
+        } finally {
+            setExtractingColor(false);
         }
-        setExtractingColor(false);
     }
 
     async function handleGithubFetch() {
@@ -183,12 +194,12 @@ export function SharedExtensionForm({ form, setForm, errors, setErrors, isAdmin 
                                 onChange={e => setForm((f: any) => ({ ...f, repo_url: e.target.value }))}
                                 placeholder={
                                     repoProvider === 'github' ? "https://github.com/owner/repo" :
-                                    repoProvider === 'gitlab' ? "https://gitlab.com/owner/repo" :
-                                    repoProvider === 'codeberg' ? "https://codeberg.org/owner/repo" :
-                                    "https://git.example.com/owner/repo"
+                                        repoProvider === 'gitlab' ? "https://gitlab.com/owner/repo" :
+                                            repoProvider === 'codeberg' ? "https://codeberg.org/owner/repo" :
+                                                "https://git.example.com/owner/repo"
                                 }
                             />
-                            <p className="text-xs text-[var(--text-secondary)] mt-1">Same repo URL can be used for multiple extensions.</p>
+                            {/* <p className="text-xs text-[var(--text-secondary)] mt-1">Same repo URL can be used for multiple extensions.</p> */}
                         </AdminFormField>
                         {repoProvider === 'github' && (
                             <AdminButton onClick={handleGithubFetch} disabled={fetchingGithub || !form.repo_url} variant="secondary" className="w-full sm:w-auto">
@@ -244,7 +255,7 @@ export function SharedExtensionForm({ form, setForm, errors, setErrors, isAdmin 
                         />
                         <AdminSmartSelect
                             label="Language"
-                            value={form.language ? form.language.split(',').map((s:string) => s.trim()).filter(Boolean) : []}
+                            value={form.language ? form.language.split(',').map((s: string) => s.trim()).filter(Boolean) : []}
                             onChange={(val) => setForm((f: any) => ({ ...f, language: val.join(', ') }))}
                             options={LANGUAGE_OPTIONS}
                             placeholder="Select languages..."
@@ -332,7 +343,19 @@ export function SharedExtensionForm({ form, setForm, errors, setErrors, isAdmin 
                         <AdminInput value={form.icon_url} onChange={e => setForm((f: any) => ({ ...f, icon_url: e.target.value }))} placeholder="https://..." />
                     </AdminFormField>
                     <div className="flex items-center gap-4">
-                        {form.icon_url && <img src={form.icon_url} alt="Icon Preview" className="w-12 h-12 rounded-xl object-cover bg-gray-100 dark:bg-gray-800" />}
+                        {form.icon_url && (
+                            <img 
+                                src={form.icon_url} 
+                                alt="Icon Preview" 
+                                crossOrigin={imgCrossOrigin} 
+                                onError={() => {
+                                    if (imgCrossOrigin === "anonymous") {
+                                        setImgCrossOrigin(undefined);
+                                    }
+                                }}
+                                className="w-12 h-12 rounded-xl object-cover bg-gray-100 dark:bg-gray-800" 
+                            />
+                        )}
                     </div>
                     <AdminFormField label="Icon Color">
                         <div className="flex gap-2 items-center">

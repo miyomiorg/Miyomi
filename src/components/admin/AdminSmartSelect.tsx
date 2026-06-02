@@ -39,31 +39,33 @@ export function AdminSmartSelect({
     const [open, setOpen] = React.useState(false);
     const [inputValue, setInputValue] = React.useState("");
 
+    const safeValue = Array.isArray(value) ? value : [];
+
     const handleSelect = (currentValue: string) => {
         // Check if already selected
-        if (value.includes(currentValue)) {
+        if (safeValue.includes(currentValue)) {
             // Optional: toggle off? usually multi-select keeps adding, or toggles.
             // Let's toggle off for ease
-            onChange(value.filter((v) => v !== currentValue));
+            onChange(safeValue.filter((v) => v !== currentValue));
         } else {
-            onChange([...value, currentValue]);
+            onChange([...safeValue, currentValue]);
         }
         setInputValue("");
         // Keep open for multiple selection? Yes.
     };
 
     const handleCreate = () => {
-        if (inputValue && !value.includes(inputValue)) {
-            onChange([...value, inputValue]);
+        if (inputValue && !safeValue.includes(inputValue)) {
+            onChange([...safeValue, inputValue]);
             setInputValue("");
         }
     };
 
     const handleRemove = (itemToRemove: string) => {
-        onChange(value.filter((item) => item !== itemToRemove));
+        onChange(safeValue.filter((item) => item !== itemToRemove));
     };
 
-    const availableOptions = options.filter(opt => !value.includes(opt));
+    const availableOptions = options.filter(opt => !safeValue.includes(opt));
 
     // Combine predefined options with any custom selected values that aren't in options
     // (Though usually we just show selected badges)
@@ -73,7 +75,7 @@ export function AdminSmartSelect({
             {label && <Label>{label}</Label>}
 
             <div className="flex flex-wrap gap-2 mb-2">
-                {value.map((item) => (
+                {safeValue.map((item) => (
                     <Badge key={item} variant="secondary" className="pl-2 pr-1 py-1 flex items-center gap-1.5 transition-all hover:bg-[var(--bg-elev-2)]">
                         {renderOption ? renderOption(item) : item}
                         <button
@@ -94,7 +96,7 @@ export function AdminSmartSelect({
                         aria-expanded={open}
                         className="flex h-10 w-full items-center justify-between rounded-lg border border-[var(--divider)] bg-[var(--bg-surface)] px-3 py-2 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-secondary)] focus:outline-none focus:ring-2 focus:ring-[var(--brand)] focus:border-transparent disabled:cursor-not-allowed disabled:opacity-50"
                     >
-                        <span className={value.length === 0 ? "text-[var(--text-secondary)]" : ""}>
+                        <span className={safeValue.length === 0 ? "text-[var(--text-secondary)]" : ""}>
                             {placeholder}
                         </span>
                         <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
@@ -139,7 +141,7 @@ export function AdminSmartSelect({
                                         <div className="flex items-center gap-2">
                                             {renderOption ? renderOption(option) : option}
                                         </div>
-                                        {value.includes(option) && <Check className="h-4 w-4 opacity-50" />}
+                                        {safeValue.includes(option) && <Check className="h-4 w-4 opacity-50" />}
                                     </CommandItem>
                                 ))}
                             </CommandGroup>

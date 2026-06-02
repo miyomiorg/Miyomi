@@ -26,6 +26,11 @@ export function SharedAppForm({ form, setForm, errors, setErrors, isAdmin = true
     const [guideOptions, setGuideOptions] = useState<string[]>([]);
     const [guidesData, setGuidesData] = useState<any[]>([]);
     const [selectedGuideTitles, setSelectedGuideTitles] = useState<string[]>([]);
+    const [imgCrossOrigin, setImgCrossOrigin] = useState<"anonymous" | undefined>("anonymous");
+
+    useEffect(() => {
+        setImgCrossOrigin("anonymous");
+    }, [form.icon_url]);
 
     useEffect(() => {
         fetchGuides();
@@ -75,12 +80,18 @@ export function SharedAppForm({ form, setForm, errors, setErrors, isAdmin = true
 
 
     async function handleColorExtraction(url: string) {
+        if (!url) return;
         setExtractingColor(true);
-        const color = await extractColorFromImage(url);
-        if (color) {
-            setForm((f: any) => ({ ...f, icon_color: color }));
+        try {
+            const color = await extractColorFromImage(url);
+            if (color) {
+                setForm((f: any) => ({ ...f, icon_color: color }));
+            }
+        } catch (e: any) {
+            console.error(e);
+        } finally {
+            setExtractingColor(false);
         }
-        setExtractingColor(false);
     }
 
     async function handleGithubFetch() {
@@ -306,7 +317,19 @@ export function SharedAppForm({ form, setForm, errors, setErrors, isAdmin = true
                         <AdminInput value={form.icon_url} onChange={e => setForm((f: any) => ({ ...f, icon_url: e.target.value }))} placeholder="https://..." />
                     </AdminFormField>
                     <div className="flex items-center gap-4">
-                        {form.icon_url && <img src={form.icon_url} alt="Icon Preview" className="w-12 h-12 rounded-xl object-cover bg-gray-100 dark:bg-gray-800" />}
+                        {form.icon_url && (
+                            <img 
+                                src={form.icon_url} 
+                                alt="Icon Preview" 
+                                crossOrigin={imgCrossOrigin} 
+                                onError={() => {
+                                    if (imgCrossOrigin === "anonymous") {
+                                        setImgCrossOrigin(undefined);
+                                    }
+                                }}
+                                className="w-12 h-12 rounded-xl object-cover bg-gray-100 dark:bg-gray-800" 
+                            />
+                        )}
                     </div>
                     <AdminFormField label="Icon Color">
                         <div className="flex gap-2 items-center">
@@ -320,9 +343,11 @@ export function SharedAppForm({ form, setForm, errors, setErrors, isAdmin = true
                                 <div className="absolute inset-0 pointer-events-none" style={{ backgroundColor: form.icon_color || 'transparent' }}></div>
                             </div>
                             <AdminInput value={form.icon_color} onChange={e => setForm((f: any) => ({ ...f, icon_color: e.target.value }))} placeholder="#3B82F6" className="font-mono flex-1" />
-                            <AdminButton type="button" variant="secondary" onClick={() => handleColorExtraction(form.icon_url)} disabled={!form.icon_url || extractingColor} title="Auto-extract from Icon" className="px-3">
-                                {extractingColor ? <Loader2 className="w-4 h-4 animate-spin" /> : <Palette className="w-4 h-4" />}
-                            </AdminButton>
+                            <span title="Auto-extract from Icon">
+                                <AdminButton type="button" variant="secondary" onClick={() => handleColorExtraction(form.icon_url)} disabled={!form.icon_url || extractingColor} className="px-3">
+                                    {extractingColor ? <Loader2 className="w-4 h-4 animate-spin" /> : <Palette className="w-4 h-4" />}
+                                </AdminButton>
+                            </span>
                         </div>
                     </AdminFormField>
                 </div>

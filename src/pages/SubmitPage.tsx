@@ -38,6 +38,7 @@ export function SubmitPage() {
   }, [step, type]);
 
   const [originalDataSnapshot, setOriginalDataSnapshot] = useState<any>(null);
+  const [initialFormSnapshot, setInitialFormSnapshot] = useState<any>(null);
   const [loadingInitial, setLoadingInitial] = useState(urlMode === 'edit');
 
   const [appForm, setAppForm] = useState(emptyApp);
@@ -65,15 +66,20 @@ export function SubmitPage() {
           const data = rawData as any;
           if (data) {
             setOriginalDataSnapshot(data);
-            if (type === 'app') {
-               setAppForm({
+             if (type === 'app') {
+               const normalized = {
                   ...emptyApp,
                   ...data,
+                  platforms: data.platforms || [],
+                  tags: data.tags || [],
+                  content_types: data.content_types || [],
                   social_urls: (Array.isArray(data.social_urls) && data.social_urls.length > 0)
                         ? data.social_urls.filter((u: string) => u)
                         : (data.discord_url ? [data.discord_url] : []),
                   tutorials: Array.isArray(data.tutorials) ? data.tutorials : []
-               });
+               };
+               setAppForm(normalized);
+               setInitialFormSnapshot(normalized);
             } else {
                const meta = data.metadata as any;
                let loadedInstallUrls: InstallUrlEntry[] = [];
@@ -84,15 +90,21 @@ export function SubmitPage() {
                    if (data.manual_url) loadedInstallUrls.push({ label: 'Copy URL', url: data.manual_url, type: 'copy' });
                }
 
-               setExtForm({
+               const normalized = {
                   ...emptyExt,
                   ...data,
+                  platforms: data.platforms || [],
+                  tags: data.tags || [],
+                  types: data.types || [],
+                  compatible_with: data.compatible_with || [],
                   install_urls: loadedInstallUrls,
                   social_urls: (Array.isArray(data.social_urls) && data.social_urls.length > 0)
                         ? data.social_urls.filter((u: string) => u)
                         : (data.discord_url ? [data.discord_url] : []),
                   tutorials: Array.isArray(data.tutorials) ? data.tutorials : []
-               });
+               };
+               setExtForm(normalized);
+               setInitialFormSnapshot(normalized);
             }
           }
         } catch (err) {
@@ -162,6 +174,29 @@ export function SubmitPage() {
     checkDuplicates();
   }, [type === 'app' ? appForm.name : extForm.name]);
 
+  const hasChanges = () => {
+    if (urlMode !== 'edit' || !initialFormSnapshot) return true;
+    const currentForm = type === 'app' ? appForm : extForm;
+    const keys = type === 'app' 
+        ? ['name', 'slug', 'short_description', 'description', 'author', 'category', 'version', 'platforms', 'tags', 'content_types', 'repo_url', 'download_url', 'website_url', 'icon_url', 'icon_color', 'fork_of', 'upstream_url', 'social_urls', 'tutorials']
+        : ['name', 'slug', 'short_description', 'description', 'author', 'category', 'language', 'platforms', 'tags', 'types', 'compatible_with', 'repo_url', 'source_url', 'icon_url', 'icon_color', 'install_urls', 'social_urls', 'tutorials'];
+        
+    for (const key of keys) {
+        const valA = currentForm[key];
+        const valB = initialFormSnapshot[key];
+        
+        if (typeof valA === 'object' || typeof valB === 'object') {
+            if (JSON.stringify(valA) !== JSON.stringify(valB)) {
+                return true;
+            }
+        } else {
+            if ((valA || '') !== (valB || '')) {
+                return true;
+            }
+        }
+    }
+    return false;
+  };
 
   async function handleSubmit() {
     const form = type === 'app' ? appForm : extForm;
@@ -179,6 +214,10 @@ export function SubmitPage() {
     // Check if there are form errors from Shared components
     if (Object.values(errors).some(v => !!v)) {
         return toast.error("Please fix duplicate entries before saving.");
+    }
+
+    if (urlMode === 'edit' && !hasChanges()) {
+      return toast.error("No changes detected. Please modify the form before submitting.");
     }
 
     setSubmitting(true);
@@ -487,11 +526,13 @@ export function SubmitPage() {
 
             <AdminButton
               onClick={handleSubmit}
-              disabled={submitting || (import.meta.env.VITE_DISABLE_TURNSTILE !== 'true' && !turnstileToken) || loadingInitial || !!nameError}
+              disabled={submitting || (import.meta.env.VITE_DISABLE_TURNSTILE !== 'true' && !turnstileToken) || loadingInitial || !!nameError || (urlMode === 'edit' && !hasChanges())}
               className="w-full py-4 text-base shadow-lg shadow-brand/20"
             >
               {submitting ? <Loader2 className="w-5 h-5 animate-spin mr-2" /> : <CheckCircle2 className="w-5 h-5 mr-2" />}
-              {urlMode === 'edit' ? 'Submit Edit Suggestion' : 'Submit for Review'}
+              {urlMode === 'edit' 
+                ? (hasChanges() ? 'Submit Edit Suggestion' : 'No changes to submit') 
+                : 'Submit for Review'}
             </AdminButton>
           </div>
         </div>

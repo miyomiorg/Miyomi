@@ -125,7 +125,9 @@ export function AdminAppFormPage() {
                 const appData = data as any;
                 const loadedTutorials = Array.isArray(appData.tutorials) ? appData.tutorials : [];
                 setForm({
-                    name: appData.name,
+                    ...emptyApp,
+                    ...appData,
+                    name: appData.name || '',
                     slug: appData.slug || '',
                     short_description: appData.short_description || '',
                     description: appData.description || '',
@@ -139,8 +141,7 @@ export function AdminAppFormPage() {
                     repo_url: appData.repo_url || '',
                     download_url: appData.download_url || '',
                     website_url: appData.website_url || '',
-                    ...emptyApp,
-                    ...appData,
+                    social_urls: appData.social_urls || [],
                     tutorials: loadedTutorials,
                     download_count: appData.download_count || 0,
                     likes_count: appData.likes_count || 0
