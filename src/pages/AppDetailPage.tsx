@@ -112,7 +112,7 @@ export function AppDetailPage({ appId, onNavigate }: AppDetailPageProps) {
   const [api, setApi] = React.useState<CarouselApi>();
   const [current, setCurrent] = React.useState(0);
   const [count, setCount] = React.useState(0);
-  
+
   const [isReportOpen, setIsReportOpen] = React.useState(false);
   const [isShareOpen, setIsShareOpen] = React.useState(false);
   const [shareData, setShareData] = React.useState({ title: '', url: '' });
@@ -371,7 +371,7 @@ export function AppDetailPage({ appId, onNavigate }: AppDetailPageProps) {
           <div className="flex items-center justify-center w-10 h-10 sm:w-auto sm:h-auto rounded-full bg-[var(--bg-surface)] sm:bg-transparent border border-[var(--divider)] sm:border-transparent group-hover:border-[var(--brand)] shadow-sm sm:shadow-none transition-all">
             <ArrowLeft className="w-5 h-5 sm:w-4 sm:h-4" />
           </div>
-          <span className="hidden sm:inline">Back to Software</span>
+          <span className="hidden sm:inline">Back</span>
         </motion.button>
 
         <motion.div
@@ -379,7 +379,7 @@ export function AppDetailPage({ appId, onNavigate }: AppDetailPageProps) {
           animate={{ opacity: 1, x: 0 }}
           transition={{ delay: 0.2 }}
         >
-          <DetailActions 
+          <DetailActions
             targetType="app"
             targetId={app.id}
             targetName={app.name}

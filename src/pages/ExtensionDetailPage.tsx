@@ -412,7 +412,7 @@ export function ExtensionDetailPage({ extensionId, onNavigate }: ExtensionDetail
           <div className="flex items-center justify-center w-10 h-10 sm:w-auto sm:h-auto rounded-full bg-[var(--bg-surface)] sm:bg-transparent border border-[var(--divider)] sm:border-transparent group-hover:border-[var(--brand)] shadow-sm sm:shadow-none transition-all">
             <ArrowLeft className="w-5 h-5 sm:w-4 sm:h-4" />
           </div>
-          <span className="hidden sm:inline">Back to Extensions</span>
+          <span className="hidden sm:inline">Back</span>
         </motion.button>
 
         <motion.div
@@ -420,7 +420,7 @@ export function ExtensionDetailPage({ extensionId, onNavigate }: ExtensionDetail
           animate={{ opacity: 1, x: 0 }}
           transition={{ delay: 0.2 }}
         >
-          <DetailActions 
+          <DetailActions
             targetType="extension"
             targetId={extension.id}
             targetName={extension.name}
