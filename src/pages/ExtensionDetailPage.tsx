@@ -12,7 +12,6 @@ import { useAccentColor } from '../hooks/useAccentColor';
 import { LoveButton } from '../components/LoveButton';
 import { useExtension } from '../hooks/useExtension';
 import { DetailActions } from '../components/DetailActions';
-import { ShareModal } from '../components/ShareModal';
 import { ReportModal } from '../components/ReportModal';
 import { TagBadge } from '../components/TagBadge';
 import { useAppMeta } from '../hooks/useAppMeta';
@@ -65,20 +64,29 @@ export function ExtensionDetailPage({ extensionId, onNavigate }: ExtensionDetail
   const [count, setCount] = useState(0);
 
   const [isReportOpen, setIsReportOpen] = useState(false);
-  const [isShareOpen, setIsShareOpen] = useState(false);
-  const [shareData, setShareData] = useState({ title: '', url: '' });
 
   const handleShare = async (title: string, url: string) => {
+    // Always copy to clipboard as a reliable fallback
+    try {
+      await navigator.clipboard.writeText(url);
+    } catch (e) {
+      console.error("Failed to copy", e);
+    }
+
+    const shareData = {
+      title: title,
+      text: `Check out ${title} on Miyomi!`,
+      url: url,
+    };
+
     if (navigator.share) {
       try {
-        await navigator.share({ title, url });
+        await navigator.share(shareData);
       } catch (err) {
-        setShareData({ title, url });
-        setIsShareOpen(true);
+        toast.success("Link copied to clipboard!");
       }
     } else {
-      setShareData({ title, url });
-      setIsShareOpen(true);
+      toast.success("Link copied to clipboard!");
     }
   };
 
@@ -396,7 +404,6 @@ export function ExtensionDetailPage({ extensionId, onNavigate }: ExtensionDetail
       exit={{ opacity: 0 }}
       className="max-w-7xl mx-auto"
     >
-      <ShareModal isOpen={isShareOpen} onClose={() => setIsShareOpen(false)} title={shareData.title} url={shareData.url} />
       <ReportModal isOpen={isReportOpen} onClose={() => setIsReportOpen(false)} targetType="extension" targetId={extension.id} targetName={extension.name} pageUrl={window.location.href} />
 
       {/* Top Bar (Back Button + Actions) */}
@@ -421,7 +428,7 @@ export function ExtensionDetailPage({ extensionId, onNavigate }: ExtensionDetail
           transition={{ delay: 0.2 }}
         >
           <DetailActions
-            targetType="extension"
+            targetType="extensions"
             targetId={extension.id}
             targetName={extension.name}
             onReportClick={() => setIsReportOpen(true)}

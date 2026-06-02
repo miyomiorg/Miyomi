@@ -202,9 +202,14 @@ export function SharedExtensionForm({ form, setForm, errors, setErrors, isAdmin 
                             {/* <p className="text-xs text-[var(--text-secondary)] mt-1">Same repo URL can be used for multiple extensions.</p> */}
                         </AdminFormField>
                         {repoProvider === 'github' && (
-                            <AdminButton onClick={handleGithubFetch} disabled={fetchingGithub || !form.repo_url} variant="secondary" className="w-full sm:w-auto">
+                            <AdminButton 
+                                onClick={handleGithubFetch} 
+                                disabled={fetchingGithub || !form.repo_url} 
+                                variant="secondary" 
+                                className="w-auto self-end"
+                            >
                                 {fetchingGithub ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
-                                <span className="ml-2 hidden sm:inline">Fetch Data</span>
+                                <span className="ml-2">Fetch Data</span>
                             </AdminButton>
                         )}
                     </div>

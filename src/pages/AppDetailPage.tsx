@@ -20,6 +20,7 @@ import { useApp } from '../hooks/useApp';
 import { useExtensions } from '../hooks/useExtensions';
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious, type CarouselApi } from '../components/ui/carousel';
 import Autoplay from 'embla-carousel-autoplay';
+import { toast } from 'sonner';
 
 import { DiscordIcon } from '../components/DiscordIcon';
 import { detectPlatform, getPlatform } from '../utils/communityPlatforms';
@@ -114,20 +115,29 @@ export function AppDetailPage({ appId, onNavigate }: AppDetailPageProps) {
   const [count, setCount] = React.useState(0);
 
   const [isReportOpen, setIsReportOpen] = React.useState(false);
-  const [isShareOpen, setIsShareOpen] = React.useState(false);
-  const [shareData, setShareData] = React.useState({ title: '', url: '' });
-
   const handleShare = async (title: string, url: string) => {
+    // Always copy to clipboard as a reliable fallback
+    try {
+      await navigator.clipboard.writeText(url);
+    } catch (e) {
+      console.error("Failed to copy", e);
+    }
+
+    const shareData = {
+      title: title,
+      text: `Check out ${title} on Miyomi!`,
+      url: url,
+    };
+
     if (navigator.share) {
       try {
-        await navigator.share({ title, url });
+        await navigator.share(shareData);
       } catch (err) {
-        setShareData({ title, url });
-        setIsShareOpen(true);
+        // Usually AbortError if the user cancels the native share menu.
+        toast.success("Link copied to clipboard!");
       }
     } else {
-      setShareData({ title, url });
-      setIsShareOpen(true);
+      toast.success("Link copied to clipboard!");
     }
   };
 
@@ -291,7 +301,7 @@ export function AppDetailPage({ appId, onNavigate }: AppDetailPageProps) {
   const hasAnyActions = hasDownload || hasCommunityUrl || hasOfficialSite;
 
   const inlineActions = hasAnyActions ? (
-    <div className="flex flex-wrap items-center justify-center gap-3 sm:justify-start">
+    <div className="flex flex-wrap items-center justify-center gap-3">
       {hasGithub && (
         <a
           href={app.githubUrl}
@@ -355,7 +365,6 @@ export function AppDetailPage({ appId, onNavigate }: AppDetailPageProps) {
       exit={{ opacity: 0 }}
       className="max-w-7xl mx-auto"
     >
-      <ShareModal isOpen={isShareOpen} onClose={() => setIsShareOpen(false)} title={shareData.title} url={shareData.url} />
       <ReportModal isOpen={isReportOpen} onClose={() => setIsReportOpen(false)} targetType="app" targetId={app.id} targetName={app.name} pageUrl={window.location.href} />
 
       {/* Top Bar (Back Button + Actions) */}

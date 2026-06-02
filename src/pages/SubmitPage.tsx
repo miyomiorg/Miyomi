@@ -22,14 +22,15 @@ export function SubmitPage() {
   const STEP_MAP: Record<string, number> = { select: 0, guidelines: 1, form: 2, success: 3 };
   const STEP_NAMES = ['select', 'guidelines', 'form', 'success'];
 
-  const urlType = searchParams.get('type') as 'app' | 'extension' | null;
+  const urlTypeRaw = searchParams.get('type');
+  const type = urlTypeRaw === 'software' ? 'app' : (urlTypeRaw === 'extensions' ? 'extension' : null);
+  
   const urlStep = searchParams.get('step');
   const urlMode = searchParams.get('mode');
   const urlId = searchParams.get('id');
 
   const defaultStep = urlMode === 'edit' ? 2 : 0;
   const step = urlStep ? (STEP_MAP[urlStep] ?? defaultStep) : defaultStep;
-  const type = (urlType === 'app' || urlType === 'extension') ? urlType : null;
 
   useEffect(() => {
     if (step > 0 && !type) {
@@ -121,7 +122,7 @@ export function SubmitPage() {
   function goTo(newStep: number, newType?: 'app' | 'extension' | null) {
     const t = newType !== undefined ? newType : type;
     const params: Record<string, string> = {};
-    if (t) params.type = t;
+    if (t) params.type = t === 'app' ? 'software' : (t === 'extension' ? 'extensions' : t);
     if (newStep > 0) params.step = STEP_NAMES[newStep];
     setSearchParams(params, { replace: false });
   }
@@ -414,14 +415,36 @@ export function SubmitPage() {
     </div>
   );
 
-  const renderForm = () => (
-    <div className="max-w-5xl mx-auto py-8 px-4 animate-in slide-in-from-bottom-8 duration-500">
-      <div className="flex items-center gap-4 mb-8">
-        {urlMode !== 'edit' && (
-          <button onClick={() => goTo(0)} className="text-[var(--text-secondary)] hover:text-[var(--text-primary)]">
-            <ArrowLeft className="w-6 h-6" />
-          </button>
-        )}
+  const renderForm = () => {
+    const currentName = type === 'app' ? appForm.name : extForm.name;
+    const currentSlug = type === 'app' ? appForm.slug : extForm.slug;
+    const targetRoute = type === 'app' ? 'software' : 'extensions';
+    
+    return (
+    <div className="max-w-5xl mx-auto pb-8 px-4 animate-in slide-in-from-bottom-8 duration-500">
+      
+      <div className="flex items-center mb-6">
+        <button
+          onClick={() => {
+            if (urlMode === 'edit') {
+              navigate(`/${targetRoute}/${currentSlug || urlId}`);
+            } else {
+              goTo(1);
+            }
+          }}
+          className="flex items-center gap-2 text-[var(--text-secondary)] hover:text-[var(--brand)] transition-colors font-['Inter',sans-serif] group"
+          style={{ fontWeight: 500 }}
+        >
+          <div className="flex items-center justify-center w-10 h-10 sm:w-auto sm:h-auto rounded-full bg-[var(--bg-surface)] sm:bg-transparent border border-[var(--divider)] sm:border-transparent group-hover:border-[var(--brand)] shadow-sm sm:shadow-none transition-all">
+            <ArrowLeft className="w-5 h-5 sm:w-4 sm:h-4" />
+          </div>
+          <span className="hidden sm:inline">
+             {urlMode === 'edit' ? `Back to ${currentName || (type === 'app' ? 'Software' : 'Extension')}` : `Back`}
+          </span>
+        </button>
+      </div>
+
+      <div className="flex items-center gap-4 mb-6">
         <h1 className="text-2xl font-bold text-[var(--text-primary)]">
           {urlMode === 'edit' ? `Suggest Edit for ${type === 'app' ? 'App' : 'Extension'}` : `Submit ${type === 'app' ? 'App' : 'Extension'}`}
         </h1>
@@ -539,7 +562,8 @@ export function SubmitPage() {
       </>
       )}
     </div>
-  );
+    );
+  };
 
   const renderSuccess = () => (
     <div className="max-w-xl mx-auto py-20 px-4 text-center animate-in zoom-in-95 duration-500">
@@ -562,8 +586,11 @@ export function SubmitPage() {
   );
 
   return (
-    <div className="min-h-screen bg-[var(--bg-root)]">
-      <div className="pt-24 pb-12">
+    <div className="min-h-screen bg-[var(--bg-default)]">
+      <div 
+        className="pb-12 sm:pt-24"
+        style={{ paddingTop: 'calc(env(safe-area-inset-top, 16px) + 16px)' }}
+      >
         {step === 0 && urlMode !== 'edit' && renderSelection()}
         {step === 1 && urlMode !== 'edit' && renderGuidelines()}
         {step === 2 && renderForm()}

@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { useNavigate } from 'react-router-dom';
 
 interface DetailActionsProps {
-  targetType: 'app' | 'extension';
+  targetType: 'app' | 'extensions';
   targetId: string;
   targetName: string;
   onReportClick: () => void;
@@ -16,7 +16,8 @@ export function DetailActions({ targetType, targetId, targetName, onReportClick,
   const navigate = useNavigate();
 
   const handleEditClick = () => {
-    navigate(`/contribute?type=${targetType}&mode=edit&id=${targetId}&step=form`);
+    const routeType = targetType === 'app' ? 'software' : 'extensions';
+    navigate(`/contribute?type=${routeType}&mode=edit&id=${targetId}&step=form`);
     setDropdownOpen(false);
   };
 
