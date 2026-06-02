@@ -98,15 +98,6 @@ export async function extractColorFromImage(imageUrl: string): Promise<string | 
         });
     };
 
-    // Try direct extraction first
-    let result = await tryExtract(imageUrl, false);
-    if (result) return result;
-
-    // If direct failed (e.g. CORS), retry via CORS proxy
-    if (imageUrl && !imageUrl.startsWith("data:")) {
-        console.log("Direct extraction failed, retrying via CORS proxy...");
-        const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(imageUrl)}`;
-        result = await tryExtract(proxyUrl, true);
-    }
-    return result;
+    // Try direct extraction only
+    return await tryExtract(imageUrl, false);
 }
