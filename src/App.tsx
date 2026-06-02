@@ -41,6 +41,9 @@ import { AdminSettingsPage } from './pages/admin/AdminSettingsPage';
 import { AdminLogsPage } from './pages/admin/AdminLogsPage';
 import { AdminSessionsPage } from './pages/admin/AdminSessionsPage';
 import { AdminUsersPage } from './pages/admin/AdminUsersPage';
+import { AdminEditSuggestionsPage } from './pages/admin/AdminEditSuggestionsPage';
+import { AdminReportsPage } from './pages/admin/AdminReportsPage';
+import { AdminFeedbacksPage } from './pages/admin/AdminFeedbacksPage';
 import { AdminLayout } from './components/admin/AdminLayout';
 import { ProtectedRoute } from './components/admin/ProtectedRoute';
 import {
@@ -142,6 +145,9 @@ function AppContent() {
             <Route path="faqs/new" element={<AdminFAQEditorPage />} />
             <Route path="faqs/:id/edit" element={<AdminFAQEditorPage />} />
             <Route path="submissions" element={<AdminSubmissionsPage />} />
+            <Route path="edit-suggestions" element={<AdminEditSuggestionsPage />} />
+            <Route path="reports" element={<AdminReportsPage />} />
+            <Route path="feedbacks" element={<AdminFeedbacksPage />} />
             <Route path="likes" element={<AdminLikesPage />} />
             <Route path="notices" element={<AdminNoticesPage />} />
             <Route path="donations" element={<AdminDonationsPage />} />

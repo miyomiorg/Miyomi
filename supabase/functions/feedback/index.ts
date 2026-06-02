@@ -85,6 +85,18 @@ Deno.serve(async (req: Request) => {
 ${sanitizeHTML(body.message)}
     `.trim();
 
+        // Also insert into database
+        const { error: insertError } = await supabase.from("feedbacks").insert({
+            message: body.message,
+            page_url: body.page || null,
+            status: 'new'
+        });
+
+        if (insertError) {
+            console.error("Failed to insert feedback into database:", insertError);
+            // We can continue to send telegram notification as fallback
+        }
+
         const success = await sendTelegramNotification(supabase, telegramMessage);
         
         if (!success) {

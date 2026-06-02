@@ -1,0 +1,406 @@
+import React, { useState, useEffect } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { AdminFormField, AdminInput, AdminTextarea, AdminSelect, AdminButton, Label } from '@/components/admin/AdminFormElements';
+import { AdminSmartSelect } from '@/components/admin/AdminSmartSelect';
+import { SocialUrlsInput } from '@/components/admin/SocialUrlsInput';
+import { InstallUrlsInput, type InstallUrlEntry } from '@/components/admin/InstallUrlsInput';
+import { FlagDisplay } from '@/components/FlagDisplay';
+import { Download, Palette, HelpCircle, GitBranch, Loader2, Link2 } from 'lucide-react';
+import { toast } from 'sonner';
+import { extractColorFromImage } from '@/utils/extractColorFromImage';
+import { detectGitProvider } from '@/utils/gitProviders';
+
+function formatSlugInput(text: string): string {
+    return text
+        .toLowerCase()
+        .replace(/[^\w\s.-]/g, '')
+        .replace(/[\s]+/g, '-');
+}
+
+const PLATFORM_OPTIONS = ['Android', 'iOS', 'Windows', 'macOS', 'Linux', 'Web'];
+const TYPE_OPTIONS = ['Anime', 'Manga', 'Light Novel'];
+const TAG_OPTIONS = ['NSFW', 'SFW', 'Official', 'Fan Source'];
+const LANGUAGE_OPTIONS = ['all', 'en', 'es', 'fr', 'pt', 'pt-BR', 'ja', 'zh', 'ar', 'de', 'it', 'ru', 'tr', 'vi', 'id'];
+
+export function SharedExtensionForm({ form, setForm, errors, setErrors, isAdmin = true }: { form: any, setForm: any, errors: any, setErrors: any, isAdmin?: boolean }) {
+    const [fetchingGithub, setFetchingGithub] = useState(false);
+    const [extractingColor, setExtractingColor] = useState(false);
+    const [repoProvider, setRepoProvider] = useState('github');
+    const [appOptions, setAppOptions] = useState<string[]>([]);
+    const [appsData, setAppsData] = useState<any[]>([]);
+    const [guideOptions, setGuideOptions] = useState<string[]>([]);
+    const [guidesData, setGuidesData] = useState<any[]>([]);
+    const [selectedGuideTitles, setSelectedGuideTitles] = useState<string[]>([]);
+
+    useEffect(() => {
+        fetchAppOptions();
+        fetchGuides();
+    }, []);
+
+    useEffect(() => {
+        if (form.tutorials && Array.isArray(form.tutorials)) {
+            setSelectedGuideTitles(form.tutorials.map((t: any) => t.title).filter(Boolean));
+        }
+    }, [form.tutorials]);
+
+    useEffect(() => {
+        if (form.icon_url && !form.icon_color) {
+            handleColorExtraction(form.icon_url);
+        }
+    }, [form.icon_url]);
+
+    useEffect(() => {
+        if (form.repo_url) {
+            setRepoProvider(detectGitProvider(form.repo_url).toLowerCase());
+        }
+    }, [form.repo_url]);
+
+    async function fetchAppOptions() {
+        const { data } = await supabase.from('apps').select('name, fork_of').order('name');
+        if (data) {
+            setAppsData(data);
+            setAppOptions(data.map((a: any) => a.name));
+        }
+    }
+
+    async function fetchGuides() {
+        const { data } = await supabase.from('guides').select('title, slug').order('title');
+        if (data) {
+            setGuidesData(data);
+            setGuideOptions(data.map(g => g.title));
+        }
+    }
+
+    // Sync selected guides back to form.tutorials
+    useEffect(() => {
+        const finalTutorials = selectedGuideTitles.map(title => {
+            const guide = guidesData.find(g => g.title === title);
+            if (guide) {
+                return { title: guide.title, url: `/guides/${guide.slug}`, type: 'guide' };
+            }
+            return { title: title, url: '#', type: 'custom' };
+        });
+        const isDifferent = JSON.stringify(finalTutorials) !== JSON.stringify(form.tutorials);
+        if (isDifferent && guidesData.length > 0) {
+            setForm((f: any) => ({ ...f, tutorials: finalTutorials }));
+        }
+    }, [selectedGuideTitles, guidesData]);
+
+
+    function handleCompatibleChange(selectedApps: string[]) {
+        const newApps = selectedApps.filter(a => !form.compatible_with.includes(a));
+        let finalSelection = [...selectedApps];
+
+        newApps.forEach(parentName => {
+            const children = appsData.filter(a => a.fork_of === parentName).map(a => a.name);
+            if (children.length > 0) {
+                children.forEach(child => {
+                    if (!finalSelection.includes(child)) {
+                        finalSelection.push(child);
+                        toast.info(`Auto-selected ${child} (Fork of ${parentName})`);
+                    }
+                });
+            }
+        });
+
+        setForm((f: any) => ({ ...f, compatible_with: finalSelection }));
+    }
+
+    async function handleColorExtraction(url: string) {
+        setExtractingColor(true);
+        const color = await extractColorFromImage(url);
+        if (color) {
+            setForm((f: any) => ({ ...f, icon_color: color }));
+        }
+        setExtractingColor(false);
+    }
+
+    async function handleGithubFetch() {
+        if (!form.repo_url) {
+            toast.error("Please enter a GitHub URL first");
+            return;
+        }
+
+        const match = form.repo_url.match(/github\.com\/([^\/]+)\/([^\/]+)/);
+        if (!match) {
+            toast.error("Invalid GitHub URL format");
+            return;
+        }
+
+        const [_, owner, repo] = match;
+        setFetchingGithub(true);
+
+        try {
+            const res = await fetch(`https://api.github.com/repos/${owner}/${repo}`);
+            if (!res.ok) throw new Error("GitHub API error: " + res.statusText);
+            const data = await res.json();
+
+            setForm((prev: any) => ({
+                ...prev,
+                name: prev.name || data.name,
+                short_description: data.description || prev.short_description,
+                source_url: data.homepage || prev.source_url,
+                tags: [...new Set([...prev.tags, ...(data.topics || [])])],
+                author: data.owner?.login || prev.author,
+                icon_url: prev.icon_url || data.owner?.avatar_url || '',
+            }));
+
+            toast.success("Fetched metadata from GitHub");
+        } catch (err: any) {
+            toast.error("Failed to fetch from GitHub: " + err.message);
+        } finally {
+            setFetchingGithub(false);
+        }
+    }
+
+    return (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 text-left">
+            {/* Main Info */}
+            <div className="lg:col-span-2 space-y-6">
+                {/* Source Repository */}
+                <div className="p-6 rounded-2xl border border-[var(--divider)] bg-[var(--bg-surface)] space-y-4">
+                    <h3 className="text-lg font-semibold text-[var(--text-primary)] flex items-center gap-2">
+                        <GitBranch className="w-5 h-5" /> Source Repository
+                    </h3>
+                    <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-end">
+                        <AdminFormField label="Provider" className="w-full sm:w-40">
+                            <AdminSelect
+                                value={repoProvider}
+                                onChange={e => setRepoProvider(e.target.value)}
+                            >
+                                <option value="github">GitHub</option>
+                                <option value="gitlab">GitLab</option>
+                                <option value="codeberg">Codeberg</option>
+                                <option value="bitbucket">Bitbucket</option>
+                                <option value="forgejo">Forgejo</option>
+                                <option value="gitea">Gitea</option>
+                                <option value="other">Other</option>
+                            </AdminSelect>
+                        </AdminFormField>
+                        <AdminFormField label="Repository URL" className="flex-1 w-full">
+                            <AdminInput
+                                value={form.repo_url}
+                                onChange={e => setForm((f: any) => ({ ...f, repo_url: e.target.value }))}
+                                placeholder={
+                                    repoProvider === 'github' ? "https://github.com/owner/repo" :
+                                    repoProvider === 'gitlab' ? "https://gitlab.com/owner/repo" :
+                                    repoProvider === 'codeberg' ? "https://codeberg.org/owner/repo" :
+                                    "https://git.example.com/owner/repo"
+                                }
+                            />
+                            <p className="text-xs text-[var(--text-secondary)] mt-1">Same repo URL can be used for multiple extensions.</p>
+                        </AdminFormField>
+                        {repoProvider === 'github' && (
+                            <AdminButton onClick={handleGithubFetch} disabled={fetchingGithub || !form.repo_url} variant="secondary" className="w-full sm:w-auto">
+                                {fetchingGithub ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+                                <span className="ml-2 hidden sm:inline">Fetch Data</span>
+                            </AdminButton>
+                        )}
+                    </div>
+                </div>
+
+                <div className="p-6 rounded-2xl border border-[var(--divider)] bg-[var(--bg-surface)] space-y-4">
+                    <h3 className="text-lg font-semibold text-[var(--text-primary)] mb-4">Basic Information</h3>
+                    <AdminFormField label="Name" required>
+                        {errors.name && <div className="text-red-500 text-xs font-semibold mb-1 animate-pulse">⚠️ {errors.name}</div>}
+                        <AdminInput
+                            value={form.name}
+                            onChange={e => {
+                                setForm((f: any) => ({ ...f, name: e.target.value }));
+                                if (errors.name) setErrors((prev: any) => ({ ...prev, name: '' }));
+                            }}
+                            placeholder="Extension Name"
+                            className={errors.name ? 'border-red-500 shadow-[0_0_0_1px_rgba(239,68,68,0.5)]' : ''}
+                        />
+                    </AdminFormField>
+                    {isAdmin && (
+                        <AdminFormField label="Slug (URL identifier)" required>
+                            {errors.slug && <div className="text-red-500 text-xs font-semibold mb-1 animate-pulse">⚠️ {errors.slug}</div>}
+                            <AdminInput
+                                value={form.slug}
+                                onChange={e => {
+                                    setForm((f: any) => ({ ...f, slug: formatSlugInput(e.target.value) }));
+                                    if (errors.slug) setErrors((prev: any) => ({ ...prev, slug: '' }));
+                                }}
+                                placeholder="auto-generated-from-name"
+                                className={errors.slug ? 'border-red-500 shadow-[0_0_0_1px_rgba(239,68,68,0.5)]' : ''}
+                            />
+                            <p className="text-xs text-[var(--text-secondary)] mt-1">Used in the URL: /extensions/<strong>{form.slug || '...'}</strong></p>
+                        </AdminFormField>
+                    )}
+                    <AdminFormField label="Short Description (Bio)">
+                        <AdminTextarea className="h-20" value={form.short_description} onChange={e => setForm((f: any) => ({ ...f, short_description: e.target.value }))} placeholder="Brief summary displayed in header..." />
+                    </AdminFormField>
+                    <AdminFormField label="Overview (Long Description)">
+                        <AdminTextarea className="h-32" value={form.description} onChange={e => setForm((f: any) => ({ ...f, description: e.target.value }))} placeholder="Detailed description..." />
+                    </AdminFormField>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <AdminSmartSelect
+                            label="Content Types"
+                            value={form.types || []}
+                            onChange={(val) => setForm((f: any) => ({ ...f, types: val }))}
+                            options={TYPE_OPTIONS}
+                            placeholder="Anime, Manga..."
+                        />
+                        <AdminSmartSelect
+                            label="Language"
+                            value={form.language ? form.language.split(',').map((s:string) => s.trim()).filter(Boolean) : []}
+                            onChange={(val) => setForm((f: any) => ({ ...f, language: val.join(', ') }))}
+                            options={LANGUAGE_OPTIONS}
+                            placeholder="Select languages..."
+                            creatable={true}
+                            renderOption={(option: string) => (
+                                <React.Fragment key={option}>
+                                    <FlagDisplay region={option === 'all' ? 'global' : option} size="small" />
+                                    <span>{option}</span>
+                                </React.Fragment>
+                            )}
+                        />
+                    </div>
+                </div>
+
+                <div className="p-6 rounded-2xl border border-[var(--divider)] bg-[var(--bg-surface)] space-y-4">
+                    <h3 className="text-lg font-semibold text-[var(--text-primary)] mb-4">Compatibility & Source</h3>
+                    <div className="space-y-1">
+                        <Label className="mb-1">Compatible Apps</Label>
+                        <div className="text-xs text-[var(--text-secondary)] mb-2">
+                            Apps connected to this extension. Auto-selects forks if parent is chosen.
+                        </div>
+                        <AdminSmartSelect
+                            value={form.compatible_with}
+                            onChange={handleCompatibleChange}
+                            options={appOptions}
+                            placeholder="Select apps..."
+                        />
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                        <AdminFormField label="Website URL">
+                            <AdminInput value={form.source_url} onChange={e => setForm((f: any) => ({ ...f, source_url: e.target.value }))} placeholder="https://..." />
+                        </AdminFormField>
+                        <AdminFormField label="Social / Community Links">
+                            <SocialUrlsInput
+                                value={form.social_urls}
+                                onChange={(urls) => setForm((f: any) => ({ ...f, social_urls: urls }))}
+                                placeholder="https://discord.gg/... or https://t.me/..."
+                                max={5}
+                            />
+                        </AdminFormField>
+                    </div>
+                </div>
+
+                <div className="p-6 rounded-2xl border border-[var(--divider)] bg-[var(--bg-surface)] space-y-4">
+                    <h3 className="text-lg font-semibold text-[var(--text-primary)] flex items-center gap-2 mb-2">
+                        <Link2 className="w-5 h-5" /> Install URLs
+                    </h3>
+                    <p className="text-xs text-[var(--text-secondary)] -mt-1 mb-3">
+                        Add custom install buttons for each compatible app. Use "Auto" for deep links that open the app, or "Copy" for URLs users can copy.
+                    </p>
+                    <InstallUrlsInput
+                        value={form.install_urls}
+                        onChange={urls => setForm((f: any) => ({ ...f, install_urls: urls }))}
+                    />
+                </div>
+
+                {isAdmin && (
+                    <div className="p-6 rounded-2xl border border-[var(--divider)] bg-[var(--bg-surface)] space-y-4">
+                        <h3 className="text-lg font-semibold text-[var(--text-primary)] mb-4 flex items-center gap-2">
+                            <HelpCircle className="w-4 h-4" /> Tutorials & Guides
+                        </h3>
+                        <div className="space-y-4">
+                            <AdminSmartSelect
+                                label="Linked Guides & Tutorials"
+                                value={selectedGuideTitles}
+                                onChange={setSelectedGuideTitles}
+                                options={guideOptions}
+                                placeholder="Search and select guides..."
+                                creatable={true}
+                            />
+                            <div className="text-xs text-[var(--text-secondary)]">
+                                Select existing guides from the database. Type to create a new custom entry title.
+                            </div>
+                        </div>
+                    </div>
+                )}
+            </div>
+
+            {/* Sidebar Metadata */}
+            <div className="space-y-6">
+                <div className="p-6 rounded-2xl border border-[var(--divider)] bg-[var(--bg-surface)] space-y-4">
+                    <h3 className="text-lg font-semibold text-[var(--text-primary)] mb-4">Appearance</h3>
+                    <AdminFormField label="Icon URL">
+                        <AdminInput value={form.icon_url} onChange={e => setForm((f: any) => ({ ...f, icon_url: e.target.value }))} placeholder="https://..." />
+                    </AdminFormField>
+                    <div className="flex items-center gap-4">
+                        {form.icon_url && <img src={form.icon_url} alt="Icon Preview" className="w-12 h-12 rounded-xl object-cover bg-gray-100 dark:bg-gray-800" />}
+                    </div>
+                    <AdminFormField label="Icon Color">
+                        <div className="flex gap-2 items-center">
+                            <div className="relative w-12 h-10 rounded-lg border border-[var(--divider)] overflow-hidden cursor-pointer shadow-sm">
+                                <input
+                                    type="color"
+                                    value={form.icon_color || '#ffffff'}
+                                    onChange={e => setForm((f: any) => ({ ...f, icon_color: e.target.value }))}
+                                    className="absolute -top-2 -left-2 w-20 h-20 p-0 border-0 cursor-pointer"
+                                />
+                                <div className="absolute inset-0 pointer-events-none" style={{ backgroundColor: form.icon_color || 'transparent' }}></div>
+                            </div>
+                            <AdminInput value={form.icon_color} onChange={e => setForm((f: any) => ({ ...f, icon_color: e.target.value }))} placeholder="#3B82F6" className="font-mono flex-1" />
+                            <span title="Auto-extract from Icon">
+                                <AdminButton type="button" variant="secondary" onClick={() => handleColorExtraction(form.icon_url)} disabled={!form.icon_url || extractingColor} className="px-3">
+                                    {extractingColor ? <Loader2 className="w-4 h-4 animate-spin" /> : <Palette className="w-4 h-4" />}
+                                </AdminButton>
+                            </span>
+                        </div>
+                    </AdminFormField>
+                </div>
+
+                <div className="p-6 rounded-2xl border border-[var(--divider)] bg-[var(--bg-surface)] space-y-4">
+                    <h3 className="text-lg font-semibold text-[var(--text-primary)] mb-4">Status & Metadata</h3>
+                    {isAdmin && (
+                        <AdminFormField label="Status">
+                            <AdminSelect value={form.status} onChange={e => setForm((f: any) => ({ ...f, status: e.target.value }))}>
+                                <option value="approved">Approved</option>
+                                <option value="pending">Pending</option>
+                                <option value="rejected">Rejected</option>
+                            </AdminSelect>
+                        </AdminFormField>
+                    )}
+                    <AdminFormField label="Author">
+                        <AdminInput value={form.author} onChange={e => setForm((f: any) => ({ ...f, author: e.target.value }))} placeholder="Author Name" />
+                    </AdminFormField>
+                    {isAdmin && (
+                        <div className="grid grid-cols-2 gap-4">
+                            <AdminFormField label="Downloads">
+                                <AdminInput type="number" value={form.download_count} onChange={e => setForm((f: any) => ({ ...f, download_count: parseInt(e.target.value) || 0 }))} placeholder="0" />
+                            </AdminFormField>
+                            <AdminFormField label="Likes">
+                                <AdminInput type="number" value={form.likes_count} onChange={e => setForm((f: any) => ({ ...f, likes_count: parseInt(e.target.value) || 0 }))} placeholder="0" />
+                            </AdminFormField>
+                        </div>
+                    )}
+                </div>
+
+                <div className="p-6 rounded-2xl border border-[var(--divider)] bg-[var(--bg-surface)] space-y-4">
+                    <h3 className="text-lg font-semibold text-[var(--text-primary)] mb-4">Metadata</h3>
+                    <AdminSmartSelect
+                        label="Platforms"
+                        value={form.platforms}
+                        onChange={(val) => setForm((f: any) => ({ ...f, platforms: val }))}
+                        options={PLATFORM_OPTIONS}
+                        placeholder="Select platforms..."
+                    />
+                    <div className="pt-2">
+                        <AdminSmartSelect
+                            label="Tags"
+                            value={form.tags}
+                            onChange={(val) => setForm((f: any) => ({ ...f, tags: val }))}
+                            options={TAG_OPTIONS}
+                            placeholder="Add tags..."
+                        />
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+}

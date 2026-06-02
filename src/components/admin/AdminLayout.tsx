@@ -4,7 +4,8 @@ import { useAdmin } from '@/hooks/useAdmin';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import {
   LayoutDashboard, AppWindow, Puzzle, BookOpen, HelpCircle,
-  Inbox, Heart, Bell, Palette, Settings, Users, LogOut, Menu, X, ScrollText, Shield, DollarSign
+  Inbox, Heart, Bell, Palette, Settings, Users, LogOut, Menu, X, ScrollText, Shield, DollarSign,
+  PenTool, Flag, MessageSquare
 } from 'lucide-react';
 import { useState } from 'react';
 
@@ -15,6 +16,9 @@ const navItems = [
   { path: '/admin/guides', label: 'Guides', icon: BookOpen },
   { path: '/admin/faqs', label: 'FAQs', icon: HelpCircle },
   { path: '/admin/submissions', label: 'Submissions', icon: Inbox },
+  { path: '/admin/edit-suggestions', label: 'Edits', icon: PenTool },
+  { path: '/admin/reports', label: 'Reports', icon: Flag },
+  { path: '/admin/feedbacks', label: 'Feedbacks', icon: MessageSquare },
   { path: '/admin/likes', label: 'Likes', icon: Heart },
   { path: '/admin/notices', label: 'Notices', icon: Bell },
   { path: '/admin/donations', label: 'Donations', icon: DollarSign },

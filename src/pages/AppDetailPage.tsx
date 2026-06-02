@@ -12,6 +12,9 @@ import { useGitHubRelease } from '../hooks/useGitHubRelease';
 import { GitHubReleaseMeta } from '../components/GitHubReleaseMeta';
 import { useAccentColor } from '../hooks/useAccentColor';
 import { LoveButton } from '../components/LoveButton';
+import { DetailActions } from '../components/DetailActions';
+import { ShareModal } from '../components/ShareModal';
+import { ReportModal } from '../components/ReportModal';
 import type { AppData } from '../types/data';
 import { useApp } from '../hooks/useApp';
 import { useExtensions } from '../hooks/useExtensions';
@@ -109,6 +112,24 @@ export function AppDetailPage({ appId, onNavigate }: AppDetailPageProps) {
   const [api, setApi] = React.useState<CarouselApi>();
   const [current, setCurrent] = React.useState(0);
   const [count, setCount] = React.useState(0);
+  
+  const [isReportOpen, setIsReportOpen] = React.useState(false);
+  const [isShareOpen, setIsShareOpen] = React.useState(false);
+  const [shareData, setShareData] = React.useState({ title: '', url: '' });
+
+  const handleShare = async (title: string, url: string) => {
+    if (navigator.share) {
+      try {
+        await navigator.share({ title, url });
+      } catch (err) {
+        setShareData({ title, url });
+        setIsShareOpen(true);
+      }
+    } else {
+      setShareData({ title, url });
+      setIsShareOpen(true);
+    }
+  };
 
   React.useEffect(() => {
     if (!api) {
@@ -334,20 +355,39 @@ export function AppDetailPage({ appId, onNavigate }: AppDetailPageProps) {
       exit={{ opacity: 0 }}
       className="max-w-7xl mx-auto"
     >
-      {/* Back Button */}
-      <motion.button
-        initial={{ opacity: 0, x: -20 }}
-        animate={{ opacity: 1, x: 0 }}
-        transition={{ delay: 0.2 }}
-        onClick={handleBackClick}
-        className="flex items-center gap-2 text-[var(--text-secondary)] hover:text-[var(--brand)] transition-colors mb-6 sm:mb-8 font-['Inter',sans-serif] group"
-        style={{ fontWeight: 500 }}
-      >
-        <div className="flex items-center justify-center w-10 h-10 sm:w-auto sm:h-auto rounded-full bg-[var(--bg-surface)] sm:bg-transparent border border-[var(--divider)] sm:border-transparent group-hover:border-[var(--brand)] shadow-sm sm:shadow-none transition-all">
-          <ArrowLeft className="w-5 h-5 sm:w-4 sm:h-4" />
-        </div>
-        <span className="hidden sm:inline">Back to Software</span>
-      </motion.button>
+      <ShareModal isOpen={isShareOpen} onClose={() => setIsShareOpen(false)} title={shareData.title} url={shareData.url} />
+      <ReportModal isOpen={isReportOpen} onClose={() => setIsReportOpen(false)} targetType="app" targetId={app.id} targetName={app.name} pageUrl={window.location.href} />
+
+      {/* Top Bar (Back Button + Actions) */}
+      <div className="flex items-center justify-between mb-6 sm:mb-8">
+        <motion.button
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ delay: 0.2 }}
+          onClick={handleBackClick}
+          className="flex items-center gap-2 text-[var(--text-secondary)] hover:text-[var(--brand)] transition-colors font-['Inter',sans-serif] group"
+          style={{ fontWeight: 500 }}
+        >
+          <div className="flex items-center justify-center w-10 h-10 sm:w-auto sm:h-auto rounded-full bg-[var(--bg-surface)] sm:bg-transparent border border-[var(--divider)] sm:border-transparent group-hover:border-[var(--brand)] shadow-sm sm:shadow-none transition-all">
+            <ArrowLeft className="w-5 h-5 sm:w-4 sm:h-4" />
+          </div>
+          <span className="hidden sm:inline">Back to Software</span>
+        </motion.button>
+
+        <motion.div
+          initial={{ opacity: 0, x: 20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ delay: 0.2 }}
+        >
+          <DetailActions 
+            targetType="app"
+            targetId={app.id}
+            targetName={app.name}
+            onReportClick={() => setIsReportOpen(true)}
+            onShareClick={() => handleShare(app.name, window.location.href)}
+          />
+        </motion.div>
+      </div>
 
       {/* App Header */}
       <motion.div

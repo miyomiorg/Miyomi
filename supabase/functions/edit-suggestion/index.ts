@@ -19,16 +19,25 @@ Deno.serve(async (req: Request) => {
 
   try {
     const body = await req.json();
-    const { submissionType, submittedData, submitterEmail, turnstileToken, submitterName, submitterContact } = body;
+    const { 
+      targetType, 
+      targetId, 
+      originalDataSnapshot, 
+      submittedData, 
+      submitterName, 
+      submitterContact, 
+      submitterNotes,
+      submitterUserId, 
+      turnstileToken 
+    } = body;
 
-    if (!submissionType || !submittedData) {
+    if (!targetType || !targetId || !submittedData || !originalDataSnapshot) {
       return new Response(
-        JSON.stringify({ error: "Missing submissionType or submittedData" }),
+        JSON.stringify({ error: "Missing required fields" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    // Validate Turnstile Token — ALWAYS required
     const disableTurnstile = Deno.env.get("DISABLE_TURNSTILE") === "true";
     if (!disableTurnstile) {
       if (!turnstileToken) {
@@ -64,89 +73,48 @@ Deno.serve(async (req: Request) => {
       }
     }
 
-    // Validate submission type
-    if (!["app", "extension"].includes(submissionType)) {
-      return new Response(
-        JSON.stringify({ error: "Invalid submission type" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    // Basic duplicate check by name
-    const name = submittedData.name?.toLowerCase?.() || "";
-    let duplicateResults = null;
-
-    if (name) {
-      const table = submissionType === "app" ? "apps" : "extensions";
-      const { data: matches } = await supabase
-        .from(table)
-        .select("id, name, slug")
-        .ilike("name", `%${name}%`)
-        .limit(5);
-
-      if (matches && matches.length > 0) {
-        duplicateResults = matches.map((m: any) => ({
-          id: m.slug || m.id,
-          name: m.name,
-        }));
-      }
-    }
-
-    // Insert submission
-    const { data, error } = await supabase.from("submissions").insert({
-      submission_type: submissionType,
-      submitted_data: {
-        ...submittedData,
-        author: submittedData.author || null,
-      },
-      submitter_email: submitterEmail || null,
+    const { data, error } = await supabase.from("public_edit_suggestions").insert({
+      target_type: targetType,
+      target_id: targetId,
+      original_data_snapshot: originalDataSnapshot,
+      submitted_data: submittedData,
       submitter_name: submitterName || null,
       submitter_contact: submitterContact || null,
-      author: submittedData.author || null,
-      duplicate_check_results: duplicateResults,
+      submitter_user_id: submitterUserId || null,
       status: "pending",
     }).select("id").single();
 
     if (error) {
-      console.error("Submission insert error:", error);
+      console.error("Edit suggestion insert error:", error);
       return new Response(
-        JSON.stringify({ error: "Failed to submit" }),
+        JSON.stringify({ error: "Failed to submit edit suggestion: " + error.message, details: error }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    const typeLabel = submissionType === "app" ? "App" : "Extension";
-    const nameStr = sanitizeHTML(submittedData.name || "Unknown");
-    const authorStr = sanitizeHTML(submittedData.author || "Unknown");
-
+    const targetNameStr = sanitizeHTML(submittedData.name || originalDataSnapshot.name || "Unknown");
     const telegramMessage = `
-🚀 <b>New ${typeLabel} Submission - Miyomi</b>
+📝 <b>New Edit Suggestion - Miyomi</b>
 
-<b>Name:</b> ${nameStr}
-<b>Author:</b> ${authorStr}
+<b>Target:</b> ${targetType} - ${targetNameStr} (ID: ${targetId})
 <b>Submitter Name:</b> ${sanitizeHTML(submitterName || "Anonymous")}
 <b>Contact:</b> ${sanitizeHTML(submitterContact || "N/A")}
-<b>Notes for Admin:</b> ${sanitizeHTML(body.submitterNotes || "None")}
+<b>Notes for Admin:</b> ${sanitizeHTML(submitterNotes || "None")}
 <b>Time:</b> ${new Date().toLocaleString()}
 
-Please review this submission in the admin dashboard.
+Please review this edit suggestion in the admin dashboard.
     `.trim();
 
-    // Fire and forget the telegram notification so we don't delay the user
     sendTelegramNotification(supabase, telegramMessage).catch(err => {
-      console.error("Error sending submission telegram alert:", err);
+      console.error("Error sending edit suggestion telegram alert:", err);
     });
 
     return new Response(
-      JSON.stringify({
-        success: true,
-        submissionId: data.id,
-        duplicates: duplicateResults,
-      }),
+      JSON.stringify({ success: true, suggestionId: data.id }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error) {
-    console.error("Submit error:", error);
+    console.error("Edit suggestion error:", error);
     return new Response(
       JSON.stringify({ error: "Internal server error" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }

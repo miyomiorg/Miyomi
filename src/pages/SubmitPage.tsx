@@ -1,28 +1,19 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
-import { AdminFormField, AdminInput, AdminTextarea, AdminSelect, AdminButton, Label } from '@/components/admin/AdminFormElements';
-import { AdminSmartSelect } from '@/components/admin/AdminSmartSelect';
-import { extractColorFromImage } from '@/utils/extractColorFromImage';
+import { AdminFormField, AdminInput, AdminTextarea, AdminButton } from '@/components/admin/AdminFormElements';
 import {
-  CheckCircle2, AlertCircle, Loader2, Github, Smartphone, Puzzle,
-  ArrowRight, ArrowLeft, UploadCloud, Palette, Globe, MessageSquare, Mail, ExternalLink,
-  Copy, Check, Link2, StickyNote
+  CheckCircle2, AlertCircle, Loader2, Smartphone, Puzzle,
+  ArrowRight, ArrowLeft, MessageSquare, StickyNote
 } from 'lucide-react';
 import { toast } from 'sonner';
 import Turnstile from 'react-turnstile';
-import { Navbar } from '@/components/Navbar';
-import { SocialUrlsInput } from '@/components/admin/SocialUrlsInput';
-import { InstallUrlsInput, type InstallUrlEntry } from '@/components/admin/InstallUrlsInput';
-import { FlagDisplay } from '@/components/FlagDisplay';
 
-
-const PLATFORM_OPTIONS = ['Android', 'iOS', 'Windows', 'macOS', 'Linux', 'Web'];
-const APP_CONTENT_TYPES = ['Anime', 'Manga', 'Light Novel', 'Webtoon', 'Comics'];
-const EXT_CONTENT_TYPES = ['Anime', 'Manga', 'Light Novel'];
-const APP_TAGS = ['Free', 'Paid', 'Open Source', 'Ad-free', 'NSFW', 'Reader', 'Tracker', 'Downloader'];
-const EXT_TAGS = ['NSFW', 'SFW', 'Official', 'Fan Source'];
-const LANGUAGE_OPTIONS = ['all', 'en', 'es', 'fr', 'pt', 'pt-BR', 'ja', 'zh', 'ar', 'de', 'it', 'ru', 'tr', 'vi', 'id'];
+import { SharedAppForm } from '@/components/forms/SharedAppForm';
+import { SharedExtensionForm } from '@/components/forms/SharedExtensionForm';
+import { emptyApp } from '@/pages/admin/AdminAppFormPage';
+import { emptyExt } from '@/pages/admin/AdminExtensionFormPage';
+import { InstallUrlEntry } from '@/components/admin/InstallUrlsInput';
 
 export function SubmitPage() {
   const navigate = useNavigate();
@@ -32,8 +23,12 @@ export function SubmitPage() {
   const STEP_NAMES = ['select', 'guidelines', 'form', 'success'];
 
   const urlType = searchParams.get('type') as 'app' | 'extension' | null;
-  const urlStep = searchParams.get('step') || 'select';
-  const step = STEP_MAP[urlStep] ?? 0;
+  const urlStep = searchParams.get('step');
+  const urlMode = searchParams.get('mode');
+  const urlId = searchParams.get('id');
+
+  const defaultStep = urlMode === 'edit' ? 2 : 0;
+  const step = urlStep ? (STEP_MAP[urlStep] ?? defaultStep) : defaultStep;
   const type = (urlType === 'app' || urlType === 'extension') ? urlType : null;
 
   useEffect(() => {
@@ -41,6 +36,75 @@ export function SubmitPage() {
       setSearchParams({}, { replace: true });
     }
   }, [step, type]);
+
+  const [originalDataSnapshot, setOriginalDataSnapshot] = useState<any>(null);
+  const [loadingInitial, setLoadingInitial] = useState(urlMode === 'edit');
+
+  const [appForm, setAppForm] = useState(emptyApp);
+  const [extForm, setExtForm] = useState(emptyExt);
+  
+  const [submitterForm, setSubmitterForm] = useState({
+    submitter_name: '',
+    submitter_contact: '',
+    submitter_notes: '',
+  });
+
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [submitting, setSubmitting] = useState(false);
+  const [turnstileToken, setTurnstileToken] = useState(import.meta.env.VITE_DISABLE_TURNSTILE === 'true' ? 'dummy-token' : '');
+  const [nameError, setNameError] = useState<{ message: string; url?: string } | null>(null);
+
+  useEffect(() => {
+    async function loadEditData() {
+      if (urlMode === 'edit' && type && urlId) {
+        setLoadingInitial(true);
+        try {
+          const table = type === 'app' ? 'apps' : 'extensions';
+          const { data: rawData, error } = await supabase.from(table).select('*').eq('id', urlId).single();
+          if (error) throw error;
+          const data = rawData as any;
+          if (data) {
+            setOriginalDataSnapshot(data);
+            if (type === 'app') {
+               setAppForm({
+                  ...emptyApp,
+                  ...data,
+                  social_urls: (Array.isArray(data.social_urls) && data.social_urls.length > 0)
+                        ? data.social_urls.filter((u: string) => u)
+                        : (data.discord_url ? [data.discord_url] : []),
+                  tutorials: Array.isArray(data.tutorials) ? data.tutorials : []
+               });
+            } else {
+               const meta = data.metadata as any;
+               let loadedInstallUrls: InstallUrlEntry[] = [];
+               if (meta?.install_urls && Array.isArray(meta.install_urls) && meta.install_urls.length > 0) {
+                   loadedInstallUrls = meta.install_urls;
+               } else {
+                   if (data.auto_url) loadedInstallUrls.push({ label: 'Auto Install', url: data.auto_url, type: 'auto' });
+                   if (data.manual_url) loadedInstallUrls.push({ label: 'Copy URL', url: data.manual_url, type: 'copy' });
+               }
+
+               setExtForm({
+                  ...emptyExt,
+                  ...data,
+                  install_urls: loadedInstallUrls,
+                  social_urls: (Array.isArray(data.social_urls) && data.social_urls.length > 0)
+                        ? data.social_urls.filter((u: string) => u)
+                        : (data.discord_url ? [data.discord_url] : []),
+                  tutorials: Array.isArray(data.tutorials) ? data.tutorials : []
+               });
+            }
+          }
+        } catch (err) {
+          console.error("Failed to load original data", err);
+          toast.error("Failed to load existing data for editing");
+        } finally {
+          setLoadingInitial(false);
+        }
+      }
+    }
+    loadEditData();
+  }, [urlMode, type, urlId]);
 
   function goTo(newStep: number, newType?: 'app' | 'extension' | null) {
     const t = newType !== undefined ? newType : type;
@@ -50,87 +114,43 @@ export function SubmitPage() {
     setSearchParams(params, { replace: false });
   }
 
-  const [submitting, setSubmitting] = useState(false);
-  const [turnstileToken, setTurnstileToken] = useState('');
-
-
-  const [form, setForm] = useState({
-    name: '',
-    short_description: '',
-    description: '',
-    author: '',
-    version: '',
-    language: '',
-    website_url: '',
-    repo_url: '',
-    download_url: '',
-    source_url: '',
-    discord_url: '',
-    social_urls: [''] as string[],
-    install_urls: [] as InstallUrlEntry[],
-    icon_url: '',
-    icon_color: '',
-    platforms: [] as string[],
-    tags: [] as string[],
-    content_types: [] as string[],
-    compatible_with: [] as string[],
-
-
-    submitter_name: '',
-    submitter_contact: '',
-    submitter_notes: '',
-  });
-
-  const [fetchingGithub, setFetchingGithub] = useState(false);
-  const [extractingColor, setExtractingColor] = useState(false);
-  const [copiedManual, setCopiedManual] = useState(false);
-  const [appOptions, setAppOptions] = useState<string[]>([]);
-
-
-  const [nameError, setNameError] = useState<{ message: string; url?: string } | null>(null);
-
-
-
   useEffect(() => {
+    const currentName = type === 'app' ? appForm.name : extForm.name;
     const checkDuplicates = async () => {
-
-      if (!form.name) setNameError(null);
-
-      if (!form.name) return;
+      if (!currentName) {
+         setNameError(null);
+         return;
+      }
 
       const timeoutId = setTimeout(async () => {
         try {
-
-          if (form.name) {
-            const { data: appName } = await supabase
-              .from('apps')
-              .select('name')
-              .ilike('name', form.name)
+          if (currentName) {
+            const { data: appData } = await (supabase.from('apps') as any)
+              .select('id, name')
+              .ilike('name', currentName)
               .maybeSingle();
 
-            if (appName) {
+            if (appData && appData.id !== urlId) {
               setNameError({
                 message: 'This app name already exists.',
-                url: `/software/${appName.name.toLowerCase().replace(/\s+/g, '-')}`
+                url: `/software/${appData.name.toLowerCase().replace(/\s+/g, '-')}`
               });
             } else {
-              const { data: extName } = await supabase
-                .from('extensions')
-                .select('name')
-                .ilike('name', form.name)
+              const { data: extData } = await (supabase.from('extensions') as any)
+                .select('id, name')
+                .ilike('name', currentName)
                 .maybeSingle();
 
-              if (extName) {
+              if (extData && extData.id !== urlId) {
                 setNameError({
                   message: 'This extension name already exists.',
-                  url: `/extensions/${extName.name.toLowerCase().replace(/\s+/g, '-')}`
+                  url: `/extensions/${extData.name.toLowerCase().replace(/\s+/g, '-')}`
                 });
               } else {
                 setNameError(null);
               }
             }
           }
-
         } catch (err) {
           console.error("Duplicate check failed", err);
         }
@@ -140,95 +160,13 @@ export function SubmitPage() {
     };
 
     checkDuplicates();
-  }, [form.name]);
-
-  useEffect(() => {
-    async function fetchApps() {
-      const { data } = await supabase.from('apps').select('name').order('name');
-      if (data) setAppOptions(data.map((a: any) => a.name));
-    }
-    fetchApps();
-  }, []);
-
-
-  useEffect(() => {
-    if (form.icon_url && !form.icon_color) {
-      handleColorExtraction(form.icon_url);
-    }
-  }, [form.icon_url]);
-
-  async function handleColorExtraction(url: string) {
-    setExtractingColor(true);
-    const color = await extractColorFromImage(url);
-    if (color) setForm(f => ({ ...f, icon_color: color }));
-    setExtractingColor(false);
-  }
-
-  useEffect(() => {
-    if (form.repo_url && !form.download_url && type === 'app') {
-      const match = form.repo_url.match(/github\.com\/([^\/]+)\/([^\/]+)/);
-      if (match) {
-        const [_, owner, repo] = match;
-        const cleanRepo = repo.replace(/\.git$/, '').split('#')[0].split('?')[0];
-        setForm(f => ({ ...f, download_url: `https://github.com/${owner}/${cleanRepo}/releases/latest` }));
-      }
-    }
-  }, [form.repo_url, form.download_url, type]);
-
-
-  async function handleGithubFetch() {
-    if (!form.repo_url) return toast.error("Please enter a GitHub URL first");
-
-
-    const match = form.repo_url.match(/github\.com\/([^\/]+)\/([^\/]+)/);
-    if (!match) return toast.error("Invalid GitHub URL format");
-
-    const [_, owner, repo] = match;
-    setFetchingGithub(true);
-
-    try {
-
-      const res = await fetch(`https://api.github.com/repos/${owner}/${repo}`);
-      if (!res.ok) throw new Error("GitHub API error: " + res.statusText);
-      const data = await res.json();
-
-
-      let version = form.version;
-      let downloadUrl = form.download_url;
-      try {
-        const relRes = await fetch(`https://api.github.com/repos/${owner}/${repo}/releases/latest`);
-        if (relRes.ok) {
-          const relData = await relRes.json();
-          if (relData.tag_name) version = relData.tag_name;
-          if (!downloadUrl) {
-            downloadUrl = `https://github.com/${owner}/${repo}/releases/latest`;
-          }
-        }
-      } catch (e) { console.warn("No release found", e); }
-
-      setForm(prev => ({
-        ...prev,
-        name: prev.name || data.name,
-        short_description: data.description || prev.short_description,
-        website_url: data.homepage || prev.website_url,
-        download_url: prev.download_url || downloadUrl,
-        tags: [...new Set([...prev.tags, ...(data.topics || [])])],
-        author: data.owner?.login || prev.author,
-        icon_url: prev.icon_url || data.owner?.avatar_url || '',
-        version: version
-      }));
-      toast.success("Fetched metadata from GitHub");
-    } catch (err: any) {
-      toast.error("Failed to fetch from GitHub: " + err.message);
-    } finally {
-      setFetchingGithub(false);
-    }
-  }
+  }, [type === 'app' ? appForm.name : extForm.name]);
 
 
   async function handleSubmit() {
-    if (!form.name || !form.description || !form.author) {
-      return toast.error("Please fill in all required fields (Name, Description, Author)");
+    const form = type === 'app' ? appForm : extForm;
+    if (!form.name || (type === 'app' && !appForm.author)) {
+      return toast.error("Please fill in all required fields (Name for extensions, Name & Author for apps)");
     }
     if (!turnstileToken) {
       return toast.error("Please complete the CAPTCHA");
@@ -237,48 +175,98 @@ export function SubmitPage() {
     if (nameError) {
       return toast.error("Please resolve duplicate warnings before submitting.");
     }
+    
+    // Check if there are form errors from Shared components
+    if (Object.values(errors).some(v => !!v)) {
+        return toast.error("Please fix duplicate entries before saving.");
+    }
 
     setSubmitting(true);
     try {
-      const submittedData = {
-        name: form.name,
-        short_description: form.short_description,
-        description: form.description,
-        author: form.author,
-        icon_url: form.icon_url,
-        icon_color: form.icon_color,
-        repo_url: form.repo_url,
-        website_url: form.website_url,
-        discord_url: form.social_urls.filter(u => u.trim())[0] || form.discord_url,
-        social_urls: form.social_urls.filter(u => u.trim()),
-        platforms: form.platforms,
-        tags: form.tags,
-        ...(type === 'app' ? {
-          version: form.version,
-          download_url: form.download_url,
-          content_types: form.content_types,
-          fork_of: null,
-        } : {
-          types: form.content_types,
-          compatible_with: form.compatible_with,
-          source_url: form.source_url,
-          language: form.language,
-          install_urls: form.install_urls.filter(u => u.url.trim()),
-          auto_url: form.install_urls.find(u => u.type === 'auto')?.url || '',
-          manual_url: form.install_urls.find(u => u.type === 'copy')?.url || '',
-        })
-      };
+      let submittedData: any = {};
+      
+      if (type === 'app') {
+          submittedData = {
+                name: appForm.name,
+                slug: appForm.slug || null,
+                short_description: appForm.short_description || null,
+                description: appForm.description || null,
+                author: appForm.author || null,
+                category: appForm.category || null,
+                version: appForm.version || null,
+                status: 'pending', // Submissions default to pending, not approved
+                platforms: appForm.platforms.length ? appForm.platforms : null,
+                tags: appForm.tags.length ? appForm.tags : null,
+                // @ts-ignore
+                content_types: appForm.content_types.length ? appForm.content_types : null,
+                repo_url: appForm.repo_url || null,
+                download_url: appForm.download_url || null,
+                website_url: appForm.website_url || null,
+                icon_url: appForm.icon_url || null,
+                icon_color: appForm.icon_color || null,
+                fork_of: appForm.fork_of || null,
+                upstream_url: appForm.upstream_url || null,
+                social_urls: appForm.social_urls.filter((u: string) => u.trim()) || [],
+                discord_url: appForm.social_urls.filter((u: string) => u.trim())[0] || null,
+                tutorials: appForm.tutorials,
+          };
+      } else {
+          const validInstallUrls = extForm.install_urls.filter((u: InstallUrlEntry) => u.url.trim());
+          const firstAuto = validInstallUrls.find((u: InstallUrlEntry) => u.type === 'auto');
+          const firstCopy = validInstallUrls.find((u: InstallUrlEntry) => u.type === 'copy');
 
-      const payload = {
+          submittedData = {
+                name: extForm.name,
+                slug: extForm.slug || null,
+                short_description: extForm.short_description || null,
+                description: extForm.description || null,
+                author: extForm.author || null,
+                category: extForm.category || null,
+                language: extForm.language || null,
+                status: 'pending', // Submissions default to pending
+                platforms: extForm.platforms.length ? extForm.platforms : null,
+                tags: extForm.tags.length ? extForm.tags : null,
+                // @ts-ignore
+                types: extForm.types.length ? extForm.types : null,
+                compatible_with: extForm.compatible_with.length ? extForm.compatible_with : null,
+                repo_url: extForm.repo_url || null,
+                source_url: extForm.source_url || null,
+                icon_url: extForm.icon_url || null,
+                icon_color: extForm.icon_color || null,
+                auto_url: firstAuto?.url || null,
+                manual_url: firstCopy?.url || null,
+                metadata: { install_urls: validInstallUrls },
+                social_urls: extForm.social_urls.filter((u: string) => u.trim()) || [],
+                discord_url: extForm.social_urls.filter((u: string) => u.trim())[0] || null,
+                tutorials: extForm.tutorials,
+          };
+      }
+
+      let invokeFn = 'submit-content';
+      let payload: any = {
         submissionType: type,
         submittedData,
         turnstileToken,
-        submitterName: form.submitter_name,
-        submitterContact: form.submitter_contact,
-        submitterNotes: form.submitter_notes,
+        submitterName: submitterForm.submitter_name,
+        submitterContact: submitterForm.submitter_contact,
+        submitterNotes: submitterForm.submitter_notes,
       };
 
-      const { data, error } = await supabase.functions.invoke('submit-content', {
+      if (urlMode === 'edit' && urlId && originalDataSnapshot) {
+        invokeFn = 'edit-suggestion';
+        payload = {
+          targetType: type,
+          targetId: urlId,
+          originalDataSnapshot,
+          submittedData,
+          turnstileToken,
+          submitterName: submitterForm.submitter_name,
+          submitterContact: submitterForm.submitter_contact,
+          submitterUserId: undefined, 
+        };
+      }
+
+      const { data, error } = await supabase.functions.invoke(invokeFn, {
         body: payload
       });
 
@@ -301,9 +289,6 @@ export function SubmitPage() {
     }
   }
 
-
-
-
   const renderSelection = () => (
     <div className="max-w-4xl mx-auto py-12 px-4 animate-in fade-in zoom-in-95 duration-500">
       <div className="text-center mb-12">
@@ -316,7 +301,6 @@ export function SubmitPage() {
       </div>
 
       <div className="grid md:grid-cols-2 gap-6">
-        {/* App Card */}
         <button
           onClick={() => goTo(1, 'app')}
           className="group relative overflow-hidden rounded-3xl bg-gradient-to-br from-[var(--bg-elev-1)] to-[var(--bg-elev-2)] border border-[var(--divider)] p-8 text-left transition-all hover:border-[var(--brand)] hover:shadow-[0_0_40px_-10px_rgba(var(--brand-rgb),0.3)]"
@@ -335,7 +319,6 @@ export function SubmitPage() {
           </div>
         </button>
 
-        {/* Extension Card */}
         <button
           onClick={() => goTo(1, 'extension')}
           className="group relative overflow-hidden rounded-3xl bg-gradient-to-br from-[var(--bg-elev-1)] to-[var(--bg-elev-2)] border border-[var(--divider)] p-8 text-left transition-all hover:border-[var(--brand-secondary)] hover:shadow-[0_0_40px_-10px_rgba(168,85,247,0.3)]"
@@ -356,7 +339,6 @@ export function SubmitPage() {
       </div>
     </div>
   );
-
 
   const renderGuidelines = () => (
     <div className="max-w-2xl mx-auto py-12 px-4 animate-in slide-in-from-right-8 duration-300">
@@ -393,244 +375,73 @@ export function SubmitPage() {
     </div>
   );
 
-
   const renderForm = () => (
     <div className="max-w-5xl mx-auto py-8 px-4 animate-in slide-in-from-bottom-8 duration-500">
       <div className="flex items-center gap-4 mb-8">
-        <button onClick={() => goTo(0)} className="text-[var(--text-secondary)] hover:text-[var(--text-primary)]">
-          <ArrowLeft className="w-6 h-6" />
-        </button>
+        {urlMode !== 'edit' && (
+          <button onClick={() => goTo(0)} className="text-[var(--text-secondary)] hover:text-[var(--text-primary)]">
+            <ArrowLeft className="w-6 h-6" />
+          </button>
+        )}
         <h1 className="text-2xl font-bold text-[var(--text-primary)]">
-          Submit {type === 'app' ? 'App' : 'Extension'}
+          {urlMode === 'edit' ? `Suggest Edit for ${type === 'app' ? 'App' : 'Extension'}` : `Submit ${type === 'app' ? 'App' : 'Extension'}`}
         </h1>
       </div>
 
-      <div className="grid lg:grid-cols-3 gap-8">
-        {/* Main Form Area */}
-        <div className="lg:col-span-2 space-y-6">
-
-          {/* GitHub Fetcher */}
-          <div className="p-6 rounded-2xl border border-[var(--divider)] bg-[var(--bg-surface)]">
-            <h3 className="text-lg font-semibold text-[var(--text-primary)] flex items-center gap-2 mb-4">
-              <Github className="w-5 h-5" /> Import from GitHub
-            </h3>
-            <div className="flex gap-3 items-end">
-              <AdminFormField label="Repository URL" className="flex-1">
-                <AdminInput
-                  placeholder="https://github.com/owner/repo"
-                  value={form.repo_url}
-                  onChange={e => setForm(f => ({ ...f, repo_url: e.target.value }))}
-                />
-                <p className="text-xs text-[var(--text-secondary)] mt-1">Same repo can be used for multiple extensions targeting different apps.</p>
-              </AdminFormField>
-              <AdminButton onClick={handleGithubFetch} disabled={fetchingGithub || !form.repo_url} variant="secondary">
-                {fetchingGithub ? <Loader2 className="w-4 h-4 animate-spin" /> : <UploadCloud className="w-4 h-4" />}
-                <span className="ml-2 hidden sm:inline">Fetch Data</span>
-              </AdminButton>
-            </div>
-            <p className="text-xs text-[var(--text-secondary)] mt-2">
-              Auto-fills Name, Description, Author, Tags, and Icon.
+      {urlMode === 'edit' && (
+        <div className="mb-6 p-4 rounded-xl border border-[var(--divider)] bg-[var(--brand)]/10 text-[var(--text-primary)] flex items-start gap-3">
+          <AlertCircle className="w-5 h-5 text-[var(--brand)] shrink-0 mt-0.5" />
+          <div className="text-sm">
+            <p className="font-semibold text-[var(--brand)]">Editing an existing {type}</p>
+            <p className="text-[var(--text-secondary)] mt-1">
+              You are currently submitting an edit suggestion. If you want to add a completely new {type === 'app' ? 'app' : 'extension'} instead, please go to the <button onClick={() => goTo(0)} className="text-[var(--brand)] hover:underline font-medium">Contribute page</button>.
             </p>
           </div>
-
-          <div className="p-6 rounded-2xl border border-[var(--divider)] bg-[var(--bg-surface)] space-y-4">
-            <h3 className="text-lg font-semibold text-[var(--text-primary)] mb-4">Core Details</h3>
-            <AdminFormField label="Name" required>
-              <AdminInput
-                value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
-                placeholder={type === 'app' ? "Mihon" : "Mangadex Extension"}
-                className={nameError ? "!border-red-500" : ""}
-              />
-              {nameError && (
-                <div className="text-xs text-red-500 mt-1.5 flex items-center gap-1.5">
-                  <AlertCircle className="w-3 h-3" />
-                  <span>{nameError.message}</span>
-                  {nameError.url && (
-                    <a href={nameError.url} target="_blank" rel="noreferrer" className="underline font-medium hover:text-red-400">
-                      View
-                    </a>
-                  )}
-                </div>
-              )}
-            </AdminFormField>
-
-            <div className="grid sm:grid-cols-2 gap-4">
-              <AdminFormField label="Author" required>
-                <AdminInput
-                  value={form.author} onChange={e => setForm(f => ({ ...f, author: e.target.value }))}
-                  placeholder="Developer Name"
-                />
-              </AdminFormField>
-              {type === 'app' ? (
-                <AdminFormField label="Version">
-                  <AdminInput
-                    value={form.version} onChange={e => setForm(f => ({ ...f, version: e.target.value }))}
-                    placeholder="v1.0.0"
-                  />
-                </AdminFormField>
-              ) : (
-                <AdminSmartSelect
-                  label="Language"
-                  value={form.language ? form.language.split(',').map(s => s.trim()).filter(Boolean) : []}
-                  onChange={(val) => setForm(f => ({ ...f, language: val.join(', ') }))}
-                  options={LANGUAGE_OPTIONS}
-                  placeholder="Select languages..."
-                  creatable={true}
-                  renderOption={(option) => (
-                      <>
-                          <FlagDisplay region={option === 'all' ? 'global' : option} size="small" />
-                          <span>{option}</span>
-                      </>
-                  )}
-                />
-              )}
-            </div>
-
-            <AdminFormField label="Short Description (Bio)">
-              <AdminTextarea
-                value={form.short_description} onChange={e => setForm(f => ({ ...f, short_description: e.target.value }))}
-                className="h-20"
-                placeholder="Brief one-line summary..."
-              />
-            </AdminFormField>
-
-            <AdminFormField label={type === 'extension' ? "Overview (Long Description)" : "Long Description"}>
-              <AdminTextarea
-                value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
-                className="h-32"
-                placeholder="Detailed description of features, sources, and what makes it special... (optional)"
-              />
-            </AdminFormField>
-
-            <AdminSmartSelect
-              label={type === 'app' ? "Content Types" : "Extension Types"}
-              value={form.content_types}
-              onChange={val => setForm(f => ({ ...f, content_types: val }))}
-              options={type === 'app' ? APP_CONTENT_TYPES : EXT_CONTENT_TYPES}
-              placeholder="Select types..."
-            />
-          </div>
-
-          <div className="p-6 rounded-2xl border border-[var(--divider)] bg-[var(--bg-surface)] space-y-4">
-            <h3 className="text-lg font-semibold text-[var(--text-primary)] mb-4">Links & Resources</h3>
-            <AdminFormField label="Website URL">
-              <AdminInput
-                value={form.website_url} onChange={e => setForm(f => ({ ...f, website_url: e.target.value }))}
-                placeholder="https://..."
-              />
-            </AdminFormField>
-            <div className="grid sm:grid-cols-2 gap-4">
-              <AdminFormField label={type === 'app' ? "Download URL" : "Source URL"}>
-                <AdminInput
-                  value={type === 'app' ? form.download_url : form.source_url}
-                  onChange={e => setForm(f => type === 'app' ? ({ ...f, download_url: e.target.value }) : ({ ...f, source_url: e.target.value }))}
-                  placeholder="https://..."
-                />
-              </AdminFormField>
-              <AdminFormField label="Social / Community Links">
-                <SocialUrlsInput
-                  value={form.social_urls}
-                  onChange={(urls) => setForm(f => ({ ...f, social_urls: urls }))}
-                  placeholder="https://discord.gg/... or https://t.me/..."
-                  max={5}
-                />
-              </AdminFormField>
-            </div>
-          </div>
-
-          {type === 'extension' && (
-            <div className="p-6 rounded-2xl border border-[var(--divider)] bg-[var(--bg-surface)] space-y-4">
-              <h3 className="text-lg font-semibold text-[var(--text-primary)] flex items-center gap-2 mb-2">
-                <Link2 className="w-5 h-5" /> Install URLs
-              </h3>
-              <p className="text-xs text-[var(--text-secondary)] -mt-1 mb-3">
-                Add install buttons for each compatible app. "Auto" opens a deep link, "Copy" lets users copy the URL.
-              </p>
-              <InstallUrlsInput
-                value={form.install_urls}
-                onChange={urls => setForm(f => ({ ...f, install_urls: urls }))}
-              />
-
-              <AdminSmartSelect
-                label="Compatible Apps"
-                value={form.compatible_with}
-                onChange={val => setForm(f => ({ ...f, compatible_with: val }))}
-                options={appOptions}
-                placeholder="Select compatible apps..."
-              />
-            </div>
-          )}
         </div>
+      )}
 
-        {/* Sidebar */}
-        <div className="space-y-6">
-          {/* Icon & Appearance */}
-          <div className="p-6 rounded-2xl border border-[var(--divider)] bg-[var(--bg-surface)] space-y-4">
-            <h3 className="text-lg font-semibold text-[var(--text-primary)] mb-4 flex items-center gap-2">
-              <Palette className="w-5 h-5" /> Appearance
-            </h3>
-            <AdminFormField label="Icon URL">
-              <AdminInput
-                value={form.icon_url} onChange={e => setForm(f => ({ ...f, icon_url: e.target.value }))}
-                placeholder="https://example.com/icon.png"
-              />
-            </AdminFormField>
-
-            {/* Preview */}
-            <div className="flex gap-4 items-center">
-              <div
-                className="w-16 h-16 rounded-xl border border-[var(--divider)] bg-[var(--bg-elev-1)] flex items-center justify-center overflow-hidden shrink-0"
-                style={{ backgroundColor: form.icon_color || undefined }}
-              >
-                {form.icon_url ? (
-                  <img src={form.icon_url} alt="Preview" className="w-full h-full object-cover" />
-                ) : (
-                  <span className="text-xs text-[var(--text-secondary)]">Preview</span>
+      {loadingInitial ? (
+        <div className="py-20 flex flex-col justify-center items-center">
+          <Loader2 className="w-8 h-8 animate-spin text-[var(--brand)] mb-4" />
+          <p className="text-[var(--text-secondary)]">Loading existing data...</p>
+        </div>
+      ) : (
+      <>
+        {nameError && (
+            <div className="mb-6 p-4 rounded-xl border border-red-500/20 bg-red-500/10 text-red-500 flex items-start gap-3">
+                <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
+                <div className="text-sm">
+                <p className="font-semibold">{nameError.message}</p>
+                {nameError.url && (
+                    <p className="mt-1">
+                        <a href={nameError.url} target="_blank" rel="noreferrer" className="underline font-medium hover:text-red-400">
+                            View Existing Profile
+                        </a>
+                    </p>
                 )}
-              </div>
-              <div className="flex-1 space-y-1">
-                <Label>Brand Color</Label>
-                <div className="flex gap-2">
-                  <AdminInput
-                    value={form.icon_color}
-                    onChange={e => setForm(f => ({ ...f, icon_color: e.target.value }))}
-                    placeholder="#HEX"
-                    className="font-mono text-xs py-2"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => handleColorExtraction(form.icon_url)}
-                    disabled={extractingColor || !form.icon_url}
-                    className="px-3 rounded-lg border border-[var(--divider)] hover:bg-[var(--bg-elev-1)] disabled:opacity-50"
-                  >
-                    {extractingColor ? <Loader2 className="w-4 h-4 animate-spin" /> : <Palette className="w-4 h-4" />}
-                  </button>
                 </div>
-              </div>
             </div>
-          </div>
-
-          {/* Metadata */}
-          <div className="p-6 rounded-2xl border border-[var(--divider)] bg-[var(--bg-surface)] space-y-4">
-            <h3 className="text-lg font-semibold text-[var(--text-primary)] mb-4">Metadata</h3>
-            <AdminSmartSelect
-              label="Platforms"
-              value={form.platforms}
-              onChange={val => setForm(f => ({ ...f, platforms: val }))}
-              options={PLATFORM_OPTIONS}
-              placeholder="Platforms..."
-            />
-            <div className="pt-2">
-              <AdminSmartSelect
-                label="Tags"
-                value={form.tags}
-                onChange={val => setForm(f => ({ ...f, tags: val }))}
-                options={type === 'app' ? APP_TAGS : EXT_TAGS}
-                placeholder="Tags (Free, Paid, NSFW...)"
-              />
-            </div>
-          </div>
-
+        )}
+        
+        {type === 'app' ? (
+           <SharedAppForm 
+               form={appForm} 
+               setForm={setAppForm} 
+               errors={errors} 
+               setErrors={setErrors} 
+               isAdmin={false} 
+           />
+        ) : (
+           <SharedExtensionForm 
+               form={extForm} 
+               setForm={setExtForm} 
+               errors={errors} 
+               setErrors={setErrors} 
+               isAdmin={false} 
+           />
+        )}
+        
+        <div className="mt-8 mx-auto space-y-6">
           {/* Submitter Info */}
           <div className="p-6 rounded-2xl border border-[var(--divider)] bg-[var(--bg-surface)] space-y-4">
             <h3 className="text-lg font-semibold text-[var(--text-primary)] mb-4 flex items-center gap-2">
@@ -639,19 +450,19 @@ export function SubmitPage() {
             <p className="text-xs text-[var(--text-secondary)] -mt-2 mb-2">Used for clarification only. Not published.</p>
             <AdminFormField label="Your Name (Optional)">
               <AdminInput
-                value={form.submitter_name} onChange={e => setForm(f => ({ ...f, submitter_name: e.target.value }))}
+                value={submitterForm.submitter_name} onChange={e => setSubmitterForm(f => ({ ...f, submitter_name: e.target.value }))}
                 placeholder="Nickname"
               />
             </AdminFormField>
             <AdminFormField label="Contact (Telegram/Email)">
               <AdminInput
-                value={form.submitter_contact} onChange={e => setForm(f => ({ ...f, submitter_contact: e.target.value }))}
+                value={submitterForm.submitter_contact} onChange={e => setSubmitterForm(f => ({ ...f, submitter_contact: e.target.value }))}
                 placeholder="@username or email"
               />
             </AdminFormField>
             <AdminFormField label="Notes for Admin">
               <AdminTextarea
-                value={form.submitter_notes} onChange={e => setForm(f => ({ ...f, submitter_notes: e.target.value }))}
+                value={submitterForm.submitter_notes} onChange={e => setSubmitterForm(f => ({ ...f, submitter_notes: e.target.value }))}
                 className="h-24"
                 placeholder="Any additional notes, context, or special requests for the admin team..."
               />
@@ -664,29 +475,30 @@ export function SubmitPage() {
           {/* Submit Action */}
           <div className="space-y-4 pt-4">
             {/* Turnstile */}
-            <div className="flex justify-center">
-              <Turnstile
-                sitekey={import.meta.env.VITE_TURNSTILE_SITE_KEY || "1x00000000000000000000AA"}
-                onVerify={(token) => setTurnstileToken(token)}
-                theme="auto"
-              />
-            </div>
+            {import.meta.env.VITE_DISABLE_TURNSTILE !== 'true' && (
+              <div className="pt-4 flex justify-center">
+                <Turnstile
+                  sitekey={import.meta.env.VITE_TURNSTILE_SITE_KEY || "1x00000000000000000000AA"}
+                  onVerify={(token) => setTurnstileToken(token)}
+                  theme="auto"
+                />
+              </div>
+            )}
 
             <AdminButton
               onClick={handleSubmit}
-              disabled={submitting || !turnstileToken}
+              disabled={submitting || (import.meta.env.VITE_DISABLE_TURNSTILE !== 'true' && !turnstileToken) || loadingInitial || !!nameError}
               className="w-full py-4 text-base shadow-lg shadow-brand/20"
             >
               {submitting ? <Loader2 className="w-5 h-5 animate-spin mr-2" /> : <CheckCircle2 className="w-5 h-5 mr-2" />}
-              Submit for Review
+              {urlMode === 'edit' ? 'Submit Edit Suggestion' : 'Submit for Review'}
             </AdminButton>
           </div>
-
         </div>
-      </div>
+      </>
+      )}
     </div>
   );
-
 
   const renderSuccess = () => (
     <div className="max-w-xl mx-auto py-20 px-4 text-center animate-in zoom-in-95 duration-500">
@@ -711,8 +523,8 @@ export function SubmitPage() {
   return (
     <div className="min-h-screen bg-[var(--bg-root)]">
       <div className="pt-24 pb-12">
-        {step === 0 && renderSelection()}
-        {step === 1 && renderGuidelines()}
+        {step === 0 && urlMode !== 'edit' && renderSelection()}
+        {step === 1 && urlMode !== 'edit' && renderGuidelines()}
         {step === 2 && renderForm()}
         {step === 3 && renderSuccess()}
       </div>
