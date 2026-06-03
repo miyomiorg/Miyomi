@@ -98,11 +98,13 @@ export function AdminReportsPage() {
 
     try {
       if (action === 'complete') {
-        await (supabase as any).from('reports').update({ status: 'completed' }).eq('id', id);
+        const { error } = await (supabase as any).from('reports').update({ status: 'completed' }).eq('id', id);
+        if (error) throw error;
         await logAction('resolve' as any, 'report' as any, id, 'Completed report');
         toast.success('Report marked as completed.');
       } else if (action === 'delete') {
-        await (supabase as any).from('reports').delete().eq('id', id);
+        const { error } = await (supabase as any).from('reports').delete().eq('id', id);
+        if (error) throw error;
         await logAction('delete' as any, 'report' as any, id, 'Deleted report entirely');
         toast.success('Report deleted permanently.');
       }
@@ -224,13 +226,13 @@ export function AdminReportsPage() {
 
       {/* Confirm Dialog */}
       <ConfirmDialog
-        isOpen={!!actionTarget}
+        open={!!actionTarget}
         title={actionTarget?.action === 'complete' ? "Mark Report as Done" : "Delete Report"}
         message={actionTarget?.action === 'complete' ? "This will move the report to history. Are you sure?" : "This will permanently delete the report from the database. This action cannot be undone."}
-        confirmText={actionTarget?.action === 'complete' ? "Mark Done" : "Delete"}
-        confirmStyle={actionTarget?.action === 'complete' ? "success" : "danger"}
+        confirmLabel={actionTarget?.action === 'complete' ? "Mark Done" : "Delete"}
+        destructive={actionTarget?.action === 'delete'}
         onConfirm={handleConfirmAction}
-        onCancel={() => setActionTarget(null)}
+        onClose={() => setActionTarget(null)}
       />
 
       {/* View Modal */}
