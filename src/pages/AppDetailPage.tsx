@@ -208,14 +208,10 @@ export function AppDetailPage({ appId, onNavigate }: AppDetailPageProps) {
 
 
   const handleBackClick = () => {
-    if (window.history.length > 1) {
-      navigate(-1);
+    if (onNavigate) {
+      onNavigate('/software');
     } else {
-      if (onNavigate) {
-        onNavigate('/software');
-      } else {
-        navigate('/software');
-      }
+      navigate('/software');
     }
   };
 
