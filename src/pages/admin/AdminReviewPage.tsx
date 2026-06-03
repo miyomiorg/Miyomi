@@ -246,41 +246,55 @@ export function AdminReviewPage({ mode }: ReviewPageProps) {
             </div>
 
             {/* Contributor Info Banner */}
-            <div className="mb-8 p-5 rounded-2xl bg-[var(--bg-surface)] border border-[var(--divider)] grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div>
-                    <span className="text-[10px] text-[var(--text-secondary)] uppercase tracking-wider font-bold block mb-1">Submitter</span>
-                    <div className="font-medium flex items-center gap-2 text-sm text-[var(--text-primary)]">
-                        <User className="w-3.5 h-3.5 opacity-70" /> {record.submitter_name || 'Anonymous'}
+            <div className="mb-8 rounded-2xl bg-[var(--bg-surface)] border border-[var(--divider)] overflow-hidden">
+                <div className="p-5 grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div>
+                        <span className="text-[10px] text-[var(--text-secondary)] uppercase tracking-wider font-bold block mb-1">Submitter</span>
+                        <div className="font-medium flex items-center gap-2 text-sm text-[var(--text-primary)]">
+                            <User className="w-3.5 h-3.5 opacity-70" /> {record.submitter_name || 'Anonymous'}
+                        </div>
+                    </div>
+                    <div>
+                        <span className="text-[10px] text-[var(--text-secondary)] uppercase tracking-wider font-bold block mb-1">Contact</span>
+                        <div className="font-medium text-sm text-[var(--text-primary)]">
+                            {record.submitter_contact || 'N/A'}
+                        </div>
+                    </div>
+                    <div>
+                        <span className="text-[10px] text-[var(--text-secondary)] uppercase tracking-wider font-bold block mb-1">
+                            {mode === 'submission' ? 'Email' : 'Submitted'}
+                        </span>
+                        <div className="font-medium text-sm text-[var(--text-primary)]">
+                            {mode === 'submission'
+                                ? (record.submitter_email || 'N/A')
+                                : new Date(record.created_at).toLocaleString()
+                            }
+                        </div>
                     </div>
                 </div>
-                <div>
-                    <span className="text-[10px] text-[var(--text-secondary)] uppercase tracking-wider font-bold block mb-1">Contact</span>
-                    <div className="font-medium text-sm text-[var(--text-primary)]">
-                        {record.submitter_contact || 'N/A'}
+
+                {/* Submitter Note */}
+                {record.submitted_data?.submitter_notes && (
+                    <div className="px-5 py-4 bg-[var(--brand)]/5 border-t border-[var(--brand)]/10">
+                        <h4 className="text-[10px] text-[var(--brand)] uppercase tracking-wider font-bold block mb-2 flex items-center gap-1.5">
+                            <FileText className="w-3.5 h-3.5" /> Note for Admin
+                        </h4>
+                        <div className="text-sm text-[var(--text-primary)] whitespace-pre-wrap">{record.submitted_data.submitter_notes}</div>
                     </div>
-                </div>
-                <div>
-                    <span className="text-[10px] text-[var(--text-secondary)] uppercase tracking-wider font-bold block mb-1">
-                        {mode === 'submission' ? 'Email' : 'Submitted'}
-                    </span>
-                    <div className="font-medium text-sm text-[var(--text-primary)]">
-                        {mode === 'submission'
-                            ? (record.submitter_email || 'N/A')
-                            : new Date(record.created_at).toLocaleString()
-                        }
-                    </div>
-                </div>
+                )}
             </div>
 
             {/* Admin Note */}
-            {record.admin_note && (
+            {(record.admin_note || record.admin_notes) && (
                 <div className="mb-6 p-4 rounded-xl bg-amber-500/5 border border-amber-500/20">
                     <h4 className="text-sm font-semibold flex items-center gap-2 text-[var(--text-secondary)] mb-2">
                         <StickyNote className="w-4 h-4" /> Admin Note
                     </h4>
-                    <div className="text-sm text-[var(--text-primary)]">{record.admin_note}</div>
+                    <div className="text-sm text-[var(--text-primary)]">{record.admin_note || record.admin_notes}</div>
                 </div>
             )}
+
+
 
             {/* Submission-specific: Duplicate Check */}
             {mode === 'submission' && record.duplicate_check_results && (

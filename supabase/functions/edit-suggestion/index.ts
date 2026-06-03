@@ -77,7 +77,10 @@ Deno.serve(async (req: Request) => {
       target_type: targetType,
       target_id: targetId,
       original_data_snapshot: originalDataSnapshot,
-      submitted_data: submittedData,
+      submitted_data: {
+        ...submittedData,
+        submitter_notes: body.submitterNotes || null,
+      },
       submitter_name: submitterName || null,
       submitter_contact: submitterContact || null,
       submitter_user_id: submitterUserId || null,

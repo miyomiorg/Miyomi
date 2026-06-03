@@ -302,6 +302,7 @@ export function SubmitPage() {
           turnstileToken,
           submitterName: submitterForm.submitter_name,
           submitterContact: submitterForm.submitter_contact,
+          submitterNotes: submitterForm.submitter_notes,
           submitterUserId: undefined, 
         };
       }

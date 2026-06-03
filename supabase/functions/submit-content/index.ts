@@ -98,6 +98,7 @@ Deno.serve(async (req: Request) => {
       submitted_data: {
         ...submittedData,
         author: submittedData.author || null,
+        submitter_notes: body.submitterNotes || null,
       },
       submitter_email: submitterEmail || null,
       submitter_name: submitterName || null,

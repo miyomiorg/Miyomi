@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAdminLogger } from '@/hooks/useAdminLogger';
 import type { Tables } from '@/integrations/supabase/types';
-import { Inbox, User, Check, X as XIcon, Eye, Trash2, AlertTriangle, RotateCcw, Package, Puzzle, StickyNote } from 'lucide-react';
+import { Inbox, User, Check, X as XIcon, Eye, Trash2, AlertTriangle, RotateCcw, Package, Puzzle, StickyNote, FileText } from 'lucide-react';
 import { AdminButton, StatusBadge, EmptyState } from '@/components/admin/AdminFormElements';
 import { ConfirmDialog } from '@/components/admin/ConfirmDialog';
 import { toast } from 'sonner';
@@ -320,6 +320,17 @@ export function AdminSubmissionsPage() {
                   <div className="mb-4 p-3 rounded-lg bg-amber-500/5 border border-amber-500/20 flex items-start gap-2">
                     <StickyNote className="w-4 h-4 text-amber-500 mt-0.5 shrink-0" />
                     <p className="text-sm text-[var(--text-primary)] line-clamp-2">{sub.admin_notes}</p>
+                  </div>
+                )}
+
+                {/* Submitter notes */}
+                {data.submitter_notes && (
+                  <div className="mb-4 p-3 rounded-lg bg-[var(--brand)]/10 border border-[var(--brand)]/20 flex items-start gap-2">
+                    <FileText className="w-4 h-4 text-[var(--brand)] mt-0.5 shrink-0" />
+                    <div>
+                      <span className="text-xs font-bold uppercase tracking-wider text-[var(--brand)] block mb-1">Submitter Note</span>
+                      <p className="text-sm text-[var(--text-primary)] whitespace-pre-wrap">{data.submitter_notes}</p>
+                    </div>
                   </div>
                 )}
 

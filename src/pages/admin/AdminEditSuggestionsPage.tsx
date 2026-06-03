@@ -275,6 +275,17 @@ export function AdminEditSuggestionsPage() {
                   </div>
                 )}
 
+                {/* Submitter notes */}
+                {submitted.submitter_notes && (
+                  <div className="mb-4 p-3 rounded-lg bg-[var(--brand)]/10 border border-[var(--brand)]/20 flex items-start gap-2">
+                    <FileText className="w-4 h-4 text-[var(--brand)] mt-0.5 shrink-0" />
+                    <div>
+                      <span className="text-xs font-bold uppercase tracking-wider text-[var(--brand)] block mb-1">Submitter Note</span>
+                      <p className="text-sm text-[var(--text-primary)] whitespace-pre-wrap">{submitted.submitter_notes}</p>
+                    </div>
+                  </div>
+                )}
+
                 <div className="flex gap-3 pt-4 border-t border-[var(--divider)]">
                   <AdminButton variant="secondary" onClick={() => navigate(`/admin/edit-suggestions/${sub.id}`)} className="mr-auto hover:bg-[var(--bg-elev-2)]">
                     <Eye className="w-4 h-4 mr-2" /> View & Edit
