@@ -29,7 +29,16 @@ Deno.serve(async (req: Request) => {
       reporterName, 
       reporterContact, 
       reporterUserId, 
-      turnstileToken 
+      turnstileToken,
+      anonymousId,
+      device_fingerprint,
+      ip_address,
+      browser,
+      os,
+      device_type,
+      screen_resolution,
+      timezone,
+      language
     } = body;
 
     if (!reason || !message || !targetType) {
@@ -84,6 +93,15 @@ Deno.serve(async (req: Request) => {
       reporter_contact: reporterContact || null,
       reporter_user_id: reporterUserId || null,
       status: "new",
+      anonymous_id: anonymousId || null,
+      device_fingerprint: device_fingerprint || null,
+      ip_address: ip_address || null,
+      browser: browser || null,
+      os: os || null,
+      device_type: device_type || null,
+      screen_resolution: screen_resolution || null,
+      timezone: timezone || null,
+      language: language || null,
     }).select("id").single();
 
     if (error) {

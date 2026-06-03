@@ -4,6 +4,8 @@ import { motion, AnimatePresence } from 'motion/react';
 import { toast } from 'sonner';
 import Turnstile from 'react-turnstile';
 import { supabase } from '@/integrations/supabase/client';
+import { getDeviceFingerprint } from '@/utils/deviceFingerprint';
+import { collectDeviceInfo } from '@/utils/deviceInfo';
 
 interface ReportModalProps {
   isOpen: boolean;
@@ -47,6 +49,9 @@ export function ReportModal({ isOpen, onClose, targetType, targetId, targetName,
     try {
       const { data: { user } } = await supabase.auth.getUser();
 
+      const fingerprintData = await getDeviceFingerprint();
+      const deviceInfo = collectDeviceInfo();
+
       const payload = {
         targetType,
         targetId,
@@ -57,7 +62,15 @@ export function ReportModal({ isOpen, onClose, targetType, targetId, targetName,
         reporterName,
         reporterContact,
         reporterUserId: user?.id,
-        turnstileToken
+        turnstileToken,
+        device_fingerprint: fingerprintData.fingerprint,
+        anonymousId: deviceInfo.anonymous_id,
+        browser: deviceInfo.browser,
+        os: deviceInfo.os,
+        device_type: deviceInfo.device_type,
+        screen_resolution: deviceInfo.screen_resolution,
+        timezone: deviceInfo.timezone,
+        language: deviceInfo.language
       };
 
       const { data, error } = await supabase.functions.invoke('report-content', {
