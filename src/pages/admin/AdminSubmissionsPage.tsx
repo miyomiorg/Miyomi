@@ -1,41 +1,43 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAdminLogger } from '@/hooks/useAdminLogger';
 import type { Tables } from '@/integrations/supabase/types';
-import { Inbox, User, Check, X as XIcon, Eye, Trash2, AlertTriangle, Save, RotateCcw, Package, Puzzle } from 'lucide-react';
+import { Inbox, User, Check, X as XIcon, Eye, Trash2, AlertTriangle, RotateCcw, Package, Puzzle, StickyNote } from 'lucide-react';
 import { AdminButton, StatusBadge, EmptyState } from '@/components/admin/AdminFormElements';
 import { ConfirmDialog } from '@/components/admin/ConfirmDialog';
-import { SubmissionEditForm } from '@/components/admin/SubmissionEditForm';
 import { toast } from 'sonner';
 
 export function AdminSubmissionsPage() {
+  const navigate = useNavigate();
   const { logAction } = useAdminLogger();
   const [submissions, setSubmissions] = useState<Tables<'submissions'>[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const [actionTarget, setActionTarget] = useState<{ id: string; action: 'approve' | 'reject'; submission?: Tables<'submissions'>; data?: any } | null>(null);
-
-  const [selectedSubmission, setSelectedSubmission] = useState<Tables<'submissions'> | null>(null);
-  const [editedData, setEditedData] = useState<any>(null); // State for the editable form
-
+  const [actionTarget, setActionTarget] = useState<{ id: string; action: 'approve' | 'reject'; submission?: Tables<'submissions'> } | null>(null);
   const [bulkDeleteTarget, setBulkDeleteTarget] = useState<'approved' | 'rejected' | 'pending' | 'all' | null>(null);
-  const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'approved' | 'rejected'>('all');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'approved' | 'rejected'>('pending');
   const [typeFilter, setTypeFilter] = useState<'all' | 'app' | 'extension'>('all');
 
   useEffect(() => { fetchData(); }, []);
 
-  useEffect(() => {
-    if (selectedSubmission) {
-      setEditedData(selectedSubmission.submitted_data);
-    } else {
-      setEditedData(null);
-    }
-  }, [selectedSubmission]);
-
   async function fetchData() {
-    const { data } = await supabase.from('submissions').select('*').order('created_at', { ascending: false });
-    setSubmissions(data || []);
-    setLoading(false);
+    setLoading(true);
+    try {
+      try {
+        await supabase.rpc('cleanup_old_rejected' as any);
+      } catch (rpcErr) {
+        console.error('Cleanup RPC failed:', rpcErr);
+      }
+
+      const { data, error } = await supabase.from('submissions').select('*').order('created_at', { ascending: false });
+      if (error) throw error;
+      setSubmissions(data || []);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoading(false);
+    }
   }
 
   function generateSlug(name: string): string {
@@ -44,24 +46,16 @@ export function AdminSubmissionsPage() {
 
   async function handleBulkDelete() {
     if (!bulkDeleteTarget) return;
-
     try {
       let query = supabase.from('submissions').delete();
-
       if (bulkDeleteTarget === 'all') {
-        query = query.neq('id', '00000000-0000-0000-0000-000000000000'); // Delete all
+        query = query.neq('id', '00000000-0000-0000-0000-000000000000');
       } else {
         query = query.eq('status', bulkDeleteTarget);
       }
-
       const { error, count } = await query;
       if (error) throw error;
-
-      await logAction('delete', 'submission', 'bulk', `Bulk delete ${bulkDeleteTarget}`, {
-        count,
-        target: bulkDeleteTarget
-      });
-
+      await logAction('delete', 'submission', 'bulk', `Bulk delete ${bulkDeleteTarget}`, { count, target: bulkDeleteTarget });
       toast.success(`Cleared ${bulkDeleteTarget} submissions (${count} removed)`);
       setBulkDeleteTarget(null);
       fetchData();
@@ -86,11 +80,10 @@ export function AdminSubmissionsPage() {
 
   async function handleAction() {
     if (!actionTarget) return;
-
     try {
       if (actionTarget.action === 'approve' && actionTarget.submission) {
         const sub = actionTarget.submission;
-        const data = actionTarget.data || sub.submitted_data as any;
+        const data = sub.submitted_data as any;
         const targetTable = sub.submission_type === 'app' ? 'apps' : 'extensions';
 
         const payload: any = {
@@ -108,8 +101,7 @@ export function AdminSubmissionsPage() {
           icon_url: data.icon_url,
           icon_color: data.icon_color,
           website_url: data.website_url,
-          discord_url: data.social_urls?.[0] || data.discord_url || null,
-          social_urls: (Array.isArray(data.social_urls) ? data.social_urls.filter((u: string) => u?.trim()) : (data.discord_url ? [data.discord_url] : [])),
+          social_urls: Array.isArray(data.social_urls) ? data.social_urls.filter((u: string) => u?.trim()) : [],
         };
 
         if (sub.submission_type === 'app') {
@@ -124,7 +116,6 @@ export function AdminSubmissionsPage() {
           const installUrls = data.install_urls || [];
           const firstAuto = installUrls.find((u: any) => u.type === 'auto');
           const firstCopy = installUrls.find((u: any) => u.type === 'copy');
-
           payload.compatible_with = data.compatible_with || [];
           payload.types = data.types || data.content_types || [];
           payload.source_url = data.source_url;
@@ -144,17 +135,14 @@ export function AdminSubmissionsPage() {
           throw insertError;
         }
 
-        await supabase.from('submissions').update({
-          status: 'approved',
-          submitted_data: data
-        }).eq('id', sub.id);
+        await supabase.from('submissions').delete().eq('id', sub.id);
 
         if (insertedData) {
           await logAction('approve', 'submission', sub.id, `${sub.submission_type} submission`, {
             approved_as: targetTable,
             resource_id: insertedData.id,
             resource_name: data.name
-          }).catch(err => console.error(err));
+          }).catch(console.error);
         }
 
         toast.success(`Published ${data.name} to ${targetTable}!`);
@@ -167,13 +155,12 @@ export function AdminSubmissionsPage() {
         await logAction('reject', 'submission', actionTarget.id, sub ? `${sub.submission_type} submission` : 'submission', {
           reason: 'Rejected by admin',
           submission_name: data?.name
-        }).catch(err => console.error(err));
+        }).catch(console.error);
 
         toast.success('Submission rejected.');
       }
 
       setActionTarget(null);
-      setSelectedSubmission(null);
       fetchData();
     } catch (err: any) {
       console.error(err);
@@ -260,64 +247,48 @@ export function AdminSubmissionsPage() {
           </div>
         </div>
 
-        {/* Bulk Actions Buttons */}
+        {/* Bulk Actions */}
         <div className="flex flex-wrap gap-3">
           {counts.pending > 0 && (
-            <AdminButton
-              variant="secondary"
-              onClick={() => setBulkDeleteTarget('pending')}
-              className="hover:border-yellow-500/50 hover:bg-yellow-500/10 hover:text-yellow-600 transition-all font-medium"
-            >
-              <Trash2 className="w-4 h-4 mr-2" />
-              Clear Pending ({counts.pending})
+            <AdminButton variant="secondary" onClick={() => setBulkDeleteTarget('pending')}
+              className="hover:border-yellow-500/50 hover:bg-yellow-500/10 hover:text-yellow-600 transition-all font-medium">
+              <Trash2 className="w-4 h-4 mr-2" /> Clear Pending ({counts.pending})
             </AdminButton>
           )}
           {counts.rejected > 0 && (
-            <AdminButton
-              variant="secondary"
-              onClick={() => setBulkDeleteTarget('rejected')}
-              className="hover:border-red-500/50 hover:bg-red-500/10 hover:text-red-500 transition-all font-medium"
-            >
-              <Trash2 className="w-4 h-4 mr-2" />
-              Clear Rejected ({counts.rejected})
+            <AdminButton variant="secondary" onClick={() => setBulkDeleteTarget('rejected')}
+              className="hover:border-red-500/50 hover:bg-red-500/10 hover:text-red-500 transition-all font-medium">
+              <Trash2 className="w-4 h-4 mr-2" /> Clear Rejected ({counts.rejected})
             </AdminButton>
           )}
           {counts.active > 0 && (
-            <AdminButton
-              variant="secondary"
-              onClick={() => setBulkDeleteTarget('approved')}
-              className="hover:border-green-500/50 hover:bg-green-500/10 hover:text-green-500 transition-all font-medium"
-            >
-              <Trash2 className="w-4 h-4 mr-2" />
-              Clear Approved ({counts.active})
+            <AdminButton variant="secondary" onClick={() => setBulkDeleteTarget('approved')}
+              className="hover:border-green-500/50 hover:bg-green-500/10 hover:text-green-500 transition-all font-medium">
+              <Trash2 className="w-4 h-4 mr-2" /> Clear Approved ({counts.active})
             </AdminButton>
           )}
           {counts.all > 0 && (
-            <AdminButton
-              variant="destructive"
-              onClick={() => setBulkDeleteTarget('all')}
-              className="shadow-lg shadow-red-500/20 hover:shadow-red-500/30 transition-all hover:scale-105"
-            >
-              <Trash2 className="w-4 h-4 mr-2" />
-              Clear All
+            <AdminButton variant="destructive" onClick={() => setBulkDeleteTarget('all')}
+              className="shadow-lg shadow-red-500/20 hover:shadow-red-500/30 transition-all hover:scale-105">
+              <Trash2 className="w-4 h-4 mr-2" /> Clear All
             </AdminButton>
           )}
         </div>
       </div>
 
       {loading ? (
-        <div className="text-center py-12" style={{ color: 'var(--text-secondary)' }}>Loading…</div>
+        <div className="text-center py-12" style={{ color: 'var(--text-secondary)' }}>Loading...</div>
       ) : submissions.length === 0 ? (
         <EmptyState icon={Inbox} title="No submissions" description="User submissions will appear here" />
       ) : (
         <div className="grid gap-4">
           {filteredSubmissions.map(sub => {
-            const data = sub.submitted_data as any;
+            const data = (sub.submitted_data as any) || {};
             return (
               <div key={sub.id} className="rounded-xl border p-5 transition-all hover:border-[var(--brand)] hover:shadow-lg hover:shadow-[var(--brand)]/5 group bg-[var(--bg-surface)] border-[var(--divider)]">
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-2">
+                    <div className="flex items-center gap-3 mb-2 flex-wrap">
                       <h3 className="font-bold text-lg group-hover:text-[var(--brand)] transition-colors" style={{ color: 'var(--text-primary)' }}>{data.name || 'Untitled'}</h3>
                       <StatusBadge status={sub.status} />
                       <span className="text-xs px-2.5 py-1 rounded-full bg-[var(--bg-elev-1)] border border-[var(--divider)] uppercase font-semibold tracking-wider text-[var(--text-secondary)]">
@@ -344,8 +315,24 @@ export function AdminSubmissionsPage() {
                   )}
                 </div>
 
+                {/* Admin notes in list */}
+                {sub.admin_notes && (
+                  <div className="mb-4 p-3 rounded-lg bg-amber-500/5 border border-amber-500/20 flex items-start gap-2">
+                    <StickyNote className="w-4 h-4 text-amber-500 mt-0.5 shrink-0" />
+                    <p className="text-sm text-[var(--text-primary)] line-clamp-2">{sub.admin_notes}</p>
+                  </div>
+                )}
+
+                {/* Duplicate check warning */}
+                {sub.duplicate_check_results && (
+                  <div className="mb-4 p-3 rounded-lg bg-orange-500/10 border border-orange-500/20 flex items-center gap-2">
+                    <AlertTriangle className="w-4 h-4 text-orange-500 shrink-0" />
+                    <span className="text-xs font-medium text-orange-500">Potential duplicates detected</span>
+                  </div>
+                )}
+
                 <div className="flex gap-3 pt-4 border-t border-[var(--divider)]">
-                  <AdminButton variant="secondary" onClick={() => setSelectedSubmission(sub)} className="mr-auto hover:bg-[var(--bg-elev-2)]">
+                  <AdminButton variant="secondary" onClick={() => navigate(`/admin/submissions/${sub.id}`)} className="mr-auto hover:bg-[var(--bg-elev-2)]">
                     <Eye className="w-4 h-4 mr-2" /> View & Edit
                   </AdminButton>
 
@@ -369,11 +356,8 @@ export function AdminSubmissionsPage() {
 
                   {sub.status === 'rejected' && (
                     <>
-                      <AdminButton
-                        variant="secondary"
-                        onClick={() => handleRestore(sub)}
-                        className="hover:border-yellow-500/50 hover:bg-yellow-500/10 hover:text-yellow-600 transition-all"
-                      >
+                      <AdminButton variant="secondary" onClick={() => handleRestore(sub)}
+                        className="hover:border-yellow-500/50 hover:bg-yellow-500/10 hover:text-yellow-600 transition-all">
                         <RotateCcw className="w-4 h-4 mr-2" /> Make Pending
                       </AdminButton>
                       <AdminButton
@@ -413,134 +397,6 @@ export function AdminSubmissionsPage() {
         confirmLabel="Delete"
         destructive
       />
-
-      {selectedSubmission && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in zoom-in-95 duration-200">
-          <div className="w-full max-w-4xl bg-[var(--bg-surface)] rounded-2xl border border-[var(--divider)] shadow-2xl max-h-[90vh] flex flex-col overflow-hidden">
-            <div className="p-5 border-b border-[var(--divider)] flex items-center justify-between bg-[var(--bg-surface)] z-10 shrink-0">
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-[var(--brand)]/10 text-[var(--brand)]">
-                  {selectedSubmission.submission_type === 'app' ? <Inbox className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                </div>
-                <div>
-                  <h2 className="text-lg font-bold" style={{ color: 'var(--text-primary)' }}>Review Submission</h2>
-                  <p className="text-xs font-mono opacity-50" style={{ color: 'var(--text-secondary)' }}>ID: {selectedSubmission.id}</p>
-                </div>
-              </div>
-              <button onClick={() => setSelectedSubmission(null)} className="p-2 hover:bg-[var(--bg-elev-1)] rounded-lg text-[var(--text-secondary)] transition-colors">
-                <XIcon className="w-5 h-5" />
-              </button>
-            </div>
-
-            <div className="p-6 overflow-y-auto custom-scrollbar">
-              <div className="mb-8 p-4 rounded-xl bg-[var(--bg-elev-1)] border border-[var(--divider)] grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div>
-                  <span className="text-[10px] text-[var(--text-secondary)] uppercase tracking-wider font-bold block mb-1">Submitter</span>
-                  <div className="font-medium flex items-center gap-2 text-sm" style={{ color: 'var(--text-primary)' }}>
-                    <User className="w-3.5 h-3.5 opacity-70" /> {selectedSubmission.submitter_name || 'Anonymous'}
-                  </div>
-                </div>
-                <div>
-                  <span className="text-[10px] text-[var(--text-secondary)] uppercase tracking-wider font-bold block mb-1">Contact</span>
-                  <div className="font-medium text-sm" style={{ color: 'var(--text-primary)' }}>
-                    {selectedSubmission.submitter_contact || 'N/A'}
-                  </div>
-                </div>
-                <div>
-                  <span className="text-[10px] text-[var(--text-secondary)] uppercase tracking-wider font-bold block mb-1">Email</span>
-                  <div className="font-medium text-sm" style={{ color: 'var(--text-primary)' }}>
-                    {selectedSubmission.submitter_email || 'N/A'}
-                  </div>
-                </div>
-              </div>
-
-              {selectedSubmission.duplicate_check_results && (
-                <div className="mb-6 p-4 rounded-xl bg-orange-500/10 border border-orange-500/20 text-orange-600 dark:text-orange-400">
-                  <h4 className="flex items-center gap-2 font-bold mb-2 text-sm">
-                    <AlertTriangle className="w-4 h-4" /> Potential Duplicates Detected
-                  </h4>
-                  <pre className="text-[11px] whitespace-pre-wrap font-mono bg-black/5 dark:bg-black/20 p-2 rounded-lg">
-                    {JSON.stringify(selectedSubmission.duplicate_check_results, null, 2)}
-                  </pre>
-                </div>
-              )}
-
-              <div className="flex items-center gap-4 mb-6 pb-2 border-b border-[var(--divider)]">
-                <h3 className="text-sm font-bold uppercase tracking-wider text-[var(--text-secondary)]">Editable Data</h3>
-                <span className="text-xs px-2 py-0.5 rounded-full bg-[var(--brand)]/10 text-[var(--brand)] font-medium">
-                  Live Edit Mode
-                </span>
-              </div>
-
-              <SubmissionEditForm
-                type={selectedSubmission.submission_type as any}
-                data={editedData || selectedSubmission.submitted_data}
-                onChange={setEditedData}
-              />
-            </div>
-
-            <div className="p-5 border-t border-[var(--divider)] bg-[var(--bg-elev-1)] flex justify-end gap-3 shrink-0">
-              <AdminButton variant="secondary" onClick={() => setSelectedSubmission(null)} className="mr-auto">
-                Cancel
-              </AdminButton>
-
-              {selectedSubmission.status === 'pending' && (
-                <>
-                  <AdminButton variant="destructive" onClick={() => {
-                    setSelectedSubmission(null);
-                    setActionTarget({ id: selectedSubmission.id, action: 'reject' });
-                  }}>
-                    <XIcon className="w-4 h-4 mr-2" /> Reject
-                  </AdminButton>
-                  <AdminButton onClick={() => {
-                    setSelectedSubmission(null);
-                    setActionTarget({
-                      id: selectedSubmission.id,
-                      action: 'approve',
-                      submission: selectedSubmission,
-                      data: editedData // CRITICAL: Propagate edited data
-                    });
-                  }} className="bg-green-600 hover:bg-green-700 text-white shadow-lg shadow-green-500/20">
-                    <Check className="w-4 h-4 mr-2" /> Publish Changes
-                  </AdminButton>
-                </>
-              )}
-
-              {selectedSubmission.status === 'approved' && (
-                <div className="px-4 py-2 rounded-lg bg-green-500/10 text-green-500 font-medium flex items-center gap-2 border border-green-500/20">
-                  <Check className="w-4 h-4" /> Already Published
-                </div>
-              )}
-
-              {selectedSubmission.status === 'rejected' && (
-                <>
-                  <AdminButton
-                    variant="secondary"
-                    onClick={() => {
-                      handleRestore(selectedSubmission);
-                      setSelectedSubmission(null);
-                    }}
-                    className="hover:border-yellow-500/50 hover:bg-yellow-500/10 hover:text-yellow-600 transition-all"
-                  >
-                    <RotateCcw className="w-4 h-4 mr-2" /> Make Pending
-                  </AdminButton>
-                  <AdminButton onClick={() => {
-                    setSelectedSubmission(null);
-                    setActionTarget({
-                      id: selectedSubmission.id,
-                      action: 'approve',
-                      submission: selectedSubmission,
-                      data: editedData
-                    });
-                  }} className="bg-green-600 hover:bg-green-700 text-white shadow-lg shadow-green-500/20">
-                    <Check className="w-4 h-4 mr-2" /> Publish Changes
-                  </AdminButton>
-                </>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

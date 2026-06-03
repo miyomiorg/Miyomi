@@ -42,6 +42,7 @@ import { AdminLogsPage } from './pages/admin/AdminLogsPage';
 import { AdminSessionsPage } from './pages/admin/AdminSessionsPage';
 import { AdminUsersPage } from './pages/admin/AdminUsersPage';
 import { AdminEditSuggestionsPage } from './pages/admin/AdminEditSuggestionsPage';
+import { AdminReviewPage } from './pages/admin/AdminReviewPage';
 import { AdminReportsPage } from './pages/admin/AdminReportsPage';
 import { AdminFeedbacksPage } from './pages/admin/AdminFeedbacksPage';
 import { AdminLayout } from './components/admin/AdminLayout';
@@ -145,7 +146,9 @@ function AppContent() {
             <Route path="faqs/new" element={<AdminFAQEditorPage />} />
             <Route path="faqs/:id/edit" element={<AdminFAQEditorPage />} />
             <Route path="submissions" element={<AdminSubmissionsPage />} />
+            <Route path="submissions/:id" element={<AdminReviewPage mode="submission" />} />
             <Route path="edit-suggestions" element={<AdminEditSuggestionsPage />} />
+            <Route path="edit-suggestions/:id" element={<AdminReviewPage mode="edit-suggestion" />} />
             <Route path="reports" element={<AdminReportsPage />} />
             <Route path="feedbacks" element={<AdminFeedbacksPage />} />
             <Route path="likes" element={<AdminLikesPage />} />
