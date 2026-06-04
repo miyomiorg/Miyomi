@@ -7,8 +7,8 @@ export function PrivacyPolicyPage() {
 
   return (
     <div className="max-w-4xl mx-auto py-12 px-4 sm:px-6 animate-in fade-in duration-500">
-      <button 
-        onClick={() => navigate('/')} 
+      <button
+        onClick={() => navigate('/')}
         className="mb-8 p-2 -ml-2 rounded-lg hover:bg-[var(--bg-elev-1)] text-[var(--text-secondary)] transition-colors inline-flex items-center gap-2"
       >
         <ArrowLeft className="w-5 h-5" />
@@ -28,7 +28,7 @@ export function PrivacyPolicyPage() {
       </div>
 
       <div className="space-y-8 text-[var(--text-primary)] font-['Inter',sans-serif] leading-relaxed">
-        
+
         {/* Introduction */}
         <section className="bg-[var(--bg-surface)] p-8 rounded-2xl border border-[var(--divider)]">
           <h2 className="text-2xl font-semibold mb-4 text-[var(--text-primary)]">Introduction</h2>
@@ -46,7 +46,7 @@ export function PrivacyPolicyPage() {
             <Eye className="w-6 h-6 text-[var(--brand)]" />
             <h2 className="text-2xl font-semibold text-[var(--text-primary)]">Information We Collect</h2>
           </div>
-          
+
           <h3 className="font-semibold mt-6 mb-2">1. Form Submissions</h3>
           <p className="text-[var(--text-secondary)] mb-4">
             When you submit an app, extension, guide, or provide feedback through our forms, we collect the information you voluntarily provide. This may include your name, email address, Discord handle, or other contact details. This data is strictly used to review your submissions and contact you regarding them.
@@ -88,6 +88,23 @@ export function PrivacyPolicyPage() {
           </p>
           <p className="text-[var(--text-secondary)]">
             We may disclose your personal information only if required to do so by law or in response to valid requests by public authorities.
+          </p>
+        </section>
+
+        {/* Disclaimer */}
+        <section id="disclaimer" className="bg-[var(--bg-surface)] p-8 rounded-2xl border border-[var(--divider)]">
+          <div className="flex items-center gap-3 mb-4">
+            <Shield className="w-6 h-6 text-[var(--brand)]" />
+            <h2 className="text-2xl font-semibold text-[var(--text-primary)]">Disclaimer of Liability & Affiliation</h2>
+          </div>
+          <p className="text-[var(--text-secondary)] mb-4">
+            Miyomi acts exclusively as a directory and index. We have <strong>no affiliation</strong> with the developers, creators, or publishers of any apps, extensions, or resources listed on our website.
+          </p>
+          <p className="text-[var(--text-secondary)] mb-4">
+            <strong>Limitation of Liability:</strong> Miyomi provides this directory on an "as-is" and "as-available" basis. We do not warrant that external links, extensions, or applications indexed here are safe, secure, or compatible with your device. We expressly disclaim all liability for any technical disruptions, system errors, data loss, or other adverse effects arising from your interaction with third-party tools.
+          </p>
+          <p className="text-[var(--text-secondary)]">
+            <strong>Help us keep the community safe:</strong> If you notice any suspicious or compromised listings, please use the Feedback button to report them for immediate investigation.
           </p>
         </section>
 

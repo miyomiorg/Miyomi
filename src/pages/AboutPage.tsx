@@ -124,9 +124,15 @@ export function AboutPage() {
           <div className="flex gap-4">
             <AlertCircle className="w-8 h-8 text-amber-600 dark:text-amber-400 flex-shrink-0" />
             <div>
-              <h3 className="font-semibold text-[var(--text-primary)] mb-1">Disclaimer: We only index — we don't host</h3>
+              <h3 className="font-semibold text-[var(--text-primary)] mb-1">Disclaimer of Liability & Affiliation</h3>
+              <p className="text-[var(--text-secondary)] text-sm leading-relaxed mb-3">
+                Miyomi is simply a directory. We have <strong>no affiliation</strong> with the developers or creators of the apps, extensions, or resources listed here. We do not build, host, or distribute any of this content.
+              </p>
+              <p className="text-[var(--text-secondary)] text-sm leading-relaxed mb-3">
+                <strong>Limitation of Liability:</strong> Miyomi provides this directory on an "as-is" and "as-available" basis. We do not warrant that external links, extensions, or applications indexed here are safe, secure, or compatible with your device. We expressly disclaim all liability for any technical disruptions, system errors, data loss, or other adverse effects arising from your interaction with third-party tools.
+              </p>
               <p className="text-[var(--text-secondary)] text-sm leading-relaxed">
-                Miyomi is simply a directory. We do not build, host, or distribute any of the apps listed here, and ownership remains with their original developers. Always download from the official sources we link and follow your local laws.
+                <strong>Help us keep the community safe:</strong> If you notice any suspicious or compromised listings, please use the Feedback button to report them for immediate investigation.
               </p>
             </div>
           </div>

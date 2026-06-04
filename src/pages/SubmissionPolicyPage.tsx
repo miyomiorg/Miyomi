@@ -86,7 +86,7 @@ export function SubmissionPolicyPage() {
               "Obfuscated / unclear purpose repos",
               "“Vibe code” / random experimental dumps with no description",
               "APKs with no source or no release page",
-              "Warez, cracked apps, pirated content",
+              "Malicious software, spyware, or deceptive clones",
               "Short-lived spam repos made only for traffic",
               "Links that redirect to unknown download sites",
               "Anything requiring disabled security / weird installation steps"
