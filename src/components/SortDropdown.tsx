@@ -34,7 +34,7 @@ export function SortDropdown({ value, onChange }: SortDropdownProps) {
       </DropdownMenuTrigger>
       <DropdownMenuContent
         align="end"
-        className="w-48 bg-[var(--bg-page)]/90 backdrop-blur-xl border border-[var(--divider)]/50 rounded-xl shadow-sm p-1"
+        className="w-48 bg-[var(--bg-page)]/95 border border-[var(--divider)]/50 rounded-xl shadow-sm p-1"
       >
         {sortOptions.map((option) => (
           <DropdownMenuItem

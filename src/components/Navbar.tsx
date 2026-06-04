@@ -165,7 +165,7 @@ export function Navbar({ onNavigate }: NavbarProps) {
 
       <nav
         className={`h-16 fixed top-0 left-0 right-0 z-[999] transition-all duration-300 ${scrolled
-          ? 'bg-[var(--bg-page)]/80 backdrop-blur-xl border-b border-[var(--divider)]/50 shadow-sm'
+          ? 'bg-[var(--bg-page)]/95 border-b border-[var(--divider)]/50 shadow-sm'
           : 'bg-transparent'
           }`}
       >
@@ -204,7 +204,7 @@ export function Navbar({ onNavigate }: NavbarProps) {
                 sideOffset={6}
                 onMouseEnter={() => openDropdown('pages')}
                 onMouseLeave={() => scheduleDropdownClose('pages')}
-                className="w-48 bg-[var(--bg-page)]/90 backdrop-blur-xl border border-[var(--divider)]/50 rounded-xl shadow-sm p-1 transition-all duration-200 ease-out"
+                className="w-48 bg-[var(--bg-page)]/95 border border-[var(--divider)]/50 rounded-xl shadow-sm p-1 transition-all duration-200 ease-out"
               >
                 {mainNavItems.map(renderDropdownItem)}
               </DropdownMenuContent>
@@ -227,7 +227,7 @@ export function Navbar({ onNavigate }: NavbarProps) {
                 sideOffset={6}
                 onMouseEnter={() => openDropdown('guides')}
                 onMouseLeave={() => scheduleDropdownClose('guides')}
-                className="w-48 bg-[var(--bg-page)]/90 backdrop-blur-xl border border-[var(--divider)]/50 rounded-xl shadow-sm p-1 transition-all duration-200 ease-out"
+                className="w-48 bg-[var(--bg-page)]/95 border border-[var(--divider)]/50 rounded-xl shadow-sm p-1 transition-all duration-200 ease-out"
               >
                 {guidesNavItems.map(renderDropdownItem)}
               </DropdownMenuContent>
@@ -323,8 +323,6 @@ export function Navbar({ onNavigate }: NavbarProps) {
           }`}
         style={{
           backgroundColor: 'rgba(0,0,0,0.2)',
-          backdropFilter: 'blur(10px)',
-          WebkitBackdropFilter: 'blur(10px)',
         }}
         onClick={() => setMobileMenuOpen(false)}
       />

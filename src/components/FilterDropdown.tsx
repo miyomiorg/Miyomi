@@ -45,7 +45,7 @@ export function FilterDropdown({ label, value, options, onChange, placeholder }:
       </button>
 
       {isOpen && (
-        <div className="absolute top-full left-0 right-0 mt-1 bg-[var(--bg-surface)]/70 backdrop-blur-md border border-[var(--divider)] rounded-lg sm:rounded-xl shadow-lg max-h-60 overflow-y-auto z-50 scrollbar-hide">
+        <div className="absolute top-full left-0 right-0 mt-1 bg-[var(--bg-surface)]/95 border border-[var(--divider)] rounded-lg sm:rounded-xl shadow-lg max-h-60 overflow-y-auto z-50 scrollbar-hide">
           {options.map((option) => {
             const isString = typeof option === 'string';
             const optionLabel = isString ? option : option.label;
