@@ -63,7 +63,7 @@ export function DetailActions({ targetType, targetId, targetName, onReportClick,
                 initial={{ opacity: 0, y: -10, scale: 0.95 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: -10, scale: 0.95 }}
-                className="absolute top-12 right-12 mt-1 w-48 rounded-2xl border border-[var(--divider)] bg-[var(--bg-surface)] shadow-xl z-50 overflow-hidden"
+                className="absolute top-12 right-12 mt-1 w-48 rounded-2xl border border-[var(--divider)] bg-[var(--bg-surface)]/80 backdrop-blur-xl shadow-xl z-50 overflow-hidden"
               >
                 <div className="flex flex-col py-2">
                   <button onClick={handleEditClick} className="flex items-center gap-3 px-4 py-3 text-sm font-medium text-[var(--text-primary)] hover:bg-[var(--bg-elev-1)] hover:text-[var(--brand)] transition-colors">

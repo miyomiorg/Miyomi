@@ -144,7 +144,7 @@ export function HomePage({ onNavigate }: HomePageProps) {
       </div>
 
       {/* Hero Section */}
-      <div className="grid lg:grid-cols-2 gap-8 lg:gap-16 items-center pb-8 lg:pb-12 relative">
+      <div className="grid lg:grid-cols-2 gap-8 lg:gap-16 items-center pb-8 lg:pb-12 relative z-20">
         {/* Mobile Avatar */}
         <div className="lg:hidden flex items-center justify-center mb-4">
           <div className="relative w-48 h-48">
@@ -183,7 +183,7 @@ export function HomePage({ onNavigate }: HomePageProps) {
           </p>
 
           {/* Autocomplete Input Search */}
-          <div ref={searchRef} className="max-w-md mx-auto lg:mx-0 mb-6 relative">
+          <div ref={searchRef} className="max-w-md mx-auto lg:mx-0 mb-6 relative z-50">
             <div
               className={`w-full flex items-center gap-3 h-12 px-4 bg-[var(--bg-surface)] border rounded-xl transition-all shadow-sm ${isSearchFocused
                   ? 'border-[var(--brand)] ring-2 ring-[var(--focus-ring)] ring-opacity-50'
@@ -218,8 +218,7 @@ export function HomePage({ onNavigate }: HomePageProps) {
             {/* Autocomplete Suggestions Box */}
             {isSearchFocused && searchQuery.trim().length > 0 && (
               <div
-                className="absolute top-full left-0 right-0 mt-2 bg-[var(--bg-surface)] border border-[var(--divider)]/50 rounded-2xl shadow-xl z-50 overflow-hidden max-h-60 overflow-y-auto py-2 animate-fade-in font-['Inter',sans-serif]"
-                style={{ boxShadow: '0 10px 30px -10px rgba(0,0,0,0.15)' }}
+                className="absolute top-full left-0 right-0 mt-2 glass rounded-2xl z-50 overflow-hidden max-h-60 overflow-y-auto py-2 animate-fade-in font-['Inter',sans-serif]"
               >
                 {searchResults.length === 0 ? (
                   <div className="px-4 py-3 text-xs text-[var(--text-secondary)] text-center">
