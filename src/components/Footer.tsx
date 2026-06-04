@@ -9,10 +9,10 @@ export function Footer() {
     <footer className="border-t border-[var(--divider)] mt-6 py-8 pb-[calc(2rem+4rem+env(safe-area-inset-bottom))] md:pb-8 px-4 sm:px-8 lg:px-[120px]">
       <div className="max-w-7xl mx-auto">
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4 text-[var(--text-secondary)] font-['Inter',sans-serif] text-sm">
-          <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-2 flex-wrap">
-            <div className="flex items-center gap-2">
+          <div className="flex flex-col xl:flex-row items-center gap-3 sm:gap-4 flex-wrap justify-center xl:justify-start">
+            <div className="flex items-center justify-center gap-2">
               <span>The Miyomi Team</span>
-              <span className="hidden sm:inline">|</span>
+              <span className="hidden xl:inline text-[var(--divider)]">|</span>
               {commit?.url ? (
                 <a
                   href={commit.url}
@@ -29,32 +29,32 @@ export function Footer() {
                 </span>
               )}
             </div>
-            <div className="flex items-center gap-2">
-              <span className="hidden sm:inline">|</span>
+            <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2">
+              <span className="hidden xl:inline text-[var(--divider)]">|</span>
               <a
                 href="/about#disclaimer"
-                className="hover:text-[var(--brand)] transition-colors underline"
+                className="hover:text-[var(--brand)] transition-colors underline whitespace-nowrap"
               >
                 Disclaimer
               </a>
-              <span>|</span>
+              <span className="hidden sm:inline text-[var(--divider)] opacity-50 xl:opacity-100">|</span>
               <a
                 href="/privacy-policy"
-                className="hover:text-[var(--brand)] transition-colors underline"
+                className="hover:text-[var(--brand)] transition-colors underline whitespace-nowrap"
               >
                 Privacy Policy
               </a>
-              <span>|</span>
+              <span className="hidden sm:inline text-[var(--divider)] opacity-50 xl:opacity-100">|</span>
               <a
                 href="/submission-policy"
-                className="hover:text-[var(--brand)] transition-colors underline"
+                className="hover:text-[var(--brand)] transition-colors underline whitespace-nowrap"
               >
                 Submission Policy
               </a>
-              <span>|</span>
+              <span className="hidden sm:inline text-[var(--divider)] opacity-50 xl:opacity-100">|</span>
               <a
                 href="/donate"
-                className="inline-flex items-center gap-1 hover:text-pink-400 transition-colors group"
+                className="inline-flex items-center gap-1 hover:text-pink-400 transition-colors group whitespace-nowrap"
               >
                 <Heart className="w-3.5 h-3.5 text-pink-400 group-hover:fill-pink-400 transition-all" />
                 Support Us
@@ -63,9 +63,9 @@ export function Footer() {
           </div>
 
           {/* Right side - Made with love */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center justify-center gap-2 text-center flex-wrap">
             <span>Made with </span>
-            <Heart className="w-4 h-4 text-[var(--brand)] fill-[var(--brand)]" />
+            <Heart className="w-4 h-4 text-[var(--brand)] fill-[var(--brand)] flex-shrink-0" />
             <span>& the power of "just one more chapter"</span>
           </div>
         </div>
