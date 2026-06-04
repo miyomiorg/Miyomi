@@ -39,6 +39,20 @@ export function Footer() {
               </a>
               <span>|</span>
               <a
+                href="/privacy-policy"
+                className="hover:text-[var(--brand)] transition-colors underline"
+              >
+                Privacy Policy
+              </a>
+              <span>|</span>
+              <a
+                href="/submission-policy"
+                className="hover:text-[var(--brand)] transition-colors underline"
+              >
+                Submission Policy
+              </a>
+              <span>|</span>
+              <a
                 href="/donate"
                 className="inline-flex items-center gap-1 hover:text-pink-400 transition-colors group"
               >

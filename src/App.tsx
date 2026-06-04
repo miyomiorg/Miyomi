@@ -23,6 +23,8 @@ import { SubmitPage } from "./pages/SubmitPage";
 import { ChristmasSnow } from './components/ChristmasSnow';
 import { AdminLoginPage } from './pages/admin/AdminLoginPage';
 import { UnauthorizedPage } from './pages/UnauthorizedPage';
+import { PrivacyPolicyPage } from './pages/PrivacyPolicyPage';
+import { SubmissionPolicyPage } from './pages/SubmissionPolicyPage';
 import { AdminDashboardPage } from './pages/admin/AdminDashboardPage';
 import { AdminAppsPage } from './pages/admin/AdminAppsPage';
 import { AdminAppFormPage } from './pages/admin/AdminAppFormPage';
@@ -233,6 +235,8 @@ function AppContent() {
           />
           <Route path="/faq" element={<FAQPage />} />
           <Route path="/about" element={<AboutPage />} />
+          <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
+          <Route path="/submission-policy" element={<SubmissionPolicyPage />} />
           <Route path="/contribute" element={<SubmitPage />} />
           <Route path="/donate" element={<DonatePage />} />
 

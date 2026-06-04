@@ -4,7 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { AdminFormField, AdminInput, AdminTextarea, AdminButton } from '@/components/admin/AdminFormElements';
 import {
   CheckCircle2, AlertCircle, Loader2, Smartphone, Puzzle,
-  ArrowRight, ArrowLeft, MessageSquare, StickyNote
+  ArrowRight, ArrowLeft, MessageSquare, StickyNote, FileText
 } from 'lucide-react';
 import { toast } from 'sonner';
 import Turnstile from 'react-turnstile';
@@ -409,6 +409,15 @@ export function SubmitPage() {
           <div>
             <h4 className="font-semibold text-[var(--text-primary)]">Valid Resources</h4>
             <p className="text-sm text-[var(--text-secondary)] mt-1">Double-check all URLs (Download, Website, Discord) before submitting.</p>
+          </div>
+        </div>
+        <div className="flex gap-4 p-4 rounded-xl bg-[var(--brand)]/10 border border-[var(--brand)]/20">
+          <div className="mt-1"><FileText className="w-5 h-5 text-[var(--brand)]" /></div>
+          <div>
+            <h4 className="font-semibold text-[var(--text-primary)]">Read the Full Policy</h4>
+            <p className="text-sm text-[var(--text-secondary)] mt-1">
+              Please read our detailed <a href="/submission-policy" target="_blank" rel="noopener noreferrer" className="text-[var(--brand)] hover:underline font-medium">Submission Policy</a> to understand what we accept, auto-reject, and our trust signals.
+            </p>
           </div>
         </div>
       </div>
