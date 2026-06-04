@@ -67,7 +67,7 @@ export function SearchModal({ isOpen, onClose }: SearchModalProps) {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
-            className="fixed inset-0 z-[9999] bg-black/20 backdrop-blur-xl"
+            className="fixed inset-0 z-[9999] bg-black/5 backdrop-blur-sm"
             onClick={onClose}
           />
 
@@ -78,7 +78,7 @@ export function SearchModal({ isOpen, onClose }: SearchModalProps) {
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: -20 }}
               transition={{ duration: 0.2 }}
-              className="w-full max-w-2xl bg-[var(--bg-surface)] rounded-2xl shadow-2xl border border-[var(--divider)] pointer-events-auto flex flex-col max-h-[70vh]"
+              className="w-full max-w-2xl bg-[var(--bg-surface)]/80 backdrop-blur-lg rounded-2xl shadow-[0_8px_32px_rgba(0,0,0,0.1)] border border-[var(--divider)]/50 pointer-events-auto flex flex-col max-h-[70vh]"
             >
               {/* Header */}
               <div className="flex items-center justify-between p-4 border-b border-[var(--divider)] flex-shrink-0">
@@ -97,7 +97,7 @@ export function SearchModal({ isOpen, onClose }: SearchModalProps) {
               {/* Search Input Area */}
               <div className="p-6 pb-2 flex-shrink-0">
                 <form onSubmit={handleSearch}>
-                  <div className="flex items-center gap-3 px-4 py-3 bg-[var(--bg-page)] border-2 border-[var(--divider)] focus-within:border-[var(--brand)] rounded-xl transition-all">
+                  <div className="flex items-center gap-3 px-4 py-3 bg-[var(--bg-page)]/50 border-2 border-[var(--divider)] focus-within:border-[var(--brand)] rounded-xl transition-all">
                     <Search className="w-5 h-5 text-[var(--text-secondary)]" />
                     <input
                       ref={inputRef}

@@ -66,6 +66,18 @@ export function Navbar({
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
+  // Keyboard shortcut for search
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+        e.preventDefault();
+        setSearchModalOpen((prev) => !prev);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
   // Close mobile menu when route changes
   useEffect(() => {
     setMobileMenuOpen(false);
@@ -190,7 +202,7 @@ export function Navbar({
 
         {/* Navbar Content */}
         <div className="relative z-10 h-full px-4 sm:px-8 lg:px-[120px] flex items-center justify-between w-full gap-4">
-          {/* Left Section: Logo */}
+          {/* Left Section: Logo & Search */}
           <div className="flex items-center gap-4">
             <button
               onClick={() => handleClick('/')}
@@ -200,6 +212,17 @@ export function Navbar({
               <span className="text-[var(--brand)] font-['Poppins',sans-serif] text-lg" style={{ fontWeight: 600 }}>
                 Miyomi
               </span>
+            </button>
+            
+            <button
+              onClick={() => setSearchModalOpen(true)}
+              className="hidden lg:flex items-center gap-3 px-4 py-2 ml-2 rounded-xl bg-[var(--bg-elev-1)]/80 backdrop-blur-md border border-[var(--divider)]/50 hover:bg-[var(--bg-elev-2)] hover:border-[var(--brand)]/50 transition-all text-sm group w-[calc(100vw-850px)] max-w-[300px] min-w-[150px]"
+            >
+              <Search className="w-4 h-4 flex-shrink-0 text-[var(--text-secondary)] group-hover:text-[var(--brand)] transition-colors" />
+              <span className="text-[var(--text-secondary)] font-medium mr-auto truncate">Search</span>
+              <kbd className="hidden sm:inline-block flex-shrink-0 px-1.5 py-0.5 text-[10px] font-mono text-[var(--text-secondary)] bg-[var(--chip-bg)] border border-[var(--divider)] rounded opacity-70 group-hover:opacity-100 transition-opacity">
+                Ctrl K
+              </kbd>
             </button>
           </div>
 
@@ -288,16 +311,13 @@ export function Navbar({
               </span>
             </button>
 
-            {/* Search Button */}
+            {/* Search Icon for Tablet (Hidden on desktop lg+) */}
             <button
               onClick={() => setSearchModalOpen(true)}
-              className="p-2 text-[var(--text-secondary)] hover:text-[var(--brand)] transition-colors relative group"
+              className="lg:hidden p-2 text-[var(--text-secondary)] hover:text-[var(--brand)] transition-colors relative group"
               aria-label="Search"
             >
               <Search className="w-5 h-5" />
-              <span className="absolute -bottom-8 left-1/2 -translate-x-1/2 px-2 py-1 bg-[var(--bg-surface)] border border-[var(--divider)] rounded text-xs text-[var(--text-secondary)] opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap">
-                Search
-              </span>
             </button>
 
             {/* Theme Toggle */}
@@ -321,7 +341,14 @@ export function Navbar({
           </div>
 
           {/* Mobile Actions */}
-          <div className="md:hidden flex items-center gap-2">
+          <div className="md:hidden flex items-center gap-1">
+            <button
+              onClick={() => setSearchModalOpen(true)}
+              className="p-2 text-[var(--text-secondary)] hover:text-[var(--brand)] transition-colors"
+              aria-label="Search"
+            >
+              <Search className="w-5 h-5" />
+            </button>
             <ThemeToggle />
           </div>
         </div>
