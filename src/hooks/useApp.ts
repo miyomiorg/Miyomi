@@ -31,7 +31,7 @@ export function useApp(appId: string): { app: AppData | null; loading: boolean }
             logoUrl: data.icon_url,
             author: data.author,
             keywords: data.tags || [],
-            supportedExtensions: data.supported_extensions || [],
+            supportedExtensions: data.compatible_with || [],
             lastUpdated: data.last_release_date || data.updated_at || data.created_at,
             githubUrl: data.repo_url,
             officialSite: data.website_url,

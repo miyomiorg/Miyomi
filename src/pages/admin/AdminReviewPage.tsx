@@ -4,6 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAdminLogger } from '@/hooks/useAdminLogger';
 import { ArrowLeft, Save, Loader2, Check, X as XIcon, RotateCcw, User, StickyNote, AlertTriangle, FileText } from 'lucide-react';
 import { AdminButton, StatusBadge } from '@/components/admin/AdminFormElements';
+import { getGroupsForApp, setAppGroups, syncAppCompatibility, getGroupsForExtension, setExtensionGroups, syncExtensionCompatibility, fetchAllGroups } from '@/utils/compatSync';
 import { ConfirmDialog } from '@/components/admin/ConfirmDialog';
 import { SharedAppForm } from '@/components/forms/SharedAppForm';
 import { SharedExtensionForm } from '@/components/forms/SharedExtensionForm';
@@ -161,8 +162,7 @@ export function AdminReviewPage({ mode }: ReviewPageProps) {
                         payload.metadata = installUrls.length > 0 ? { install_urls: installUrls } : null;
                         payload.tutorials = data.tutorials || [];
                     }
-
-                    const { error: insertError } = await supabase.from(targetTable).insert(payload).select().single();
+                    const { data: insertedData, error: insertError } = await supabase.from(targetTable).insert(payload).select().single();
                     if (insertError) {
                         if (insertError.code === '23505') {
                             toast.error(`Slug conflict: '${slug}' already exists.`);
@@ -170,6 +170,20 @@ export function AdminReviewPage({ mode }: ReviewPageProps) {
                             return;
                         }
                         throw insertError;
+                    }
+
+                    // Handle groups
+                    if (insertedData) {
+                        const groupIds = data._selectedGroupIds || [];
+                        if (record.submission_type === 'app') {
+                            const manualExts = data.compatible_with || [];
+                            await setAppGroups(insertedData.id, groupIds);
+                            await syncAppCompatibility(insertedData.id, insertedData.name, groupIds, manualExts);
+                        } else {
+                            const manualApps = data.compatible_with || [];
+                            await setExtensionGroups(insertedData.id, groupIds);
+                            await syncExtensionCompatibility(insertedData.id, insertedData.name, groupIds, manualApps);
+                        }
                     }
 
                     await (supabase as any).from('submissions').delete().eq('id', record.id);
@@ -182,9 +196,27 @@ export function AdminReviewPage({ mode }: ReviewPageProps) {
                     const payload = { ...data };
                     delete payload.id;
                     delete payload.created_at;
+                    
+                    // Extract group info before saving to DB
+                    const groupIds = payload._selectedGroupIds;
+                    delete payload._selectedGroupIds;
+                    delete payload._selectedGroupNames;
 
                     const { error: updateError } = await (supabase as any).from(targetTable).update(payload).eq('id', record.target_id);
                     if (updateError) throw updateError;
+
+                    // Sync groups if provided
+                    if (groupIds !== undefined) {
+                        if (record.target_type === 'app') {
+                            const manualExts = payload.compatible_with || [];
+                            await setAppGroups(record.target_id, groupIds);
+                            await syncAppCompatibility(record.target_id, payload.name || data.name, groupIds, manualExts);
+                        } else {
+                            const manualApps = payload.compatible_with || [];
+                            await setExtensionGroups(record.target_id, groupIds);
+                            await syncExtensionCompatibility(record.target_id, payload.name || data.name, groupIds, manualApps);
+                        }
+                    }
 
                     await (supabase as any).from('public_edit_suggestions').delete().eq('id', record.id);
                     await logAction('approve' as any, 'edit_suggestion' as any, record.id, `${record.target_type} edit suggestion`).catch(console.error);

@@ -249,6 +249,8 @@ export function SubmitPage() {
                 social_urls: appForm.social_urls.filter((u: string) => u.trim()) || [],
                 discord_url: appForm.social_urls.filter((u: string) => u.trim())[0] || null,
                 tutorials: appForm.tutorials,
+                _selectedGroupIds: appForm._selectedGroupIds,
+                _selectedGroupNames: appForm._selectedGroupNames,
           };
       } else {
           const validInstallUrls = extForm.install_urls.filter((u: InstallUrlEntry) => u.url.trim());
@@ -279,6 +281,8 @@ export function SubmitPage() {
                 social_urls: extForm.social_urls.filter((u: string) => u.trim()) || [],
                 discord_url: extForm.social_urls.filter((u: string) => u.trim())[0] || null,
                 tutorials: extForm.tutorials,
+                _selectedGroupIds: extForm._selectedGroupIds,
+                _selectedGroupNames: extForm._selectedGroupNames,
           };
       }
 

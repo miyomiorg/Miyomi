@@ -45,6 +45,7 @@ import { AdminEditSuggestionsPage } from './pages/admin/AdminEditSuggestionsPage
 import { AdminReviewPage } from './pages/admin/AdminReviewPage';
 import { AdminReportsPage } from './pages/admin/AdminReportsPage';
 import { AdminFeedbacksPage } from './pages/admin/AdminFeedbacksPage';
+import { AdminCompatGroupsPage } from './pages/admin/AdminCompatGroupsPage';
 import { AdminLayout } from './components/admin/AdminLayout';
 import { ProtectedRoute } from './components/admin/ProtectedRoute';
 import {
@@ -152,6 +153,7 @@ function AppContent() {
             <Route path="reports" element={<AdminReportsPage />} />
             <Route path="feedbacks" element={<AdminFeedbacksPage />} />
             <Route path="likes" element={<AdminLikesPage />} />
+            <Route path="compat-groups" element={<AdminCompatGroupsPage />} />
             <Route path="notices" element={<AdminNoticesPage />} />
             <Route path="donations" element={<AdminDonationsPage />} />
             <Route path="themes" element={<AdminThemesPage />} />

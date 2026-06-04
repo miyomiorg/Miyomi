@@ -12,6 +12,7 @@ import { detectGitProvider } from '@/utils/gitProviders';
 import { InstallUrlsInput, type InstallUrlEntry } from '@/components/admin/InstallUrlsInput';
 import { FlagDisplay } from '@/components/FlagDisplay';
 import { SharedExtensionForm } from '@/components/forms/SharedExtensionForm';
+import { getGroupsForExtension, setExtensionGroups, syncExtensionCompatibility, fetchAllGroups } from '@/utils/compatSync';
 
 function slugify(text: string): string {
     return text
@@ -102,10 +103,19 @@ export function AdminExtensionFormPage() {
                     if (extData.auto_url) loadedInstallUrls.push({ label: 'Auto Install', url: extData.auto_url, type: 'auto' });
                     if (extData.manual_url) loadedInstallUrls.push({ label: 'Copy URL', url: extData.manual_url, type: 'copy' });
                 }
+                // Fetch groups
+                const groupIds = await getGroupsForExtension(extId);
+                const allGroups = await fetchAllGroups();
+                const selectedGroupNames = allGroups
+                    .filter((g: any) => groupIds.includes(g.id))
+                    .map((g: any) => g.name);
+
                 setForm({
                     ...emptyExt,
                     ...extData,
-                    platforms: extData.platforms || [],
+                    _selectedGroupIds: groupIds,
+                    _selectedGroupNames: selectedGroupNames,
+                    name: extData.name || '',
                     tags: extData.tags || [],
                     types: extData.types || [],
                     compatible_with: extData.compatible_with || [],
@@ -185,6 +195,8 @@ export function AdminExtensionFormPage() {
             };
 
 
+            let savedId = id;
+
             if (id) {
                 const { error } = await (supabase.from('extensions') as any).update(payload).eq('id', id);
                 if (error) throw error;
@@ -201,6 +213,7 @@ export function AdminExtensionFormPage() {
 
                 // Log create action
                 if (data) {
+                    savedId = data.id;
                     await logAction('create', 'extension', data.id, form.name).catch(err => {
                         console.error('Failed to log create action:', err);
                     });
@@ -208,6 +221,15 @@ export function AdminExtensionFormPage() {
 
                 toast.success('Extension created successfully');
             }
+
+            // Sync groups and compatibility
+            if (savedId) {
+                const groupIds = form._selectedGroupIds || [];
+                const manualApps = form.compatible_with || [];
+                await setExtensionGroups(savedId, groupIds);
+                await syncExtensionCompatibility(savedId, form.name, groupIds, manualApps);
+            }
+
             navigate('/admin/extensions');
         } catch (err: any) {
             toast.error('Failed to save extension: ' + err.message);

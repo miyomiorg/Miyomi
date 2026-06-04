@@ -5,7 +5,7 @@ import { AdminSmartSelect } from '@/components/admin/AdminSmartSelect';
 import { SocialUrlsInput } from '@/components/admin/SocialUrlsInput';
 import { InstallUrlsInput, type InstallUrlEntry } from '@/components/admin/InstallUrlsInput';
 import { FlagDisplay } from '@/components/FlagDisplay';
-import { Download, Palette, HelpCircle, GitBranch, Loader2, Link2 } from 'lucide-react';
+import { Download, Palette, HelpCircle, GitBranch, Loader2, Link2, Layers } from 'lucide-react';
 import { toast } from 'sonner';
 import { extractColorFromImage } from '@/utils/extractColorFromImage';
 import { detectGitProvider } from '@/utils/gitProviders';
@@ -33,6 +33,9 @@ export function SharedExtensionForm({ form, setForm, errors, setErrors, isAdmin 
     const [selectedGuideTitles, setSelectedGuideTitles] = useState<string[]>([]);
     const [imgCrossOrigin, setImgCrossOrigin] = useState<"anonymous" | undefined>("anonymous");
 
+    // Compatibility Groups state
+    const [compatGroups, setCompatGroups] = useState<any[]>([]);
+
     useEffect(() => {
         setImgCrossOrigin("anonymous");
     }, [form.icon_url]);
@@ -40,6 +43,7 @@ export function SharedExtensionForm({ form, setForm, errors, setErrors, isAdmin 
     useEffect(() => {
         fetchAppOptions();
         fetchGuides();
+        fetchCompatData();
     }, []);
 
     useEffect(() => {
@@ -66,6 +70,11 @@ export function SharedExtensionForm({ form, setForm, errors, setErrors, isAdmin 
             setAppsData(data);
             setAppOptions(data.map((a: any) => a.name));
         }
+    }
+
+    async function fetchCompatData() {
+        const { data: groups } = await (supabase as any).from('compatibility_groups').select('*').order('name');
+        setCompatGroups(groups || []);
     }
 
     async function fetchGuides() {
@@ -276,11 +285,46 @@ export function SharedExtensionForm({ form, setForm, errors, setErrors, isAdmin 
                 </div>
 
                 <div className="p-6 rounded-2xl border border-[var(--divider)] bg-[var(--bg-surface)] space-y-4">
-                    <h3 className="text-lg font-semibold text-[var(--text-primary)] mb-4">Compatibility & Source</h3>
+                    <h3 className="text-lg font-semibold text-[var(--text-primary)] mb-4 flex items-center gap-2">
+                        <Layers className="w-5 h-5" /> Compatibility & Source
+                    </h3>
+                    
                     <div className="space-y-1">
-                        <Label className="mb-1">Compatible Apps</Label>
+                        <Label className="mb-1">Compatibility Groups</Label>
                         <div className="text-xs text-[var(--text-secondary)] mb-2">
-                            Apps connected to this extension. Auto-selects forks if parent is chosen.
+                            Select group tags to auto-link compatible apps. Apps in the same group will automatically support this extension.
+                        </div>
+                        <AdminSmartSelect
+                            value={form._selectedGroupNames || []}
+                            onChange={(selectedNames: string[]) => {
+                                setForm((f: any) => ({ ...f, _selectedGroupNames: selectedNames }));
+                                // Store group IDs for save logic
+                                const selectedIds = compatGroups
+                                    .filter((g: any) => selectedNames.includes(g.name))
+                                    .map((g: any) => g.id);
+                                setForm((f: any) => ({ ...f, _selectedGroupIds: selectedIds }));
+                            }}
+                            options={compatGroups.map((g: any) => g.name)}
+                            placeholder="Select compatibility groups..."
+                            renderOption={(option: string) => {
+                                const group = compatGroups.find((g: any) => g.name === option);
+                                return (
+                                    <span className="flex items-center gap-2">
+                                        <span
+                                            className="w-2.5 h-2.5 rounded-full flex-shrink-0"
+                                            style={{ background: group?.color || '#6366F1' }}
+                                        />
+                                        {option}
+                                    </span>
+                                );
+                            }}
+                        />
+                    </div>
+
+                    <div className="space-y-1 pt-2 border-t border-[var(--divider)]">
+                        <Label className="mb-1">Compatible Apps (Individual)</Label>
+                        <div className="text-xs text-[var(--text-secondary)] mb-2">
+                            Manually select apps. Auto-selects forks if parent is chosen. These merge with group-derived apps.
                         </div>
                         <AdminSmartSelect
                             value={form.compatible_with}

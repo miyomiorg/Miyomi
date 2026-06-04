@@ -23,7 +23,7 @@ export function useAppMeta(): { apps: AppData[]; loading: boolean } {
             logoUrl: app.icon_url,
             author: app.author,
             keywords: app.tags || [],
-            supportedExtensions: app.supported_extensions || [],
+            supportedExtensions: app.compatible_with || [],
             lastUpdated: app.last_release_date || app.updated_at || app.created_at,
             githubUrl: app.repo_url,
             officialSite: app.website_url,

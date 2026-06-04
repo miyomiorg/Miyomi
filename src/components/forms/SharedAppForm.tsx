@@ -3,7 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { AdminFormField, AdminInput, AdminTextarea, AdminSelect, AdminButton, Label } from '@/components/admin/AdminFormElements';
 import { AdminSmartSelect } from '@/components/admin/AdminSmartSelect';
 import { SocialUrlsInput } from '@/components/admin/SocialUrlsInput';
-import { Download, Palette, HelpCircle, GitBranch, Loader2 } from 'lucide-react';
+import { Download, Palette, HelpCircle, GitBranch, Loader2, Layers, Puzzle } from 'lucide-react';
 import { toast } from 'sonner';
 import { extractColorFromImage } from '@/utils/extractColorFromImage';
 import { detectGitProvider } from '@/utils/gitProviders';
@@ -28,12 +28,17 @@ export function SharedAppForm({ form, setForm, errors, setErrors, isAdmin = true
     const [selectedGuideTitles, setSelectedGuideTitles] = useState<string[]>([]);
     const [imgCrossOrigin, setImgCrossOrigin] = useState<"anonymous" | undefined>("anonymous");
 
+    // Compatibility Groups state
+    const [compatGroups, setCompatGroups] = useState<any[]>([]);
+    const [extOptions, setExtOptions] = useState<string[]>([]);
+
     useEffect(() => {
         setImgCrossOrigin("anonymous");
     }, [form.icon_url]);
 
     useEffect(() => {
         fetchGuides();
+        fetchCompatData();
     }, []);
 
     useEffect(() => {
@@ -60,6 +65,14 @@ export function SharedAppForm({ form, setForm, errors, setErrors, isAdmin = true
             setGuidesData(data);
             setGuideOptions(data.map(g => g.title));
         }
+    }
+
+    async function fetchCompatData() {
+        const { data: groups } = await (supabase as any).from('compatibility_groups').select('*').order('name');
+        setCompatGroups(groups || []);
+
+        const { data: exts } = await (supabase as any).from('extensions').select('name').order('name');
+        setExtOptions((exts || []).map((e: any) => e.name));
     }
 
     // Pass guides back up via setForm
@@ -312,6 +325,57 @@ export function SharedAppForm({ form, setForm, errors, setErrors, isAdmin = true
                         </div>
                     </div>
                 )}
+
+                {/* Compatibility & Extensions */}
+                <div className="p-6 rounded-2xl border border-[var(--divider)] bg-[var(--bg-surface)] space-y-4">
+                    <h3 className="text-lg font-semibold text-[var(--text-primary)] mb-2 flex items-center gap-2">
+                        <Layers className="w-5 h-5" /> Compatibility & Extensions
+                    </h3>
+                    <div className="space-y-1">
+                        <Label className="mb-1">Compatibility Groups</Label>
+                        <div className="text-xs text-[var(--text-secondary)] mb-2">
+                            Select group tags to auto-link compatible extensions. Extensions in the same group will be automatically added.
+                        </div>
+                        <AdminSmartSelect
+                            value={form._selectedGroupNames || []}
+                            onChange={(selectedNames: string[]) => {
+                                setForm((f: any) => ({ ...f, _selectedGroupNames: selectedNames }));
+                                // Store group IDs for save logic
+                                const selectedIds = compatGroups
+                                    .filter((g: any) => selectedNames.includes(g.name))
+                                    .map((g: any) => g.id);
+                                setForm((f: any) => ({ ...f, _selectedGroupIds: selectedIds }));
+                            }}
+                            options={compatGroups.map((g: any) => g.name)}
+                            placeholder="Select compatibility groups..."
+                            renderOption={(option: string) => {
+                                const group = compatGroups.find((g: any) => g.name === option);
+                                return (
+                                    <span className="flex items-center gap-2">
+                                        <span
+                                            className="w-2.5 h-2.5 rounded-full flex-shrink-0"
+                                            style={{ background: group?.color || '#6366F1' }}
+                                        />
+                                        {option}
+                                    </span>
+                                );
+                            }}
+                        />
+                    </div>
+
+                    <div className="space-y-1 pt-2 border-t border-[var(--divider)]">
+                        <Label className="mb-1">Compatible Extensions (Individual)</Label>
+                        <div className="text-xs text-[var(--text-secondary)] mb-2">
+                            Manually select individual extensions. These are merged with group-derived extensions.
+                        </div>
+                        <AdminSmartSelect
+                            value={form.compatible_with || []}
+                            onChange={(val: string[]) => setForm((f: any) => ({ ...f, compatible_with: val }))}
+                            options={extOptions}
+                            placeholder="Search extensions..."
+                        />
+                    </div>
+                </div>
             </div>
 
             {/* Sidebar Metadata */}

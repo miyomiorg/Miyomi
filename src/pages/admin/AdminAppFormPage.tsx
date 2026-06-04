@@ -11,6 +11,7 @@ import { SocialUrlsInput } from '@/components/admin/SocialUrlsInput';
 import { detectGitProvider } from '@/utils/gitProviders';
 
 import { SharedAppForm } from '@/components/forms/SharedAppForm';
+import { getGroupsForApp, setAppGroups, syncAppCompatibility, fetchAllGroups } from '@/utils/compatSync';
 
 function slugify(text: string): string {
     return text
@@ -124,9 +125,19 @@ export function AdminAppFormPage() {
             if (data) {
                 const appData = data as any;
                 const loadedTutorials = Array.isArray(appData.tutorials) ? appData.tutorials : [];
+                
+                // Fetch groups
+                const groupIds = await getGroupsForApp(appId);
+                const allGroups = await fetchAllGroups();
+                const selectedGroupNames = allGroups
+                    .filter((g: any) => groupIds.includes(g.id))
+                    .map((g: any) => g.name);
+
                 setForm({
                     ...emptyApp,
                     ...appData,
+                    _selectedGroupIds: groupIds,
+                    _selectedGroupNames: selectedGroupNames,
                     name: appData.name || '',
                     slug: appData.slug || '',
                     short_description: appData.short_description || '',
@@ -206,6 +217,7 @@ export function AdminAppFormPage() {
                 likes_count: form.likes_count || 0
             };
 
+            let savedId = id;
 
             if (id) {
                 const { error } = await (supabase.from('apps') as any).update(payload).eq('id', id);
@@ -221,6 +233,7 @@ export function AdminAppFormPage() {
                 if (error) throw error;
 
                 if (data) {
+                    savedId = data.id;
                     await logAction('create', 'app', data.id, form.name).catch(err => {
                         console.error('Failed to log create action:', err);
                     });
@@ -228,6 +241,15 @@ export function AdminAppFormPage() {
 
                 toast.success('App created successfully');
             }
+
+            // Sync groups and compatibility
+            if (savedId) {
+                const groupIds = form._selectedGroupIds || [];
+                const manualExts = form.compatible_with || [];
+                await setAppGroups(savedId, groupIds);
+                await syncAppCompatibility(savedId, form.name, groupIds, manualExts);
+            }
+
             navigate('/admin/apps');
         } catch (err: any) {
             toast.error('Failed to save app: ' + err.message);
