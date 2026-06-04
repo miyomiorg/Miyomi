@@ -7,6 +7,7 @@ import type { GuideData } from '../types/data';
 import DOMPurify from 'dompurify';
 import { marked } from 'marked';
 import { DevBanner } from '../components/DevBanner';
+import { BackButton } from '../components/BackButton';
 
 marked.setOptions({ breaks: true, gfm: true });
 
@@ -65,16 +66,11 @@ export function GuideDetailPage({ slug: propSlug, onNavigate }: GuideDetailPageP
   return (
     <div className="max-w-4xl mx-auto">
       {/* Back Button */}
-      <button
-        onClick={() => onNavigate?.('/guides')}
-        className="flex items-center gap-2 text-[var(--text-secondary)] hover:text-[var(--brand)] transition-colors mb-6 sm:mb-8 font-['Inter',sans-serif] group"
-        style={{ fontWeight: 500 }}
-      >
-        <div className="flex items-center justify-center w-10 h-10 sm:w-auto sm:h-auto rounded-full bg-[var(--bg-surface)] sm:bg-transparent border border-[var(--divider)] sm:border-transparent group-hover:border-[var(--brand)] shadow-sm sm:shadow-none transition-all">
-          <ArrowLeft className="w-5 h-5 sm:w-4 sm:h-4" />
-        </div>
-        <span className="hidden sm:inline">Back to Guides</span>
-      </button>
+      <BackButton 
+        onClick={() => onNavigate?.('/guides')} 
+        label="Back to Guides" 
+        className="mb-6 sm:mb-8"
+      />
 
       {/* Header */}
       <motion.div

@@ -12,6 +12,7 @@ import { useAccentColor } from '../hooks/useAccentColor';
 import { LoveButton } from '../components/LoveButton';
 import { useExtension } from '../hooks/useExtension';
 import { DetailActions } from '../components/DetailActions';
+import { BackButton } from '../components/BackButton';
 import { ReportModal } from '../components/ReportModal';
 import { TagBadge } from '../components/TagBadge';
 import { useAppMeta } from '../hooks/useAppMeta';
@@ -404,19 +405,7 @@ export function ExtensionDetailPage({ extensionId, onNavigate }: ExtensionDetail
 
       {/* Top Bar (Back Button + Actions) */}
       <div className="flex items-center justify-between mb-6 sm:mb-8">
-        <motion.button
-          initial={{ opacity: 0, x: -20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: 0.2 }}
-          onClick={handleBackClick}
-          className="flex items-center gap-2 text-[var(--text-secondary)] hover:text-[var(--brand)] transition-colors font-['Inter',sans-serif] group"
-          style={{ fontWeight: 500 }}
-        >
-          <div className="flex items-center justify-center w-10 h-10 sm:w-auto sm:h-auto rounded-full bg-[var(--bg-surface)] sm:bg-transparent border border-[var(--divider)] sm:border-transparent group-hover:border-[var(--brand)] shadow-sm sm:shadow-none transition-all">
-            <ArrowLeft className="w-5 h-5 sm:w-4 sm:h-4" />
-          </div>
-          <span className="hidden sm:inline">Back</span>
-        </motion.button>
+        <BackButton onClick={handleBackClick} />
 
         <motion.div
           initial={{ opacity: 0, x: 20 }}

@@ -8,8 +8,8 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import Turnstile from 'react-turnstile';
-
 import { SharedAppForm } from '@/components/forms/SharedAppForm';
+import { BackButton } from '@/components/BackButton';
 import { SharedExtensionForm } from '@/components/forms/SharedExtensionForm';
 import { emptyApp } from '@/pages/admin/AdminAppFormPage';
 import { emptyExt } from '@/pages/admin/AdminExtensionFormPage';
@@ -425,7 +425,7 @@ export function SubmitPage() {
     <div className="max-w-5xl mx-auto pb-8 px-4 animate-in slide-in-from-bottom-8 duration-500">
       
       <div className="flex items-center mb-6">
-        <button
+        <BackButton 
           onClick={() => {
             if (urlMode === 'edit') {
               navigate(`/${targetRoute}/${currentSlug || urlId}`);
@@ -433,16 +433,8 @@ export function SubmitPage() {
               goTo(1);
             }
           }}
-          className="flex items-center gap-2 text-[var(--text-secondary)] hover:text-[var(--brand)] transition-colors font-['Inter',sans-serif] group"
-          style={{ fontWeight: 500 }}
-        >
-          <div className="flex items-center justify-center w-10 h-10 sm:w-auto sm:h-auto rounded-full bg-[var(--bg-surface)] sm:bg-transparent border border-[var(--divider)] sm:border-transparent group-hover:border-[var(--brand)] shadow-sm sm:shadow-none transition-all">
-            <ArrowLeft className="w-5 h-5 sm:w-4 sm:h-4" />
-          </div>
-          <span className="hidden sm:inline">
-             {urlMode === 'edit' ? `Back to ${currentName || (type === 'app' ? 'Software' : 'Extension')}` : `Back`}
-          </span>
-        </button>
+          label={urlMode === 'edit' ? `Back to ${currentName || (type === 'app' ? 'Software' : 'Extension')}` : `Back`}
+        />
       </div>
 
       <div className="flex items-center gap-4 mb-6">
