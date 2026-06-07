@@ -1,6 +1,6 @@
 "use client";
 
-import { X, ChevronDown, Github, Instagram, Youtube, Facebook, Plus, Search, Menu, Heart, HelpCircle, Info, ArrowUpCircle, MessageSquare } from 'lucide-react';
+import { X, ChevronDown, Github, Instagram, Youtube, Facebook, Plus, Search, Menu, Heart, HelpCircle, Info, ArrowUpCircle, MessageSquare, LayoutGrid, Puzzle, FileText, Users } from 'lucide-react';
 import React, { useState, useEffect, useRef } from 'react';
 import { FeedbackPanel } from './FeedbackPanel';
 import { ThemeToggle } from './ThemeToggle';
@@ -203,8 +203,8 @@ export function Navbar({
 
         {/* Navbar Content */}
         <div className="relative z-10 h-full px-4 sm:px-6 lg:px-8 flex items-center justify-between w-full gap-2 lg:gap-4">
-          {/* Left Section: Logo & Search */}
-          <div className="flex items-center gap-2 lg:gap-3">
+          {/* Left Section: Logo & Segmented Nav */}
+          <div className="flex items-center gap-4 lg:gap-8">
             <button
               onClick={() => handleClick('/')}
               className="flex items-center gap-2 cursor-pointer group flex-shrink-0"
@@ -215,101 +215,91 @@ export function Navbar({
               </span>
             </button>
 
+            {/* Center Section: Segmented Navigation (Desktop Only) */}
+            <div className="hidden lg:flex items-center gap-1 rounded-full p-1">
+              <button
+                onClick={() => handleClick('/software')}
+                className={`flex items-center gap-1.5 px-3 py-1.5 text-sm font-['Inter',sans-serif] transition-all rounded-full ${isActive('/software') ? 'bg-[var(--bg-surface)] text-[var(--brand)] shadow-sm font-medium' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-elev-2)]'}`}
+              >
+                <LayoutGrid className="w-4 h-4" />
+                <span>Software</span>
+              </button>
+
+              <button
+                onClick={() => handleClick('/extensions')}
+                className={`flex items-center gap-1.5 px-3 py-1.5 text-sm font-['Inter',sans-serif] transition-all rounded-full ${isActive('/extensions') ? 'bg-[var(--bg-surface)] text-[var(--brand)] shadow-sm font-medium' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-elev-2)]'}`}
+              >
+                <Puzzle className="w-4 h-4" />
+                <span>Extensions</span>
+              </button>
+
+              {/* Pages Dropdown - Hover Trigger */}
+              <DropdownMenu open={pagesDropdownOpen} onOpenChange={setPagesDropdownOpen}>
+                <DropdownMenuTrigger asChild>
+                  <button
+                    onPointerDown={(event) => event.preventDefault()}
+                    onMouseEnter={() => openDropdown('pages')}
+                    onMouseLeave={() => scheduleDropdownClose('pages')}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 text-sm font-['Inter',sans-serif] transition-all rounded-full outline-none ${pagesDropdownOpen ? 'bg-[var(--bg-surface)] text-[var(--text-primary)] shadow-sm' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-elev-2)]'}`}
+                  >
+                    <FileText className="w-4 h-4" />
+                    <span>Pages</span>
+                    <ChevronDown className="w-3.5 h-3.5" />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent
+                  sideOffset={6}
+                  onMouseEnter={() => openDropdown('pages')}
+                  onMouseLeave={() => scheduleDropdownClose('pages')}
+                  className="w-48 bg-[var(--bg-page)]/90 backdrop-blur-xl border border-[var(--divider)]/50 rounded-xl shadow-sm p-1 transition-all duration-200 ease-out"
+                >
+                  {pageDropdownItems.map(renderDropdownItem)}
+                </DropdownMenuContent>
+              </DropdownMenu>
+
+              <button
+                onClick={() => handleClick('/contribute')}
+                className={`flex items-center gap-1.5 px-3 py-1.5 text-sm font-['Inter',sans-serif] transition-all rounded-full ${isActive('/contribute') ? 'bg-[var(--bg-surface)] text-[var(--brand)] shadow-sm font-medium' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-elev-2)]'}`}
+              >
+                <Users className="w-4 h-4" />
+                <span>Contribute</span>
+              </button>
+
+              <button
+                onClick={() => setIsFeedbackOpen(true)}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-['Inter',sans-serif] transition-all rounded-full text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-elev-2)]"
+              >
+                <MessageSquare className="w-4 h-4" />
+                <span>Feedback</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Right Section: Search, Donate, Theme, Social Links */}
+          <div className="hidden md:flex items-center gap-1.5 lg:gap-2">
+            
+            {/* Desktop Search Box */}
             <button
               onClick={() => setSearchModalOpen(true)}
-              className="hidden lg:flex items-center gap-3 px-4 py-2 ml-2 rounded-xl bg-[var(--bg-elev-1)]/80 backdrop-blur-md border border-[var(--divider)]/50 hover:bg-[var(--bg-elev-2)] hover:border-[var(--brand)]/50 transition-all text-sm group w-[calc(100vw-850px)] max-w-[200px] min-w-[120px]"
+              className="hidden lg:flex items-center gap-2 px-3 py-1.5 rounded-full bg-[var(--bg-elev-1)]/80 backdrop-blur-md border border-[var(--divider)]/50 hover:bg-[var(--bg-elev-2)] hover:border-[var(--brand)]/50 transition-all text-sm group w-48 xl:w-56"
             >
               <Search className="w-4 h-4 flex-shrink-0 text-[var(--text-secondary)] group-hover:text-[var(--brand)] transition-colors" />
-              <span className="text-[var(--text-secondary)] font-medium mr-auto truncate">Search</span>
+              <span className="text-[var(--text-secondary)] font-medium mr-auto truncate">Search...</span>
               <kbd className="hidden sm:inline-block flex-shrink-0 px-1.5 py-0.5 text-[10px] font-mono text-[var(--text-secondary)] bg-[var(--chip-bg)] border border-[var(--divider)] rounded opacity-70 group-hover:opacity-100 transition-opacity">
                 Ctrl K
               </kbd>
             </button>
-          </div>
 
-          {/* Right Section: Desktop Nav Items */}
-          <div className="hidden md:flex items-center gap-1.5 lg:gap-2">
-            {/* Direct Links */}
-            {/* <button
-              onClick={() => handleClick('/')}
-              className={`text-sm py-2 px-1 lg:px-1.5 transition-colors font-['Inter',sans-serif] ${isActive('/') && location.pathname === '/' ? 'text-[var(--brand)] font-medium' : 'text-[var(--text-primary)] hover:text-[var(--brand)]'}`}
-            >
-              Home
-            </button> */}
-            <button
-              onClick={() => handleClick('/software')}
-              className={`hidden xl:block text-sm py-2 px-1 lg:px-1.5 transition-colors font-['Inter',sans-serif] ${isActive('/software') ? 'text-[var(--brand)] font-medium' : 'text-[var(--text-primary)] hover:text-[var(--brand)]'}`}
-            >
-              Software
-            </button>
-            <button
-              onClick={() => handleClick('/extensions')}
-              className={`hidden xl:block text-sm py-2 px-1 lg:px-1.5 transition-colors font-['Inter',sans-serif] ${isActive('/extensions') ? 'text-[var(--brand)] font-medium' : 'text-[var(--text-primary)] hover:text-[var(--brand)]'}`}
-            >
-              Extensions
-            </button>
-
-            {/* Pages Dropdown - Hover Trigger */}
-            <DropdownMenu open={pagesDropdownOpen} onOpenChange={setPagesDropdownOpen}>
-              <DropdownMenuTrigger asChild>
-                <button
-                  onPointerDown={(event) => event.preventDefault()}
-                  onMouseEnter={() => openDropdown('pages')}
-                  onMouseLeave={() => scheduleDropdownClose('pages')}
-                  className="flex items-center gap-0.5 lg:gap-1 text-sm py-2 px-1 lg:px-1.5 relative transition-colors text-[var(--text-primary)] hover:text-[var(--brand)] font-['Inter',sans-serif]"
-                  style={{ fontWeight: 400 }}
-                >
-                  Pages <ChevronDown className="w-3.5 h-3.5 lg:w-4 lg:h-4" />
-                </button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent
-                sideOffset={6}
-                onMouseEnter={() => openDropdown('pages')}
-                onMouseLeave={() => scheduleDropdownClose('pages')}
-                className="w-48 bg-[var(--bg-page)]/90 backdrop-blur-xl border border-[var(--divider)]/50 rounded-xl shadow-sm p-1 transition-all duration-200 ease-out"
+            {/* Search Icon for Tablet (Hidden on desktop lg+) */}
+            {location.pathname !== '/' && (
+              <button
+                onClick={() => setSearchModalOpen(true)}
+                className="lg:hidden p-2 text-[var(--text-secondary)] hover:text-[var(--brand)] transition-colors relative group"
+                aria-label="Search"
               >
-                {pageDropdownItems.map(renderDropdownItem)}
-              </DropdownMenuContent>
-            </DropdownMenu>
-
-            {/* Guides Dropdown - Hover Trigger */}
-            {/* <DropdownMenu open={guidesDropdownOpen} onOpenChange={setGuidesDropdownOpen}>
-              <DropdownMenuTrigger asChild>
-                <button
-                  onPointerDown={(event) => event.preventDefault()}
-                  onMouseEnter={() => openDropdown('guides')}
-                  onMouseLeave={() => scheduleDropdownClose('guides')}
-                  className="flex items-center gap-0.5 lg:gap-1 text-sm py-2 px-1 lg:px-1.5 relative transition-colors text-[var(--text-primary)] hover:text-[var(--brand)] font-['Inter',sans-serif]"
-                  style={{ fontWeight: 400 }}
-                >
-                  Guides <ChevronDown className="w-3.5 h-3.5 lg:w-4 lg:h-4" />
-                </button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent
-                sideOffset={6}
-                onMouseEnter={() => openDropdown('guides')}
-                onMouseLeave={() => scheduleDropdownClose('guides')}
-                className="w-48 bg-[var(--bg-page)]/90 backdrop-blur-xl border border-[var(--divider)]/50 rounded-xl shadow-sm p-1 transition-all duration-200 ease-out"
-              >
-                {guidesNavItems.map(renderDropdownItem)}
-              </DropdownMenuContent>
-            </DropdownMenu> */}
-
-            {/* Contribute Link */}
-            <button
-              onClick={() => handleClick('/contribute')}
-              className={`text-sm py-2 px-1 lg:px-1.5 transition-colors font-['Inter',sans-serif] ${isActive('/contribute') ? 'text-[var(--brand)] font-medium' : 'text-[var(--text-primary)] hover:text-[var(--brand)]'}`}
-            >
-              Contribute
-            </button>
-
-            {/* Feedback Link */}
-            <button
-              onClick={() => setIsFeedbackOpen(true)}
-              className="text-sm py-2 px-1 lg:px-1.5 transition-colors font-['Inter',sans-serif] text-[var(--text-primary)] hover:text-[var(--brand)]"
-            >
-              Feedback
-            </button>
+                <Search className="w-5 h-5" />
+              </button>
+            )}
 
             {/* Donate Button — highlighted */}
             <button
@@ -325,18 +315,7 @@ export function Navbar({
               </span>
             </button>
 
-            <div className="w-px h-6 bg-[var(--divider)]"></div>
-
-            {/* Search Icon for Tablet (Hidden on desktop lg+) */}
-            {location.pathname !== '/' && (
-              <button
-                onClick={() => setSearchModalOpen(true)}
-                className="lg:hidden p-2 text-[var(--text-secondary)] hover:text-[var(--brand)] transition-colors relative group"
-                aria-label="Search"
-              >
-                <Search className="w-5 h-5" />
-              </button>
-            )}
+            <div className="w-px h-6 bg-[var(--divider)] mx-1"></div>
 
             {/* Theme Toggle */}
             <ThemeToggle />
@@ -349,7 +328,7 @@ export function Navbar({
                   href={social.link}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="p-2 text-[var(--text-secondary)] hover:text-[var(--brand)] transition-colors"
+                  className="p-2 text-[var(--text-secondary)] hover:text-[var(--brand)] rounded-full hover:bg-[var(--bg-elev-1)] transition-colors"
                   aria-label={social.label}
                 >
                   {social.icon}
