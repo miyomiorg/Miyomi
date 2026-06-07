@@ -2,10 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { AdminFormField, AdminInput, AdminTextarea, AdminButton } from '@/components/admin/AdminFormElements';
-import {
-  CheckCircle2, AlertCircle, Loader2, Smartphone, Puzzle,
-  ArrowRight, ArrowLeft, MessageSquare, StickyNote, FileText
-} from 'lucide-react';
+import { UploadCloud, CheckCircle2, AlertCircle, FileText, ArrowRight, ArrowLeft, Github, LayoutGrid, Type, AlertTriangle, ExternalLink, RefreshCw, Layers, Terminal, Lock, Globe, Server, Hash, FileJson, Link, Search, Loader2, MessageSquare, StickyNote, Puzzle, Smartphone } from 'lucide-react';
 import { toast } from 'sonner';
 import Turnstile from 'react-turnstile';
 import { SharedAppForm } from '@/components/forms/SharedAppForm';
@@ -24,7 +21,7 @@ export function SubmitPage() {
 
   const urlTypeRaw = searchParams.get('type');
   const type = urlTypeRaw === 'software' ? 'app' : (urlTypeRaw === 'extensions' ? 'extension' : null);
-  
+
   const urlStep = searchParams.get('step');
   const urlMode = searchParams.get('mode');
   const urlId = searchParams.get('id');
@@ -44,7 +41,7 @@ export function SubmitPage() {
 
   const [appForm, setAppForm] = useState(emptyApp);
   const [extForm, setExtForm] = useState(emptyExt);
-  
+
   const [submitterForm, setSubmitterForm] = useState({
     submitter_name: '',
     submitter_contact: '',
@@ -67,45 +64,45 @@ export function SubmitPage() {
           const data = rawData as any;
           if (data) {
             setOriginalDataSnapshot(data);
-             if (type === 'app') {
-               const normalized = {
-                  ...emptyApp,
-                  ...data,
-                  platforms: data.platforms || [],
-                  tags: data.tags || [],
-                  content_types: data.content_types || [],
-                  social_urls: (Array.isArray(data.social_urls) && data.social_urls.length > 0)
-                        ? data.social_urls.filter((u: string) => u)
-                        : (data.discord_url ? [data.discord_url] : []),
-                  tutorials: Array.isArray(data.tutorials) ? data.tutorials : []
-               };
-               setAppForm(normalized);
-               setInitialFormSnapshot(normalized);
+            if (type === 'app') {
+              const normalized = {
+                ...emptyApp,
+                ...data,
+                platforms: data.platforms || [],
+                tags: data.tags || [],
+                content_types: data.content_types || [],
+                social_urls: (Array.isArray(data.social_urls) && data.social_urls.length > 0)
+                  ? data.social_urls.filter((u: string) => u)
+                  : (data.discord_url ? [data.discord_url] : []),
+                tutorials: Array.isArray(data.tutorials) ? data.tutorials : []
+              };
+              setAppForm(normalized);
+              setInitialFormSnapshot(normalized);
             } else {
-               const meta = data.metadata as any;
-               let loadedInstallUrls: InstallUrlEntry[] = [];
-               if (meta?.install_urls && Array.isArray(meta.install_urls) && meta.install_urls.length > 0) {
-                   loadedInstallUrls = meta.install_urls;
-               } else {
-                   if (data.auto_url) loadedInstallUrls.push({ label: 'Auto Install', url: data.auto_url, type: 'auto' });
-                   if (data.manual_url) loadedInstallUrls.push({ label: 'Copy URL', url: data.manual_url, type: 'copy' });
-               }
+              const meta = data.metadata as any;
+              let loadedInstallUrls: InstallUrlEntry[] = [];
+              if (meta?.install_urls && Array.isArray(meta.install_urls) && meta.install_urls.length > 0) {
+                loadedInstallUrls = meta.install_urls;
+              } else {
+                if (data.auto_url) loadedInstallUrls.push({ label: 'Auto Install', url: data.auto_url, type: 'auto' });
+                if (data.manual_url) loadedInstallUrls.push({ label: 'Copy URL', url: data.manual_url, type: 'copy' });
+              }
 
-               const normalized = {
-                  ...emptyExt,
-                  ...data,
-                  platforms: data.platforms || [],
-                  tags: data.tags || [],
-                  types: data.types || [],
-                  compatible_with: data.compatible_with || [],
-                  install_urls: loadedInstallUrls,
-                  social_urls: (Array.isArray(data.social_urls) && data.social_urls.length > 0)
-                        ? data.social_urls.filter((u: string) => u)
-                        : (data.discord_url ? [data.discord_url] : []),
-                  tutorials: Array.isArray(data.tutorials) ? data.tutorials : []
-               };
-               setExtForm(normalized);
-               setInitialFormSnapshot(normalized);
+              const normalized = {
+                ...emptyExt,
+                ...data,
+                platforms: data.platforms || [],
+                tags: data.tags || [],
+                types: data.types || [],
+                compatible_with: data.compatible_with || [],
+                install_urls: loadedInstallUrls,
+                social_urls: (Array.isArray(data.social_urls) && data.social_urls.length > 0)
+                  ? data.social_urls.filter((u: string) => u)
+                  : (data.discord_url ? [data.discord_url] : []),
+                tutorials: Array.isArray(data.tutorials) ? data.tutorials : []
+              };
+              setExtForm(normalized);
+              setInitialFormSnapshot(normalized);
             }
           }
         } catch (err) {
@@ -131,8 +128,8 @@ export function SubmitPage() {
     const currentName = type === 'app' ? appForm.name : extForm.name;
     const checkDuplicates = async () => {
       if (!currentName) {
-         setNameError(null);
-         return;
+        setNameError(null);
+        return;
       }
 
       const timeoutId = setTimeout(async () => {
@@ -178,23 +175,23 @@ export function SubmitPage() {
   const hasChanges = () => {
     if (urlMode !== 'edit' || !initialFormSnapshot) return true;
     const currentForm = type === 'app' ? appForm : extForm;
-    const keys = type === 'app' 
-        ? ['name', 'slug', 'short_description', 'description', 'author', 'category', 'version', 'platforms', 'tags', 'content_types', 'repo_url', 'download_url', 'website_url', 'icon_url', 'icon_color', 'fork_of', 'upstream_url', 'social_urls', 'tutorials']
-        : ['name', 'slug', 'short_description', 'description', 'author', 'category', 'language', 'platforms', 'tags', 'types', 'compatible_with', 'repo_url', 'source_url', 'icon_url', 'icon_color', 'install_urls', 'social_urls', 'tutorials'];
-        
+    const keys = type === 'app'
+      ? ['name', 'slug', 'short_description', 'description', 'author', 'category', 'version', 'platforms', 'tags', 'content_types', 'repo_url', 'download_url', 'website_url', 'icon_url', 'icon_color', 'fork_of', 'upstream_url', 'social_urls', 'tutorials']
+      : ['name', 'slug', 'short_description', 'description', 'author', 'category', 'language', 'platforms', 'tags', 'types', 'compatible_with', 'repo_url', 'source_url', 'icon_url', 'icon_color', 'install_urls', 'social_urls', 'tutorials'];
+
     for (const key of keys) {
-        const valA = currentForm[key];
-        const valB = initialFormSnapshot[key];
-        
-        if (typeof valA === 'object' || typeof valB === 'object') {
-            if (JSON.stringify(valA) !== JSON.stringify(valB)) {
-                return true;
-            }
-        } else {
-            if ((valA || '') !== (valB || '')) {
-                return true;
-            }
+      const valA = currentForm[key];
+      const valB = initialFormSnapshot[key];
+
+      if (typeof valA === 'object' || typeof valB === 'object') {
+        if (JSON.stringify(valA) !== JSON.stringify(valB)) {
+          return true;
         }
+      } else {
+        if ((valA || '') !== (valB || '')) {
+          return true;
+        }
+      }
     }
     return false;
   };
@@ -211,10 +208,10 @@ export function SubmitPage() {
     if (nameError) {
       return toast.error("Please resolve duplicate warnings before submitting.");
     }
-    
+
     // Check if there are form errors from Shared components
     if (Object.values(errors).some(v => !!v)) {
-        return toast.error("Please fix duplicate entries before saving.");
+      return toast.error("Please fix duplicate entries before saving.");
     }
 
     if (urlMode === 'edit' && !hasChanges()) {
@@ -224,66 +221,66 @@ export function SubmitPage() {
     setSubmitting(true);
     try {
       let submittedData: any = {};
-      
-      if (type === 'app') {
-          submittedData = {
-                name: appForm.name,
-                slug: appForm.slug || null,
-                short_description: appForm.short_description || null,
-                description: appForm.description || null,
-                author: appForm.author || null,
-                category: appForm.category || null,
-                version: appForm.version || null,
-                status: 'pending', // Submissions default to pending, not approved
-                platforms: appForm.platforms.length ? appForm.platforms : null,
-                tags: appForm.tags.length ? appForm.tags : null,
-                // @ts-ignore
-                content_types: appForm.content_types.length ? appForm.content_types : null,
-                repo_url: appForm.repo_url || null,
-                download_url: appForm.download_url || null,
-                website_url: appForm.website_url || null,
-                icon_url: appForm.icon_url || null,
-                icon_color: appForm.icon_color || null,
-                fork_of: appForm.fork_of || null,
-                upstream_url: appForm.upstream_url || null,
-                social_urls: appForm.social_urls.filter((u: string) => u.trim()) || [],
-                discord_url: appForm.social_urls.filter((u: string) => u.trim())[0] || null,
-                tutorials: appForm.tutorials,
-                _selectedGroupIds: appForm._selectedGroupIds,
-                _selectedGroupNames: appForm._selectedGroupNames,
-          };
-      } else {
-          const validInstallUrls = extForm.install_urls.filter((u: InstallUrlEntry) => u.url.trim());
-          const firstAuto = validInstallUrls.find((u: InstallUrlEntry) => u.type === 'auto');
-          const firstCopy = validInstallUrls.find((u: InstallUrlEntry) => u.type === 'copy');
 
-          submittedData = {
-                name: extForm.name,
-                slug: extForm.slug || null,
-                short_description: extForm.short_description || null,
-                description: extForm.description || null,
-                author: extForm.author || null,
-                category: extForm.category || null,
-                language: extForm.language || null,
-                status: 'pending', // Submissions default to pending
-                platforms: extForm.platforms.length ? extForm.platforms : null,
-                tags: extForm.tags.length ? extForm.tags : null,
-                // @ts-ignore
-                types: extForm.types.length ? extForm.types : null,
-                compatible_with: extForm.compatible_with.length ? extForm.compatible_with : null,
-                repo_url: extForm.repo_url || null,
-                source_url: extForm.source_url || null,
-                icon_url: extForm.icon_url || null,
-                icon_color: extForm.icon_color || null,
-                auto_url: firstAuto?.url || null,
-                manual_url: firstCopy?.url || null,
-                metadata: { install_urls: validInstallUrls },
-                social_urls: extForm.social_urls.filter((u: string) => u.trim()) || [],
-                discord_url: extForm.social_urls.filter((u: string) => u.trim())[0] || null,
-                tutorials: extForm.tutorials,
-                _selectedGroupIds: extForm._selectedGroupIds,
-                _selectedGroupNames: extForm._selectedGroupNames,
-          };
+      if (type === 'app') {
+        submittedData = {
+          name: appForm.name,
+          slug: appForm.slug || null,
+          short_description: appForm.short_description || null,
+          description: appForm.description || null,
+          author: appForm.author || null,
+          category: appForm.category || null,
+          version: appForm.version || null,
+          status: 'pending', // Submissions default to pending, not approved
+          platforms: appForm.platforms.length ? appForm.platforms : null,
+          tags: appForm.tags.length ? appForm.tags : null,
+          // @ts-ignore
+          content_types: appForm.content_types.length ? appForm.content_types : null,
+          repo_url: appForm.repo_url || null,
+          download_url: appForm.download_url || null,
+          website_url: appForm.website_url || null,
+          icon_url: appForm.icon_url || null,
+          icon_color: appForm.icon_color || null,
+          fork_of: appForm.fork_of || null,
+          upstream_url: appForm.upstream_url || null,
+          social_urls: appForm.social_urls.filter((u: string) => u.trim()) || [],
+          discord_url: appForm.social_urls.filter((u: string) => u.trim())[0] || null,
+          tutorials: appForm.tutorials,
+          _selectedGroupIds: appForm._selectedGroupIds,
+          _selectedGroupNames: appForm._selectedGroupNames,
+        };
+      } else {
+        const validInstallUrls = extForm.install_urls.filter((u: InstallUrlEntry) => u.url.trim());
+        const firstAuto = validInstallUrls.find((u: InstallUrlEntry) => u.type === 'auto');
+        const firstCopy = validInstallUrls.find((u: InstallUrlEntry) => u.type === 'copy');
+
+        submittedData = {
+          name: extForm.name,
+          slug: extForm.slug || null,
+          short_description: extForm.short_description || null,
+          description: extForm.description || null,
+          author: extForm.author || null,
+          category: extForm.category || null,
+          language: extForm.language || null,
+          status: 'pending', // Submissions default to pending
+          platforms: extForm.platforms.length ? extForm.platforms : null,
+          tags: extForm.tags.length ? extForm.tags : null,
+          // @ts-ignore
+          types: extForm.types.length ? extForm.types : null,
+          compatible_with: extForm.compatible_with.length ? extForm.compatible_with : null,
+          repo_url: extForm.repo_url || null,
+          source_url: extForm.source_url || null,
+          icon_url: extForm.icon_url || null,
+          icon_color: extForm.icon_color || null,
+          auto_url: firstAuto?.url || null,
+          manual_url: firstCopy?.url || null,
+          metadata: { install_urls: validInstallUrls },
+          social_urls: extForm.social_urls.filter((u: string) => u.trim()) || [],
+          discord_url: extForm.social_urls.filter((u: string) => u.trim())[0] || null,
+          tutorials: extForm.tutorials,
+          _selectedGroupIds: extForm._selectedGroupIds,
+          _selectedGroupNames: extForm._selectedGroupNames,
+        };
       }
 
       let invokeFn = 'submit-content';
@@ -307,7 +304,7 @@ export function SubmitPage() {
           submitterName: submitterForm.submitter_name,
           submitterContact: submitterForm.submitter_contact,
           submitterNotes: submitterForm.submitter_notes,
-          submitterUserId: undefined, 
+          submitterUserId: undefined,
         };
       }
 
@@ -391,32 +388,32 @@ export function SubmitPage() {
 
       <div className="bg-[var(--bg-elev-1)] border border-[var(--divider)] rounded-2xl p-8 space-y-6 mb-8">
         <div className="flex gap-4">
-          <div className="mt-1"><CheckCircle2 className="w-5 h-5 text-green-500" /></div>
+          <div className="mt-1"><Search className="w-5 h-5 text-blue-500" /></div>
           <div>
-            <h4 className="font-semibold text-[var(--text-primary)]">Public Content Only</h4>
-            <p className="text-sm text-[var(--text-secondary)] mt-1">Ensure the content is safe for general audiences or properly tagged (e.g., NSFW).</p>
+            <h4 className="font-semibold text-[var(--text-primary)]">1. Search Before Submitting</h4>
+            <p className="text-sm text-[var(--text-secondary)] mt-1">Search the directory before making a submission. Duplicate entries will be automatically rejected.</p>
           </div>
         </div>
         <div className="flex gap-4">
-          <div className="mt-1"><AlertCircle className="w-5 h-5 text-yellow-500" /></div>
+          <div className="mt-1"><Github className="w-5 h-5 text-purple-500" /></div>
           <div>
-            <h4 className="font-semibold text-[var(--text-primary)]">Open Source Preferred</h4>
-            <p className="text-sm text-[var(--text-secondary)] mt-1">We prioritize open-source projects. Please provide a repository URL if available.</p>
+            <h4 className="font-semibold text-[var(--text-primary)]">2. Open-Source Preferred</h4>
+            <p className="text-sm text-[var(--text-secondary)] mt-1">We prioritize open-source projects with functional code repositories. Closed-source apps are only considered if they are highly popular, widely requested, and loved by the community.</p>
           </div>
         </div>
         <div className="flex gap-4">
-          <div className="mt-1"><CheckCircle2 className="w-5 h-5 text-green-500" /></div>
+          <div className="mt-1"><Link className="w-5 h-5 text-green-500" /></div>
           <div>
-            <h4 className="font-semibold text-[var(--text-primary)]">Valid Resources</h4>
-            <p className="text-sm text-[var(--text-secondary)] mt-1">Double-check all URLs (Download, Website, Discord) before submitting.</p>
+            <h4 className="font-semibold text-[var(--text-primary)]">3. Valid & Official Links</h4>
+            <p className="text-sm text-[var(--text-secondary)] mt-1">Double-check all URLs (Download, Website, Socials). Links must direct straight to the project's official landing page or repository. We strictly forbid malware, viruses, or links routing through sketchy third-party redirect chains.</p>
           </div>
         </div>
-        <div className="flex gap-4 p-4 rounded-xl bg-[var(--brand)]/10 border border-[var(--brand)]/20">
-          <div className="mt-1"><FileText className="w-5 h-5 text-[var(--brand)]" /></div>
+        <div className="flex gap-4">
+          <div className="mt-1"><CheckCircle2 className="w-5 h-5 text-amber-500" /></div>
           <div>
-            <h4 className="font-semibold text-[var(--text-primary)]">Read the Full Policy</h4>
+            <h4 className="font-semibold text-[var(--text-primary)]">4. Functional & Documented</h4>
             <p className="text-sm text-[var(--text-secondary)] mt-1">
-              Please read our detailed <a href="/submission-policy" target="_blank" rel="noopener noreferrer" className="text-[var(--brand)] hover:underline font-medium">Submission Policy</a> to understand what we accept, auto-reject, and our trust signals.
+              Submissions must be fully functional, easy to install without breaking device security, and accompanied by an English description or README. We do not accept "empty" repositories used just to host text, or random experimental code dumps with no clear utility.
             </p>
           </div>
         </div>
@@ -433,141 +430,141 @@ export function SubmitPage() {
     const currentName = type === 'app' ? appForm.name : extForm.name;
     const currentSlug = type === 'app' ? appForm.slug : extForm.slug;
     const targetRoute = type === 'app' ? 'software' : 'extensions';
-    
+
     return (
-    <div className="max-w-5xl mx-auto pb-8 px-4 animate-in slide-in-from-bottom-8 duration-500">
-      
-      <div className="flex items-center mb-6">
-        <BackButton 
-          onClick={() => {
-            if (urlMode === 'edit') {
-              navigate(`/${targetRoute}/${currentSlug || urlId}`);
-            } else {
-              goTo(1);
-            }
-          }}
-          label={urlMode === 'edit' ? `Back to ${currentName || (type === 'app' ? 'Software' : 'Extension')}` : `Back`}
-        />
-      </div>
+      <div className="max-w-5xl mx-auto pb-8 px-4 animate-in slide-in-from-bottom-8 duration-500">
 
-      <div className="flex items-center gap-4 mb-6">
-        <h1 className="text-2xl font-bold text-[var(--text-primary)]">
-          {urlMode === 'edit' ? `Suggest Edit for ${type === 'app' ? 'App' : 'Extension'}` : `Submit ${type === 'app' ? 'App' : 'Extension'}`}
-        </h1>
-      </div>
+        <div className="flex items-center mb-6">
+          <BackButton
+            onClick={() => {
+              if (urlMode === 'edit') {
+                navigate(`/${targetRoute}/${currentSlug || urlId}`);
+              } else {
+                goTo(1);
+              }
+            }}
+            label={urlMode === 'edit' ? `Back to ${currentName || (type === 'app' ? 'Software' : 'Extension')}` : `Back`}
+          />
+        </div>
 
-      {urlMode === 'edit' && (
-        <div className="mb-6 p-4 rounded-xl border border-[var(--divider)] bg-[var(--brand)]/10 text-[var(--text-primary)] flex items-start gap-3">
-          <AlertCircle className="w-5 h-5 text-[var(--brand)] shrink-0 mt-0.5" />
-          <div className="text-sm">
-            <p className="font-semibold text-[var(--brand)]">Editing an existing {type}</p>
-            <p className="text-[var(--text-secondary)] mt-1">
-              You are currently submitting an edit suggestion. If you want to add a completely new {type === 'app' ? 'app' : 'extension'} instead, please go to the <button onClick={() => goTo(0)} className="text-[var(--brand)] hover:underline font-medium">Contribute page</button>.
-            </p>
+        <div className="flex items-center gap-4 mb-6">
+          <h1 className="text-2xl font-bold text-[var(--text-primary)]">
+            {urlMode === 'edit' ? `Suggest Edit for ${type === 'app' ? 'App' : 'Extension'}` : `Submit ${type === 'app' ? 'App' : 'Extension'}`}
+          </h1>
+        </div>
+
+        {urlMode === 'edit' && (
+          <div className="mb-6 p-4 rounded-xl border border-[var(--divider)] bg-[var(--brand)]/10 text-[var(--text-primary)] flex items-start gap-3">
+            <AlertCircle className="w-5 h-5 text-[var(--brand)] shrink-0 mt-0.5" />
+            <div className="text-sm">
+              <p className="font-semibold text-[var(--brand)]">Editing an existing {type}</p>
+              <p className="text-[var(--text-secondary)] mt-1">
+                You are currently submitting an edit suggestion. If you want to add a completely new {type === 'app' ? 'app' : 'extension'} instead, please go to the <button onClick={() => goTo(0)} className="text-[var(--brand)] hover:underline font-medium">Contribute page</button>.
+              </p>
+            </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {loadingInitial ? (
-        <div className="py-20 flex flex-col justify-center items-center">
-          <Loader2 className="w-8 h-8 animate-spin text-[var(--brand)] mb-4" />
-          <p className="text-[var(--text-secondary)]">Loading existing data...</p>
-        </div>
-      ) : (
-      <>
-        {nameError && (
-            <div className="mb-6 p-4 rounded-xl border border-red-500/20 bg-red-500/10 text-red-500 flex items-start gap-3">
+        {loadingInitial ? (
+          <div className="py-20 flex flex-col justify-center items-center">
+            <Loader2 className="w-8 h-8 animate-spin text-[var(--brand)] mb-4" />
+            <p className="text-[var(--text-secondary)]">Loading existing data...</p>
+          </div>
+        ) : (
+          <>
+            {nameError && (
+              <div className="mb-6 p-4 rounded-xl border border-red-500/20 bg-red-500/10 text-red-500 flex items-start gap-3">
                 <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
                 <div className="text-sm">
-                <p className="font-semibold">{nameError.message}</p>
-                {nameError.url && (
+                  <p className="font-semibold">{nameError.message}</p>
+                  {nameError.url && (
                     <p className="mt-1">
-                        <a href={nameError.url} target="_blank" rel="noreferrer" className="underline font-medium hover:text-red-400">
-                            View Existing Profile
-                        </a>
+                      <a href={nameError.url} target="_blank" rel="noreferrer" className="underline font-medium hover:text-red-400">
+                        View Existing Profile
+                      </a>
                     </p>
-                )}
+                  )}
                 </div>
-            </div>
-        )}
-        
-        {type === 'app' ? (
-           <SharedAppForm 
-               form={appForm} 
-               setForm={setAppForm} 
-               errors={errors} 
-               setErrors={setErrors} 
-               isAdmin={false} 
-           />
-        ) : (
-           <SharedExtensionForm 
-               form={extForm} 
-               setForm={setExtForm} 
-               errors={errors} 
-               setErrors={setErrors} 
-               isAdmin={false} 
-           />
-        )}
-        
-        <div className="mt-8 mx-auto space-y-6">
-          {/* Submitter Info */}
-          <div className="p-6 rounded-2xl border border-[var(--divider)] bg-[var(--bg-surface)] space-y-4">
-            <h3 className="text-lg font-semibold text-[var(--text-primary)] mb-4 flex items-center gap-2">
-              <MessageSquare className="w-5 h-5" /> Your Details
-            </h3>
-            <p className="text-xs text-[var(--text-secondary)] -mt-2 mb-2">Used for clarification only. Not published.</p>
-            <AdminFormField label="Your Name (Optional)">
-              <AdminInput
-                value={submitterForm.submitter_name} onChange={e => setSubmitterForm(f => ({ ...f, submitter_name: e.target.value }))}
-                placeholder="Nickname"
-              />
-            </AdminFormField>
-            <AdminFormField label="Contact (Telegram/Email)">
-              <AdminInput
-                value={submitterForm.submitter_contact} onChange={e => setSubmitterForm(f => ({ ...f, submitter_contact: e.target.value }))}
-                placeholder="@username or email"
-              />
-            </AdminFormField>
-            <AdminFormField label="Notes for Admin">
-              <AdminTextarea
-                value={submitterForm.submitter_notes} onChange={e => setSubmitterForm(f => ({ ...f, submitter_notes: e.target.value }))}
-                className="h-24"
-                placeholder="Any additional notes, context, or special requests for the admin team..."
-              />
-              <p className="text-xs text-[var(--text-secondary)] mt-1 flex items-center gap-1">
-                <StickyNote className="w-3 h-3" /> Visible only to admins during review.
-              </p>
-            </AdminFormField>
-          </div>
-
-          {/* Submit Action */}
-          <div className="space-y-4 pt-4">
-            {/* Turnstile */}
-            {import.meta.env.VITE_DISABLE_TURNSTILE !== 'true' && (
-              <div className="pt-4 flex justify-center">
-                <Turnstile
-                  sitekey={import.meta.env.VITE_TURNSTILE_SITE_KEY || "1x00000000000000000000AA"}
-                  onVerify={(token) => setTurnstileToken(token)}
-                  theme="auto"
-                />
               </div>
             )}
 
-            <AdminButton
-              onClick={handleSubmit}
-              disabled={submitting || (import.meta.env.VITE_DISABLE_TURNSTILE !== 'true' && !turnstileToken) || loadingInitial || !!nameError || (urlMode === 'edit' && !hasChanges())}
-              className="w-full py-4 text-base shadow-lg shadow-brand/20"
-            >
-              {submitting ? <Loader2 className="w-5 h-5 animate-spin mr-2" /> : <CheckCircle2 className="w-5 h-5 mr-2" />}
-              {urlMode === 'edit' 
-                ? (hasChanges() ? 'Submit Edit Suggestion' : 'No changes to submit') 
-                : 'Submit for Review'}
-            </AdminButton>
-          </div>
-        </div>
-      </>
-      )}
-    </div>
+            {type === 'app' ? (
+              <SharedAppForm
+                form={appForm}
+                setForm={setAppForm}
+                errors={errors}
+                setErrors={setErrors}
+                isAdmin={false}
+              />
+            ) : (
+              <SharedExtensionForm
+                form={extForm}
+                setForm={setExtForm}
+                errors={errors}
+                setErrors={setErrors}
+                isAdmin={false}
+              />
+            )}
+
+            <div className="mt-8 mx-auto space-y-6">
+              {/* Submitter Info */}
+              <div className="p-6 rounded-2xl border border-[var(--divider)] bg-[var(--bg-surface)] space-y-4">
+                <h3 className="text-lg font-semibold text-[var(--text-primary)] mb-4 flex items-center gap-2">
+                  <MessageSquare className="w-5 h-5" /> Your Details
+                </h3>
+                <p className="text-xs text-[var(--text-secondary)] -mt-2 mb-2">Used for clarification only. Not published.</p>
+                <AdminFormField label="Your Name (Optional)">
+                  <AdminInput
+                    value={submitterForm.submitter_name} onChange={e => setSubmitterForm(f => ({ ...f, submitter_name: e.target.value }))}
+                    placeholder="Nickname"
+                  />
+                </AdminFormField>
+                <AdminFormField label="Contact (Telegram/Email)">
+                  <AdminInput
+                    value={submitterForm.submitter_contact} onChange={e => setSubmitterForm(f => ({ ...f, submitter_contact: e.target.value }))}
+                    placeholder="@username or email"
+                  />
+                </AdminFormField>
+                <AdminFormField label="Notes for Admin">
+                  <AdminTextarea
+                    value={submitterForm.submitter_notes} onChange={e => setSubmitterForm(f => ({ ...f, submitter_notes: e.target.value }))}
+                    className="h-24"
+                    placeholder="Any additional notes, context, or special requests for the admin team..."
+                  />
+                  <p className="text-xs text-[var(--text-secondary)] mt-1 flex items-center gap-1">
+                    <StickyNote className="w-3 h-3" /> Visible only to admins during review.
+                  </p>
+                </AdminFormField>
+              </div>
+
+              {/* Submit Action */}
+              <div className="space-y-4 pt-4">
+                {/* Turnstile */}
+                {import.meta.env.VITE_DISABLE_TURNSTILE !== 'true' && (
+                  <div className="pt-4 flex justify-center">
+                    <Turnstile
+                      sitekey={import.meta.env.VITE_TURNSTILE_SITE_KEY || "1x00000000000000000000AA"}
+                      onVerify={(token) => setTurnstileToken(token)}
+                      theme="auto"
+                    />
+                  </div>
+                )}
+
+                <AdminButton
+                  onClick={handleSubmit}
+                  disabled={submitting || (import.meta.env.VITE_DISABLE_TURNSTILE !== 'true' && !turnstileToken) || loadingInitial || !!nameError || (urlMode === 'edit' && !hasChanges())}
+                  className="w-full py-4 text-base shadow-lg shadow-brand/20"
+                >
+                  {submitting ? <Loader2 className="w-5 h-5 animate-spin mr-2" /> : <CheckCircle2 className="w-5 h-5 mr-2" />}
+                  {urlMode === 'edit'
+                    ? (hasChanges() ? 'Submit Edit Suggestion' : 'No changes to submit')
+                    : 'Submit for Review'}
+                </AdminButton>
+              </div>
+            </div>
+          </>
+        )}
+      </div>
     );
   };
 
@@ -593,7 +590,7 @@ export function SubmitPage() {
 
   return (
     <div className="min-h-screen bg-[var(--bg-default)]">
-      <div 
+      <div
         className="pb-12 sm:pt-24"
         style={{ paddingTop: 'calc(env(safe-area-inset-top, 16px) + 16px)' }}
       >

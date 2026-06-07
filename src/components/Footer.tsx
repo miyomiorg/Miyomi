@@ -46,13 +46,6 @@ export function Footer() {
               </a>
               <span className="hidden sm:inline text-[var(--divider)] opacity-50 xl:opacity-100">|</span>
               <a
-                href="/submission-policy"
-                className="hover:text-[var(--brand)] transition-colors underline whitespace-nowrap"
-              >
-                Submission Policy
-              </a>
-              <span className="hidden sm:inline text-[var(--divider)] opacity-50 xl:opacity-100">|</span>
-              <a
                 href="/donate"
                 className="inline-flex items-center gap-1 hover:text-pink-400 transition-colors group whitespace-nowrap"
               >

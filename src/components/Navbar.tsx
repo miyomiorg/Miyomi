@@ -98,20 +98,20 @@ export function Navbar({
   const logoImage = useSeasonalAsset('logo', '/hugme.png');
 
   const pageDropdownItems = [
+    { label: 'Software', path: '/software', className: 'xl:hidden' },
+    { label: 'Extensions', path: '/extensions', className: 'xl:hidden' },
+    { label: 'Guides', path: '/guides' },
     { label: 'FAQ', path: '/faq' },
     { label: 'About', path: '/about' },
     { label: 'Privacy Policy', path: '/privacy-policy' },
-    { label: 'Submission Policy', path: '/submission-policy' },
-    { label: 'Software', path: '/software', className: 'xl:hidden' },
-    { label: 'Extensions', path: '/extensions', className: 'xl:hidden' },
   ];
 
-  const guidesNavItems = [
-    { label: 'All Guides', path: '/guides' },
-    { label: 'Installation', path: '/guides#installation' },
-    { label: 'Configuration', path: '/guides#configuration' },
-    { label: 'Troubleshooting', path: '/guides#troubleshooting' },
-  ];
+  // const guidesNavItems = [
+  //   { label: 'All Guides', path: '/guides' },
+  //   { label: 'Installation', path: '/guides#installation' },
+  //   { label: 'Configuration', path: '/guides#configuration' },
+  //   { label: 'Troubleshooting', path: '/guides#troubleshooting' },
+  // ];
 
   const socialLinks = [
     // { icon: <Facebook className="w-5 h-5" />, label: 'Facebook', link: 'https://www.facebook.com/iitachiyomi' },
@@ -214,7 +214,7 @@ export function Navbar({
                 Miyomi
               </span>
             </button>
-            
+
             <button
               onClick={() => setSearchModalOpen(true)}
               className="hidden lg:flex items-center gap-3 px-4 py-2 ml-2 rounded-xl bg-[var(--bg-elev-1)]/80 backdrop-blur-md border border-[var(--divider)]/50 hover:bg-[var(--bg-elev-2)] hover:border-[var(--brand)]/50 transition-all text-sm group w-[calc(100vw-850px)] max-w-[200px] min-w-[120px]"
@@ -273,7 +273,7 @@ export function Navbar({
             </DropdownMenu>
 
             {/* Guides Dropdown - Hover Trigger */}
-            <DropdownMenu open={guidesDropdownOpen} onOpenChange={setGuidesDropdownOpen}>
+            {/* <DropdownMenu open={guidesDropdownOpen} onOpenChange={setGuidesDropdownOpen}>
               <DropdownMenuTrigger asChild>
                 <button
                   onPointerDown={(event) => event.preventDefault()}
@@ -293,7 +293,7 @@ export function Navbar({
               >
                 {guidesNavItems.map(renderDropdownItem)}
               </DropdownMenuContent>
-            </DropdownMenu>
+            </DropdownMenu> */}
 
             {/* Contribute Link */}
             <button
@@ -402,7 +402,7 @@ export function Navbar({
         </div>
 
         {/* Drawer Content */}
-        <div 
+        <div
           className="flex-1 overflow-y-auto px-6 pt-6 space-y-6"
           style={{ paddingBottom: 'calc(4rem + env(safe-area-inset-bottom) + 1.5rem)' }}
         >
