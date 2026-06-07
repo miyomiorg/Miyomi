@@ -67,20 +67,20 @@ export function AboutPage() {
       {/* DISCLAIMER */}
       <section id="disclaimer" className="mb-12">
         <Card className="border-amber-300 dark:border-amber-700 bg-amber-50/60 dark:bg-amber-900/20">
-          <div className="flex gap-4">
-            <AlertCircle className="w-8 h-8 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-1" />
-            <div>
-              <h3 className="font-semibold text-[var(--text-primary)] mb-2 text-lg">Disclaimer of Liability & Affiliation</h3>
-              <p className="text-[var(--text-secondary)] text-sm leading-relaxed mb-3">
-                Miyomi is simply a directory. We have <strong>no affiliation</strong> with the developers or creators of the apps, extensions, or resources listed here. We do not build, host, or distribute any of this content.
-              </p>
-              <p className="text-[var(--text-secondary)] text-sm leading-relaxed mb-3">
-                <strong>Limitation of Liability:</strong> Miyomi provides this directory on an "as-is" and "as-available" basis. We do not warrant that external links, extensions, or applications indexed here are safe, secure, or compatible with your device. We expressly disclaim all liability for any technical disruptions, system errors, data loss, or other adverse effects arising from your interaction with third-party tools.
-              </p>
-              <p className="text-[var(--text-secondary)] text-sm leading-relaxed">
-                <strong>Help us keep the community safe:</strong> If you notice any suspicious or compromised listings, please use the <button onClick={() => setIsFeedbackOpen(true)} className="font-bold underline text-amber-600 dark:text-amber-400">Feedback button</button> to report them for immediate investigation.
-              </p>
-            </div>
+          <div>
+            <h3 className="font-semibold text-[var(--text-primary)] mb-2 text-base md:text-lg flex items-center gap-2">
+              <AlertCircle className="w-5 h-5 md:w-6 md:h-6 text-amber-600 dark:text-amber-400 flex-shrink-0" />
+              Disclaimer of Liability & Affiliation
+            </h3>
+            <p className="text-[var(--text-secondary)] text-xs md:text-sm leading-relaxed mb-2 md:mb-3">
+              Miyomi is simply a directory. We have <strong>no affiliation</strong> with the developers or creators of the apps, extensions, or resources listed here. We do not build, host, or distribute any of this content.
+            </p>
+            <p className="text-[var(--text-secondary)] text-xs md:text-sm leading-relaxed mb-2 md:mb-3">
+              <strong>Limitation of Liability:</strong> Miyomi provides this directory on an "as-is" and "as-available" basis. We do not warrant that external links, extensions, or applications indexed here are safe, secure, or compatible with your device. We expressly disclaim all liability for any technical disruptions, system errors, data loss, or other adverse effects arising from your interaction with third-party tools.
+            </p>
+            <p className="text-[var(--text-secondary)] text-xs md:text-sm leading-relaxed">
+              <strong>Help us keep the community safe:</strong> If you notice any suspicious or compromised listings, please use the <button onClick={() => setIsFeedbackOpen(true)} className="font-bold underline text-amber-600 dark:text-amber-400">Feedback button</button> to report them for immediate investigation.
+            </p>
           </div>
         </Card>
       </section>
@@ -96,37 +96,37 @@ export function AboutPage() {
           </p>
         </div>
 
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6">
-          <Card className="flex flex-col items-center text-center hover:border-blue-500/50 transition-colors group">
-            <div className="w-14 h-14 rounded-2xl bg-blue-500/10 text-blue-500 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-              <Smartphone className="w-7 h-7" />
+        <div className="grid grid-cols-4 gap-2 md:gap-4">
+          <Card className="flex flex-col items-center text-center hover:border-blue-500/50 transition-colors group !p-2 md:!p-4">
+            <div className="w-9 h-9 md:w-12 md:h-12 rounded-xl md:rounded-2xl bg-blue-500/10 text-blue-500 flex items-center justify-center mb-1.5 md:mb-3 group-hover:scale-110 transition-transform">
+              <Smartphone className="w-4 h-4 md:w-6 md:h-6" />
             </div>
-            <h3 className="font-bold text-[var(--text-primary)] mb-2">Software</h3>
-            <p className="text-sm text-[var(--text-secondary)]">Reading apps and trackers.</p>
+            <h3 className="font-bold text-[var(--text-primary)] text-xs md:text-sm mb-0.5 md:mb-1">Software</h3>
+            <p className="text-[10px] md:text-xs text-[var(--text-secondary)] hidden sm:block">Your favorite Apps.</p>
           </Card>
 
-          <Card className="flex flex-col items-center text-center hover:border-purple-500/50 transition-colors group">
-            <div className="w-14 h-14 rounded-2xl bg-purple-500/10 text-purple-500 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-              <Puzzle className="w-7 h-7" />
+          <Card className="flex flex-col items-center text-center hover:border-purple-500/50 transition-colors group !p-2 md:!p-4">
+            <div className="w-9 h-9 md:w-12 md:h-12 rounded-xl md:rounded-2xl bg-purple-500/10 text-purple-500 flex items-center justify-center mb-1.5 md:mb-3 group-hover:scale-110 transition-transform">
+              <Puzzle className="w-4 h-4 md:w-6 md:h-6" />
             </div>
-            <h3 className="font-bold text-[var(--text-primary)] mb-2">Extensions</h3>
-            <p className="text-sm text-[var(--text-secondary)]">Sources and plugin repos.</p>
+            <h3 className="font-bold text-[var(--text-primary)] text-xs md:text-sm mb-0.5 md:mb-1">Extensions</h3>
+            <p className="text-[10px] md:text-xs text-[var(--text-secondary)] hidden sm:block">Sources and plugin repos.</p>
           </Card>
 
-          <Card className="flex flex-col items-center text-center hover:border-green-500/50 transition-colors group">
-            <div className="w-14 h-14 rounded-2xl bg-green-500/10 text-green-500 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-              <BookOpen className="w-7 h-7" />
+          <Card className="flex flex-col items-center text-center hover:border-green-500/50 transition-colors group !p-2 md:!p-4">
+            <div className="w-9 h-9 md:w-12 md:h-12 rounded-xl md:rounded-2xl bg-green-500/10 text-green-500 flex items-center justify-center mb-1.5 md:mb-3 group-hover:scale-110 transition-transform">
+              <BookOpen className="w-4 h-4 md:w-6 md:h-6" />
             </div>
-            <h3 className="font-bold text-[var(--text-primary)] mb-2">Guides</h3>
-            <p className="text-sm text-[var(--text-secondary)]">Setup and troubleshooting.</p>
+            <h3 className="font-bold text-[var(--text-primary)] text-xs md:text-sm mb-0.5 md:mb-1">Guides</h3>
+            <p className="text-[10px] md:text-xs text-[var(--text-secondary)] hidden sm:block">Setup and troubleshooting.</p>
           </Card>
 
-          <Card className="flex flex-col items-center text-center hover:border-orange-500/50 transition-colors group">
-            <div className="w-14 h-14 rounded-2xl bg-orange-500/10 text-orange-500 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-              <LinkIcon className="w-7 h-7" />
+          <Card className="flex flex-col items-center text-center hover:border-orange-500/50 transition-colors group !p-2 md:!p-4">
+            <div className="w-9 h-9 md:w-12 md:h-12 rounded-xl md:rounded-2xl bg-orange-500/10 text-orange-500 flex items-center justify-center mb-1.5 md:mb-3 group-hover:scale-110 transition-transform">
+              <LinkIcon className="w-4 h-4 md:w-6 md:h-6" />
             </div>
-            <h3 className="font-bold text-[var(--text-primary)] mb-2">Resources</h3>
-            <p className="text-sm text-[var(--text-secondary)]">Helpful links and sites.</p>
+            <h3 className="font-bold text-[var(--text-primary)] text-xs md:text-sm mb-0.5 md:mb-1">Resources</h3>
+            <p className="text-[10px] md:text-xs text-[var(--text-secondary)] hidden sm:block">Helpful links and sites.</p>
           </Card>
         </div>
       </section>
