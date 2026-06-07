@@ -209,10 +209,14 @@ export function AppDetailPage({ appId, onNavigate }: AppDetailPageProps) {
 
 
   const handleBackClick = () => {
-    if (onNavigate) {
-      onNavigate('/software');
+    if (location.state?.fromNavigation || window.history.length > 2) {
+      navigate(-1);
     } else {
-      navigate('/software');
+      if (onNavigate) {
+        onNavigate('/software');
+      } else {
+        navigate('/software');
+      }
     }
   };
 

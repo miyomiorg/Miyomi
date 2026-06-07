@@ -105,10 +105,14 @@ export function ExtensionDetailPage({ extensionId, onNavigate }: ExtensionDetail
   }, [api]);
 
   const handleBackClick = () => {
-    if (onNavigate) {
-      onNavigate('/extensions');
+    if (location.state?.fromNavigation || window.history.length > 2) {
+      navigate(-1);
     } else {
-      navigate('/extensions');
+      if (onNavigate) {
+        onNavigate('/extensions');
+      } else {
+        navigate('/extensions');
+      }
     }
   };
 
