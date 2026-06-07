@@ -27,6 +27,7 @@ const REPORT_REASONS = [
 
 export function ReportModal({ isOpen, onClose, targetType, targetId, targetName, pageUrl }: ReportModalProps) {
   const [reason, setReason] = useState(REPORT_REASONS[0]);
+  const [otherReason, setOtherReason] = useState('');
   const [message, setMessage] = useState('');
   const [reporterName, setReporterName] = useState('');
   const [reporterContact, setReporterContact] = useState('');
@@ -38,6 +39,10 @@ export function ReportModal({ isOpen, onClose, targetType, targetId, targetName,
     e.preventDefault();
     if (!turnstileToken) {
       toast.error('Please complete the CAPTCHA');
+      return;
+    }
+    if (reason === 'Other' && !otherReason.trim()) {
+      toast.error('Please specify the reason.');
       return;
     }
     if (!message.trim()) {
@@ -57,7 +62,7 @@ export function ReportModal({ isOpen, onClose, targetType, targetId, targetName,
         targetId,
         targetName,
         pageUrl: pageUrl || window.location.href,
-        reason,
+        reason: reason === 'Other' ? `(Other) ${otherReason.trim()}` : reason,
         message,
         reporterName,
         reporterContact,
@@ -95,6 +100,7 @@ export function ReportModal({ isOpen, onClose, targetType, targetId, targetName,
     setTimeout(() => {
       setSubmitted(false);
       setMessage('');
+      setOtherReason('');
       setReporterName('');
       setReporterContact('');
       setTurnstileToken(import.meta.env.VITE_DISABLE_TURNSTILE === 'true' ? 'dummy-token' : '');
@@ -158,6 +164,20 @@ export function ReportModal({ isOpen, onClose, targetType, targetId, targetName,
                     </select>
                   </div>
 
+                  {reason === 'Other' && (
+                    <div>
+                      <label className="block text-sm font-medium text-[var(--text-primary)] mb-1.5">Specify Reason <span className="text-red-500">*</span></label>
+                      <input
+                        type="text"
+                        value={otherReason}
+                        onChange={(e) => setOtherReason(e.target.value)}
+                        required
+                        placeholder="Briefly describe the reason..."
+                        className="w-full px-4 py-2.5 rounded-xl border border-[var(--divider)] bg-[var(--bg-elev-1)] text-[var(--text-primary)] focus:border-[var(--brand)] focus:ring-1 focus:ring-[var(--brand)] transition-all outline-none"
+                      />
+                    </div>
+                  )}
+
                   <div>
                     <label className="block text-sm font-medium text-[var(--text-primary)] mb-1.5">Message / Details <span className="text-red-500">*</span></label>
                     <textarea 
@@ -212,7 +232,7 @@ export function ReportModal({ isOpen, onClose, targetType, targetId, targetName,
                     </button>
                     <button 
                       type="submit" 
-                      disabled={submitting || !turnstileToken || !message.trim()}
+                      disabled={submitting || !turnstileToken || !message.trim() || (reason === 'Other' && !otherReason.trim())}
                       className="flex items-center px-5 py-2.5 rounded-xl bg-red-600 text-white hover:bg-red-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-red-500/20"
                     >
                       {submitting ? <Loader2 className="w-5 h-5 animate-spin mr-2" /> : <Flag className="w-4 h-4 mr-2" />}
