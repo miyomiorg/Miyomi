@@ -97,37 +97,45 @@ export function AboutPage() {
         </div>
 
         <div className="grid grid-cols-4 gap-2 md:gap-4">
-          <Card className="flex flex-col items-center text-center hover:border-blue-500/50 transition-colors group !p-2 md:!p-4">
-            <div className="w-9 h-9 md:w-12 md:h-12 rounded-xl md:rounded-2xl bg-blue-500/10 text-blue-500 flex items-center justify-center mb-1.5 md:mb-3 group-hover:scale-110 transition-transform">
-              <Smartphone className="w-4 h-4 md:w-6 md:h-6" />
-            </div>
-            <h3 className="font-bold text-[var(--text-primary)] text-xs md:text-sm mb-0.5 md:mb-1">Software</h3>
-            <p className="text-[10px] md:text-xs text-[var(--text-secondary)] hidden sm:block">Your favorite Apps.</p>
-          </Card>
+          <Link to="/software" className="block h-full">
+            <Card className="h-full flex flex-col items-center text-center hover:border-blue-500/50 transition-colors group !p-2 md:!p-4">
+              <div className="w-9 h-9 md:w-12 md:h-12 rounded-xl md:rounded-2xl bg-blue-500/10 text-blue-500 flex items-center justify-center mb-1.5 md:mb-3 group-hover:scale-110 transition-transform">
+                <Smartphone className="w-4 h-4 md:w-6 md:h-6" />
+              </div>
+              <h3 className="font-bold text-[var(--text-primary)] text-xs md:text-sm mb-0.5 md:mb-1">Software</h3>
+              <p className="text-[10px] md:text-xs text-[var(--text-secondary)] hidden sm:block">Your favorite Apps.</p>
+            </Card>
+          </Link>
 
-          <Card className="flex flex-col items-center text-center hover:border-purple-500/50 transition-colors group !p-2 md:!p-4">
-            <div className="w-9 h-9 md:w-12 md:h-12 rounded-xl md:rounded-2xl bg-purple-500/10 text-purple-500 flex items-center justify-center mb-1.5 md:mb-3 group-hover:scale-110 transition-transform">
-              <Puzzle className="w-4 h-4 md:w-6 md:h-6" />
-            </div>
-            <h3 className="font-bold text-[var(--text-primary)] text-xs md:text-sm mb-0.5 md:mb-1">Extensions</h3>
-            <p className="text-[10px] md:text-xs text-[var(--text-secondary)] hidden sm:block">Sources and plugin repos.</p>
-          </Card>
+          <Link to="/extensions" className="block h-full">
+            <Card className="h-full flex flex-col items-center text-center hover:border-purple-500/50 transition-colors group !p-2 md:!p-4">
+              <div className="w-9 h-9 md:w-12 md:h-12 rounded-xl md:rounded-2xl bg-purple-500/10 text-purple-500 flex items-center justify-center mb-1.5 md:mb-3 group-hover:scale-110 transition-transform">
+                <Puzzle className="w-4 h-4 md:w-6 md:h-6" />
+              </div>
+              <h3 className="font-bold text-[var(--text-primary)] text-xs md:text-sm mb-0.5 md:mb-1">Extensions</h3>
+              <p className="text-[10px] md:text-xs text-[var(--text-secondary)] hidden sm:block">Sources and plugin repos.</p>
+            </Card>
+          </Link>
 
-          <Card className="flex flex-col items-center text-center hover:border-green-500/50 transition-colors group !p-2 md:!p-4">
-            <div className="w-9 h-9 md:w-12 md:h-12 rounded-xl md:rounded-2xl bg-green-500/10 text-green-500 flex items-center justify-center mb-1.5 md:mb-3 group-hover:scale-110 transition-transform">
-              <BookOpen className="w-4 h-4 md:w-6 md:h-6" />
-            </div>
-            <h3 className="font-bold text-[var(--text-primary)] text-xs md:text-sm mb-0.5 md:mb-1">Guides</h3>
-            <p className="text-[10px] md:text-xs text-[var(--text-secondary)] hidden sm:block">Setup and troubleshooting.</p>
-          </Card>
+          <Link to="/guides" className="block h-full">
+            <Card className="h-full flex flex-col items-center text-center hover:border-green-500/50 transition-colors group !p-2 md:!p-4">
+              <div className="w-9 h-9 md:w-12 md:h-12 rounded-xl md:rounded-2xl bg-green-500/10 text-green-500 flex items-center justify-center mb-1.5 md:mb-3 group-hover:scale-110 transition-transform">
+                <BookOpen className="w-4 h-4 md:w-6 md:h-6" />
+              </div>
+              <h3 className="font-bold text-[var(--text-primary)] text-xs md:text-sm mb-0.5 md:mb-1">Guides</h3>
+              <p className="text-[10px] md:text-xs text-[var(--text-secondary)] hidden sm:block">Setup and troubleshooting.</p>
+            </Card>
+          </Link>
 
-          <Card className="flex flex-col items-center text-center hover:border-orange-500/50 transition-colors group !p-2 md:!p-4">
-            <div className="w-9 h-9 md:w-12 md:h-12 rounded-xl md:rounded-2xl bg-orange-500/10 text-orange-500 flex items-center justify-center mb-1.5 md:mb-3 group-hover:scale-110 transition-transform">
-              <LinkIcon className="w-4 h-4 md:w-6 md:h-6" />
-            </div>
-            <h3 className="font-bold text-[var(--text-primary)] text-xs md:text-sm mb-0.5 md:mb-1">Resources</h3>
-            <p className="text-[10px] md:text-xs text-[var(--text-secondary)] hidden sm:block">Helpful links and sites.</p>
-          </Card>
+          <Link to="/resources" className="block h-full">
+            <Card className="h-full flex flex-col items-center text-center hover:border-orange-500/50 transition-colors group !p-2 md:!p-4">
+              <div className="w-9 h-9 md:w-12 md:h-12 rounded-xl md:rounded-2xl bg-orange-500/10 text-orange-500 flex items-center justify-center mb-1.5 md:mb-3 group-hover:scale-110 transition-transform">
+                <LinkIcon className="w-4 h-4 md:w-6 md:h-6" />
+              </div>
+              <h3 className="font-bold text-[var(--text-primary)] text-xs md:text-sm mb-0.5 md:mb-1">Resources</h3>
+              <p className="text-[10px] md:text-xs text-[var(--text-secondary)] hidden sm:block">Helpful links and sites.</p>
+            </Card>
+          </Link>
         </div>
       </section>
 
