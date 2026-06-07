@@ -66,16 +66,17 @@ export function Navbar({
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // Keyboard shortcut for search
+  // Keyboard shortcut for search (capture phase to override browser Ctrl+K)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
         e.preventDefault();
+        e.stopPropagation();
         setSearchModalOpen((prev) => !prev);
       }
     };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    window.addEventListener('keydown', handleKeyDown, true);
+    return () => window.removeEventListener('keydown', handleKeyDown, true);
   }, []);
 
   // Close mobile menu when route changes

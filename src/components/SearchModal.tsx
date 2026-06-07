@@ -21,6 +21,17 @@ export function SearchModal({ isOpen, onClose }: SearchModalProps) {
   const showResults = query.trim().length > 0;
   const limitedResults = results.slice(0, 10);
 
+  // Auto-focus search input when modal opens
+  useEffect(() => {
+    if (isOpen) {
+      // Small delay to allow the modal animation to render the input
+      const timer = setTimeout(() => {
+        inputRef.current?.focus();
+      }, 50);
+      return () => clearTimeout(timer);
+    }
+  }, [isOpen]);
+
 
   const handleResultClick = (result: any) => {
     onClose();
