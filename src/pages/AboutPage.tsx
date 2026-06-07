@@ -127,7 +127,7 @@ export function AboutPage() {
             </Card>
           </Link>
 
-          <Link to="/resources" className="block h-full">
+          <Link to="#" className="block h-full">
             <Card className="h-full flex flex-col items-center text-center hover:border-orange-500/50 transition-colors group !p-2 md:!p-4">
               <div className="w-9 h-9 md:w-12 md:h-12 rounded-xl md:rounded-2xl bg-orange-500/10 text-orange-500 flex items-center justify-center mb-1.5 md:mb-3 group-hover:scale-110 transition-transform">
                 <LinkIcon className="w-4 h-4 md:w-6 md:h-6" />
