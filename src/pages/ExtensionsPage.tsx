@@ -272,7 +272,7 @@ export function ExtensionsPage({ onNavigate }: ExtensionsPageProps) {
           </h1>
         </div>
         <p className="text-[var(--text-secondary)] font-['Inter',sans-serif]" style={{ fontSize: '16px' }}>
-          Extension repositories and sources for Mihon, Aniyomi, Dantotsu, and compatible apps.
+          Extensions, Sources, Plugins and Addons for your favorite Apps.
         </p>
       </div>
 
