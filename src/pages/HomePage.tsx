@@ -153,7 +153,7 @@ export function HomePage({ onNavigate }: HomePageProps) {
             className="text-[var(--text-primary)] font-['Inter',sans-serif] mb-4 lg:mb-8 leading-relaxed"
             style={{ fontSize: 'clamp(16px, 2vw, 18px)', lineHeight: '1.6' }}
           >
-            Your one-stop hub for <span className="text-[var(--brand)]" style={{ fontWeight: 600 }}>links, apps, extension repos</span> and more!
+            Your one-stop hub for <span className="text-[var(--brand)]" style={{ fontWeight: 600 }}>apps, extensions and more!</span> and more!
           </p>
 
           {/* Autocomplete Input Search */}
@@ -394,14 +394,14 @@ export function HomePage({ onNavigate }: HomePageProps) {
                 <Sparkles className="w-6 h-6" />
               </div>
               <p className="text-[var(--text-primary)] font-medium text-[15px] leading-snug">
-                Everything organized in one<br/>searchable place.
+                Everything organized in one<br />searchable place.
               </p>
             </div>
-            
+
             <div className="bg-blue-500/5 border border-blue-500/20 rounded-xl p-4 flex items-start gap-3">
               <Info className="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5" />
               <p className="text-xs text-blue-500/80 leading-relaxed font-medium">
-                Miyomi indexes links and resources from around the web. 
+                Miyomi indexes links and resources from around the web.
                 <br className="hidden sm:block" />
                 <span className="text-blue-500 font-bold">We do not</span> host or distribute any content.
               </p>
