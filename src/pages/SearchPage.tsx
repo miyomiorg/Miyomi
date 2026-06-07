@@ -2,10 +2,13 @@ import { useMemo, useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useGlobalSearch, SearchResultType } from '../hooks/useGlobalSearch';
 import { AppListCard } from '../components/AppListCard';
+import { AppGridCard } from '../components/AppGridCard';
 import { ExtensionListCard } from '../components/ExtensionListCard';
+import { ExtensionGridCard } from '../components/ExtensionGridCard';
 import { Search, Filter, Smartphone, Puzzle, BookOpen } from 'lucide-react';
 import { SearchBar } from '../components/SearchBar';
 import { FilterChip } from '../components/FilterChip';
+import { ViewToggle } from '../components/ViewToggle';
 import { motion } from 'motion/react';
 
 interface SearchPageProps {
@@ -19,6 +22,23 @@ export function SearchPage({ onNavigate }: SearchPageProps) {
   const urlQuery = searchParams.get('q') || '';
   const [localQuery, setLocalQuery] = useState(urlQuery);
   const [activeFilter, setActiveFilter] = useState<SearchResultType | 'all'>('all');
+
+  const [view, setView] = useState<'grid' | 'list'>(() => {
+    if (typeof window === 'undefined') return 'list';
+    const v = searchParams.get('view');
+    if (v === 'grid' || v === 'list') return v;
+    return (localStorage.getItem('miyomi_view_mode') as 'grid' | 'list') || 'list';
+  });
+
+  useEffect(() => {
+    localStorage.setItem('miyomi_view_mode', view);
+    setSearchParams(prev => {
+      if (prev.get('view') === view) return prev;
+      const next = new URLSearchParams(prev);
+      next.set('view', view);
+      return next;
+    }, { replace: true });
+  }, [view, setSearchParams]);
 
   // Sync urlQuery to localQuery when urlQuery changes (e.g. back navigation)
   useEffect(() => {
@@ -100,28 +120,31 @@ export function SearchPage({ onNavigate }: SearchPageProps) {
         </div>
 
         {localQuery && (
-          <div className="flex items-center gap-3 mb-4 flex-wrap">
-            <span className="text-sm text-[var(--text-secondary)]">Filter by:</span>
-            <FilterChip
-              label={`All (${resultCounts.all})`}
-              selected={activeFilter === 'all'}
-              onClick={() => setActiveFilter('all')}
-            />
-            <FilterChip
-              label={`Apps (${resultCounts.app})`}
-              selected={activeFilter === 'app'}
-              onClick={() => setActiveFilter('app')}
-            />
-            <FilterChip
-              label={`Extensions (${resultCounts.extension})`}
-              selected={activeFilter === 'extension'}
-              onClick={() => setActiveFilter('extension')}
-            />
-            <FilterChip
-              label={`Guides (${resultCounts.guide})`}
-              selected={activeFilter === 'guide'}
-              onClick={() => setActiveFilter('guide')}
-            />
+          <div className="flex items-center justify-between mb-4 flex-wrap gap-4">
+            <div className="flex items-center gap-3 flex-wrap">
+              <span className="text-sm text-[var(--text-secondary)]">Filter by:</span>
+              <FilterChip
+                label={`All (${resultCounts.all})`}
+                selected={activeFilter === 'all'}
+                onClick={() => setActiveFilter('all')}
+              />
+              <FilterChip
+                label={`Apps (${resultCounts.app})`}
+                selected={activeFilter === 'app'}
+                onClick={() => setActiveFilter('app')}
+              />
+              <FilterChip
+                label={`Extensions (${resultCounts.extension})`}
+                selected={activeFilter === 'extension'}
+                onClick={() => setActiveFilter('extension')}
+              />
+              <FilterChip
+                label={`Guides (${resultCounts.guide})`}
+                selected={activeFilter === 'guide'}
+                onClick={() => setActiveFilter('guide')}
+              />
+            </div>
+            <ViewToggle view={view} onViewChange={setView} />
           </div>
         )}
       </div>
@@ -213,7 +236,7 @@ export function SearchPage({ onNavigate }: SearchPageProps) {
           </p>
         </div>
       ) : (
-        <div className="space-y-4">
+        <div className={view === 'grid' ? "grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-6" : "space-y-4"}>
           {filteredResults.map((result, index) => (
             <motion.div
               key={`${result.type}-${result.id}`}
@@ -222,26 +245,52 @@ export function SearchPage({ onNavigate }: SearchPageProps) {
               transition={{ delay: index * 0.05 }}
             >
               {result.type === 'app' && (
-                <AppListCard
-                  appId={result.id}
-                  name={result.name}
-                  description={result.description}
-                  tags={result.contentTypes || []}
-                  platforms={result.platforms || []}
-                  iconColor={result.accentColor || result.iconColor}
-                  logoUrl={result.logoUrl}
-                  rating={result.rating}
-                  downloads={result.downloadCount}
-                  forkOf={result.forkOf}
-                  upstreamUrl={result.upstreamUrl}
-                  onClick={() => handleResultClick(result)}
-                />
+                view === 'grid' ? (
+                  <AppGridCard
+                    appId={result.id}
+                    name={result.name}
+                    description={result.shortDescription || result.description}
+                    tags={result.contentTypes || []}
+                    platforms={result.platforms || []}
+                    accentColor={result.accentColor || result.iconColor}
+                    logoUrl={result.logoUrl}
+                    rating={result.rating}
+                    downloads={result.downloadCount || result.downloads}
+                    likes={result.likes}
+                    forkOf={result.forkOf}
+                    upstreamUrl={result.upstreamUrl}
+                    onClick={() => handleResultClick(result)}
+                  />
+                ) : (
+                  <AppListCard
+                    appId={result.id}
+                    name={result.name}
+                    description={result.shortDescription || result.description}
+                    tags={result.contentTypes || []}
+                    platforms={result.platforms || []}
+                    accentColor={result.accentColor || result.iconColor}
+                    logoUrl={result.logoUrl}
+                    rating={result.rating}
+                    downloads={result.downloadCount || result.downloads}
+                    likes={result.likes}
+                    forkOf={result.forkOf}
+                    upstreamUrl={result.upstreamUrl}
+                    onClick={() => handleResultClick(result)}
+                  />
+                )
               )}
               {result.type === 'extension' && (
-                <ExtensionListCard
-                  extension={result as any}
-                  onSelect={() => handleResultClick(result)}
-                />
+                view === 'grid' ? (
+                  <ExtensionGridCard
+                    extension={result as any}
+                    onSelect={() => handleResultClick(result)}
+                  />
+                ) : (
+                  <ExtensionListCard
+                    extension={result as any}
+                    onSelect={() => handleResultClick(result)}
+                  />
+                )
               )}
               {result.type === 'guide' && (
                 <button
