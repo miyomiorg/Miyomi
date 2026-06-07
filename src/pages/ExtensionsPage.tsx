@@ -50,10 +50,10 @@ export function ExtensionsPage({ onNavigate }: ExtensionsPageProps) {
   });
 
   const [view, setView] = useState<'grid' | 'list'>(() => {
-    if (typeof window === 'undefined') return 'grid';
+    if (typeof window === 'undefined') return 'list';
     const v = new URLSearchParams(window.location.search).get('view');
     if (v === 'grid' || v === 'list') return v;
-    return (localStorage.getItem('miyomi_view_mode') as 'grid' | 'list') || 'grid';
+    return (localStorage.getItem('miyomi_view_mode') as 'grid' | 'list') || 'list';
   });
 
   useEffect(() => {
@@ -147,9 +147,7 @@ export function ExtensionsPage({ onNavigate }: ExtensionsPageProps) {
     if (sortBy !== 'name-asc') {
       params.set('sort', sortBy);
     }
-    if (view !== 'grid') {
-      params.set('view', view);
-    }
+    params.set('view', view);
     if (searchQuery.trim().length > 0) {
       params.set('search', searchQuery.trim());
     }
