@@ -230,12 +230,12 @@ export function Navbar({
           {/* Right Section: Desktop Nav Items */}
           <div className="hidden md:flex items-center gap-1.5 lg:gap-2">
             {/* Direct Links */}
-            <button
+            {/* <button
               onClick={() => handleClick('/')}
               className={`text-sm py-2 px-1 lg:px-1.5 transition-colors font-['Inter',sans-serif] ${isActive('/') && location.pathname === '/' ? 'text-[var(--brand)] font-medium' : 'text-[var(--text-primary)] hover:text-[var(--brand)]'}`}
             >
               Home
-            </button>
+            </button> */}
             <button
               onClick={() => handleClick('/software')}
               className={`hidden xl:block text-sm py-2 px-1 lg:px-1.5 transition-colors font-['Inter',sans-serif] ${isActive('/software') ? 'text-[var(--brand)] font-medium' : 'text-[var(--text-primary)] hover:text-[var(--brand)]'}`}
@@ -328,13 +328,15 @@ export function Navbar({
             <div className="w-px h-6 bg-[var(--divider)]"></div>
 
             {/* Search Icon for Tablet (Hidden on desktop lg+) */}
-            <button
-              onClick={() => setSearchModalOpen(true)}
-              className="lg:hidden p-2 text-[var(--text-secondary)] hover:text-[var(--brand)] transition-colors relative group"
-              aria-label="Search"
-            >
-              <Search className="w-5 h-5" />
-            </button>
+            {location.pathname !== '/' && (
+              <button
+                onClick={() => setSearchModalOpen(true)}
+                className="lg:hidden p-2 text-[var(--text-secondary)] hover:text-[var(--brand)] transition-colors relative group"
+                aria-label="Search"
+              >
+                <Search className="w-5 h-5" />
+              </button>
+            )}
 
             {/* Theme Toggle */}
             <ThemeToggle />
@@ -358,13 +360,15 @@ export function Navbar({
 
           {/* Mobile Actions */}
           <div className="md:hidden flex items-center gap-1">
-            <button
-              onClick={() => setSearchModalOpen(true)}
-              className="p-2 text-[var(--text-secondary)] hover:text-[var(--brand)] transition-colors"
-              aria-label="Search"
-            >
-              <Search className="w-5 h-5" />
-            </button>
+            {location.pathname !== '/' && (
+              <button
+                onClick={() => setSearchModalOpen(true)}
+                className="p-2 text-[var(--text-secondary)] hover:text-[var(--brand)] transition-colors"
+                aria-label="Search"
+              >
+                <Search className="w-5 h-5" />
+              </button>
+            )}
             <ThemeToggle />
           </div>
         </div>
