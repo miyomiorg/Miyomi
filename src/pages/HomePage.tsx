@@ -153,7 +153,7 @@ export function HomePage({ onNavigate }: HomePageProps) {
             className="text-[var(--text-primary)] font-['Inter',sans-serif] mb-4 lg:mb-8 leading-relaxed"
             style={{ fontSize: 'clamp(16px, 2vw, 18px)', lineHeight: '1.6' }}
           >
-            Your one-stop hub for <span className="text-[var(--brand)]" style={{ fontWeight: 600 }}>apps, extensions and more!</span> and more!
+            Your one-stop hub for <span className="text-[var(--brand)]" style={{ fontWeight: 600 }}>apps, extensions</span> and more!
           </p>
 
           {/* Autocomplete Input Search */}
@@ -194,57 +194,57 @@ export function HomePage({ onNavigate }: HomePageProps) {
               <div
                 className="absolute top-full left-0 right-0 mt-2 glass rounded-2xl z-50 animate-fade-in font-['Inter',sans-serif]"
               >
-              <div className="max-h-60 overflow-y-auto py-2">
-                {searchResults.length === 0 ? (
-                  <div className="px-4 py-3 text-xs text-[var(--text-secondary)] text-center">
-                    No matches found
-                  </div>
-                ) : (
-                  <>
-                    <div className="px-4 py-1 text-[10px] font-semibold text-[var(--text-secondary)] uppercase tracking-wider mb-1">
-                      Suggestions
+                <div className="max-h-60 overflow-y-auto py-2">
+                  {searchResults.length === 0 ? (
+                    <div className="px-4 py-3 text-xs text-[var(--text-secondary)] text-center">
+                      No matches found
                     </div>
-                    {searchResults.slice(0, 5).map((result) => {
-                      const typeLabel =
-                        result.type === 'app'
-                          ? 'App'
-                          : result.type === 'extension'
-                            ? 'Extension'
-                            : 'Guide';
+                  ) : (
+                    <>
+                      <div className="px-4 py-1 text-[10px] font-semibold text-[var(--text-secondary)] uppercase tracking-wider mb-1">
+                        Suggestions
+                      </div>
+                      {searchResults.slice(0, 5).map((result) => {
+                        const typeLabel =
+                          result.type === 'app'
+                            ? 'App'
+                            : result.type === 'extension'
+                              ? 'Extension'
+                              : 'Guide';
 
-                      const typeBgColor =
-                        result.type === 'app'
-                          ? 'bg-blue-500/10 text-blue-500'
-                          : result.type === 'extension'
-                            ? 'bg-purple-500/10 text-purple-500'
-                            : 'bg-amber-500/10 text-amber-500';
+                        const typeBgColor =
+                          result.type === 'app'
+                            ? 'bg-blue-500/10 text-blue-500'
+                            : result.type === 'extension'
+                              ? 'bg-purple-500/10 text-purple-500'
+                              : 'bg-amber-500/10 text-amber-500';
 
-                      return (
+                        return (
+                          <button
+                            key={`${result.type}-${result.id}`}
+                            onClick={() => handleSuggestionClick(result)}
+                            className="w-full flex items-center justify-between px-4 py-2.5 text-xs text-left hover:bg-[var(--chip-bg)] transition-colors gap-3 cursor-pointer"
+                          >
+                            <span className="font-medium text-[var(--text-primary)] truncate flex-1">
+                              {result.name}
+                            </span>
+                            <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium flex-shrink-0 ${typeBgColor}`}>
+                              {typeLabel}
+                            </span>
+                          </button>
+                        );
+                      })}
+                      {searchResults.length > 5 && (
                         <button
-                          key={`${result.type}-${result.id}`}
-                          onClick={() => handleSuggestionClick(result)}
-                          className="w-full flex items-center justify-between px-4 py-2.5 text-xs text-left hover:bg-[var(--chip-bg)] transition-colors gap-3 cursor-pointer"
+                          onClick={() => onNavigate?.(`/search?q=${encodeURIComponent(searchQuery.trim())}`)}
+                          className="w-full text-center px-4 py-2 border-t border-[var(--divider)]/30 text-[var(--brand)] hover:bg-[var(--chip-bg)] transition-colors text-xs font-semibold block cursor-pointer"
                         >
-                          <span className="font-medium text-[var(--text-primary)] truncate flex-1">
-                            {result.name}
-                          </span>
-                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium flex-shrink-0 ${typeBgColor}`}>
-                            {typeLabel}
-                          </span>
+                          View all {searchResults.length} results
                         </button>
-                      );
-                    })}
-                    {searchResults.length > 5 && (
-                      <button
-                        onClick={() => onNavigate?.(`/search?q=${encodeURIComponent(searchQuery.trim())}`)}
-                        className="w-full text-center px-4 py-2 border-t border-[var(--divider)]/30 text-[var(--brand)] hover:bg-[var(--chip-bg)] transition-colors text-xs font-semibold block cursor-pointer"
-                      >
-                        View all {searchResults.length} results
-                      </button>
-                    )}
-                  </>
-                )}
-              </div>
+                      )}
+                    </>
+                  )}
+                </div>
               </div>
             )}
           </div>
