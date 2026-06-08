@@ -180,7 +180,7 @@ function AppContent() {
       />
 
       {/* Main Content */}
-      <main className="flex-1 px-4 sm:px-8 lg:px-[120px] pt-24 pb-[calc(4rem+env(safe-area-inset-bottom))] md:pb-12">
+      <main className="flex-1 px-4 sm:px-8 lg:px-[120px] pt-16 md:pt-24 pb-[calc(4rem+env(safe-area-inset-bottom))] md:pb-12">
         <NoticeBanner />
         <QuotaRibbon />
         <Routes>

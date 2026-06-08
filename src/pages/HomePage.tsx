@@ -1,4 +1,4 @@
-import { Plus, Package, Star, Twitter, MessageSquare, Facebook, Search, Youtube, Info, HelpCircle, ArrowUpCircle, Smartphone, Puzzle, BookOpen, Link, Sparkles } from 'lucide-react';
+import { Plus, Package, Star, Twitter, MessageSquare, Facebook, Search, Youtube, Info, HelpCircle, ArrowUpCircle, Smartphone, Puzzle, BookOpen, Link, Sparkles, MonitorSmartphone } from 'lucide-react';
 import { Button } from '../components/Button';
 import React, { useState, useEffect, useRef } from 'react';
 import { useAppMeta } from '../hooks/useAppMeta';
@@ -67,30 +67,6 @@ export function HomePage({ onNavigate }: HomePageProps) {
       onNavigate?.(`/guides/${result.slug}`);
     }
   };
-
-  const desktopFeatures = [
-    {
-      icon: <Package className="w-10 h-10" />,
-      title: 'Software',
-      description: 'Software for every Operating System',
-      path: '/software',
-      gradient: 'from-[#38BDF8] to-[#2563EB]',
-    },
-    {
-      icon: <Star className="w-10 h-10" />,
-      title: 'Extensions',
-      description: 'Cloudstream, Aniyomi & Dantotsu Extension Repos & Guides',
-      path: '/extensions',
-      gradient: 'from-[#818CF8] to-[#7C3AED]',
-    },
-    {
-      icon: <Plus className="w-10 h-10" />,
-      title: 'Guides',
-      description: 'Get started quickly with our comprehensive guides',
-      path: '/guides',
-      gradient: 'from-[#F472B6] to-[#FBBF24]',
-    },
-  ];
 
   const avatarImage = useSeasonalAsset('homeAvatar', '/polic.png');
 
@@ -288,61 +264,6 @@ export function HomePage({ onNavigate }: HomePageProps) {
         </div>
       </div>
 
-      {/* Desktop Feature Cards */}
-      {/* <div className="hidden md:grid grid-cols-3 gap-6 mb-6 relative z-10">
-        {desktopFeatures.map((feature, index) => {
-          const featureCount = feature.path === '/guides'
-            ? formatCount(guidesCount)
-            : feature.path === '/software'
-              ? formatCount(unifiedApps.length)
-              : formatCount(extensionsCount);
-
-          return (
-            <motion.button
-              key={index}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.1, duration: 0.4 }}
-              whileHover={{ y: -4, scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              onClick={() => onNavigate?.(feature.path)}
-              className="group feature-card relative overflow-hidden p-6 bg-[var(--bg-surface)] border border-[var(--divider)] rounded-2xl hover:shadow-lg transition-all text-left"
-              style={{ boxShadow: '0 6px 20px 0 rgba(0,0,0,0.08)' }}
-            >
-              <div className="absolute right-2 top-2 pointer-events-none">
-                <div
-                  className="font-['Poppins',sans-serif]"
-                  style={{
-                    fontSize: '66px',
-                    fontWeight: 900,
-                    lineHeight: '1',
-                    color: 'var(--text-secondary)',
-                    opacity: 0.03,
-                  }}
-                >
-                  {featureCount}
-                </div>
-              </div>
-              <div className={`absolute inset-0 bg-gradient-to-br ${feature.gradient} opacity-0 group-hover:opacity-10 transition-opacity duration-300`}></div>
-              <div className="relative z-10 flex items-center gap-4">
-                <div className={`inline-flex items-center justify-center w-12 h-12 rounded-xl bg-gradient-to-br ${feature.gradient} text-white flex-shrink-0`}>
-                  {React.cloneElement(feature.icon, { className: 'w-6 h-6' })}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <h3 className="text-[var(--text-primary)] font-['Poppins',sans-serif] text-[16px] font-bold mb-0.5 truncate">
-                    {feature.title}
-                  </h3>
-                  <p className="text-[var(--text-secondary)] font-['Inter',sans-serif] text-sm leading-snug line-clamp-2">
-                    {feature.description}
-                  </p>
-                </div>
-                <div className="text-[var(--brand)] group-hover:translate-x-1 transition-transform duration-300 flex-shrink-0">&rarr;</div>
-              </div>
-            </motion.button>
-          );
-        })}
-      </div> */}
-
       {/* Desktop Features / Community Card */}
       <div className="hidden md:block mb-8 relative z-10">
         <div className="">
@@ -355,7 +276,10 @@ export function HomePage({ onNavigate }: HomePageProps) {
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
             {/* Software Card */}
-            <div className="bg-[var(--bg-page)] border border-[var(--divider)]/50 rounded-2xl p-4 flex items-center gap-4 hover:border-blue-500/50 transition-colors cursor-pointer group shadow-sm">
+            <div 
+              onClick={() => onNavigate?.('/software')}
+              className="bg-[var(--bg-page)] border border-[var(--divider)]/50 rounded-2xl p-4 flex items-center gap-4 hover:border-blue-500/50 transition-colors cursor-pointer group shadow-sm"
+            >
               <div className="w-12 h-12 rounded-xl bg-[#2563eb] text-white flex items-center justify-center flex-shrink-0 shadow-sm group-hover:scale-105 transition-transform">
                 <Smartphone className="w-6 h-6" />
               </div>
@@ -367,7 +291,10 @@ export function HomePage({ onNavigate }: HomePageProps) {
             </div>
 
             {/* Extensions Card */}
-            <div className="bg-[var(--bg-page)] border border-[var(--divider)]/50 rounded-2xl p-4 flex items-center gap-4 hover:border-purple-500/50 transition-colors cursor-pointer group shadow-sm">
+            <div 
+              onClick={() => onNavigate?.('/extensions')}
+              className="bg-[var(--bg-page)] border border-[var(--divider)]/50 rounded-2xl p-4 flex items-center gap-4 hover:border-purple-500/50 transition-colors cursor-pointer group shadow-sm"
+            >
               <div className="w-12 h-12 rounded-xl bg-[#8b5cf6] text-white flex items-center justify-center flex-shrink-0 shadow-sm group-hover:scale-105 transition-transform">
                 <Puzzle className="w-6 h-6" />
               </div>
@@ -379,7 +306,10 @@ export function HomePage({ onNavigate }: HomePageProps) {
             </div>
 
             {/* Guides Card */}
-            <div className="bg-[var(--bg-page)] border border-[var(--divider)]/50 rounded-2xl p-4 flex items-center gap-4 hover:border-orange-500/50 transition-colors cursor-pointer group shadow-sm">
+            <div 
+              onClick={() => onNavigate?.('/guides')}
+              className="bg-[var(--bg-page)] border border-[var(--divider)]/50 rounded-2xl p-4 flex items-center gap-4 hover:border-orange-500/50 transition-colors cursor-pointer group shadow-sm"
+            >
               <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-pink-400 to-orange-400 text-white flex items-center justify-center flex-shrink-0 shadow-sm group-hover:scale-105 transition-transform">
                 <BookOpen className="w-6 h-6" />
               </div>
@@ -410,33 +340,45 @@ export function HomePage({ onNavigate }: HomePageProps) {
             Miyomi helps anime and manga fans discover:
           </p>
 
-          <div className="space-y-2 mb-3">
-            <div className="flex items-center gap-3">
+          <div className="space-y-3 mb-3">
+            <div className="flex items-start gap-3">
               <div className="w-8 h-8 rounded-lg bg-blue-500/10 text-blue-500 flex items-center justify-center flex-shrink-0">
-                <Smartphone className="w-4 h-4" />
+                <MonitorSmartphone className="w-4 h-4" />
               </div>
-              <span className="font-semibold text-[var(--text-primary)] text-xs">Reading apps</span>
+              <div className="flex-1 min-w-0">
+                <h3 className="font-bold text-[var(--text-primary)] text-xs mb-0.5">Software</h3>
+                <p className="text-[11px] text-[var(--text-secondary)] leading-snug">for your Mobile and desktop</p>
+              </div>
             </div>
 
-            <div className="flex items-center gap-3">
+            <div className="flex items-start gap-3">
               <div className="w-8 h-8 rounded-lg bg-purple-500/10 text-purple-500 flex items-center justify-center flex-shrink-0">
                 <Puzzle className="w-4 h-4" />
               </div>
-              <span className="font-semibold text-[var(--text-primary)] text-xs">Extension repositories</span>
+              <div className="flex-1 min-w-0">
+                <h3 className="font-bold text-[var(--text-primary)] text-xs mb-0.5">Extensions & Plugins</h3>
+                <p className="text-[11px] text-[var(--text-secondary)] leading-snug">that are compatible with your favorite apps</p>
+              </div>
             </div>
 
-            <div className="flex items-center gap-3">
+            <div className="flex items-start gap-3">
               <div className="w-8 h-8 rounded-lg bg-green-500/10 text-green-500 flex items-center justify-center flex-shrink-0">
                 <BookOpen className="w-4 h-4" />
               </div>
-              <span className="font-semibold text-[var(--text-primary)] text-xs">Setup guides</span>
+              <div className="flex-1 min-w-0">
+                <h3 className="font-bold text-[var(--text-primary)] text-xs mb-0.5">Helpful Guides</h3>
+                <p className="text-[11px] text-[var(--text-secondary)] leading-snug">to setup and configure your favorite apps</p>
+              </div>
             </div>
 
-            <div className="flex items-center gap-3">
+            <div className="flex items-start gap-3">
               <div className="w-8 h-8 rounded-lg bg-orange-500/10 text-orange-500 flex items-center justify-center flex-shrink-0">
                 <Link className="w-4 h-4" />
               </div>
-              <span className="font-semibold text-[var(--text-primary)] text-xs">Helpful resources</span>
+              <div className="flex-1 min-w-0">
+                <h3 className="font-bold text-[var(--text-primary)] text-xs mb-0.5">Other resources</h3>
+                <p className="text-[11px] text-[var(--text-secondary)] leading-snug">like links to App's socials, FAQs and more</p>
+              </div>
             </div>
           </div>
 
