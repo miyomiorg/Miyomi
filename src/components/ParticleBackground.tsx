@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+import { getPerformanceTier } from '../utils/performanceTier';
 
 interface ParticleBackgroundProps {
   theme?: 'light' | 'dark';
@@ -58,6 +59,11 @@ export function ParticleBackground({ theme = 'dark' }: ParticleBackgroundProps) 
   const timeRef = useRef(0);
 
   useEffect(() => {
+    if (typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+    const tier = getPerformanceTier();
+    if (tier === 'low') return;
+
     const canvas = canvasRef.current;
     if (!canvas) return;
 
@@ -105,10 +111,10 @@ export function ParticleBackground({ theme = 'dark' }: ParticleBackgroundProps) 
     const circlePalette = circleColors[effectiveTheme];
 
     // Particle counts
-    const heartCount = Math.min(Math.floor((canvas.width * canvas.height) / 30000), 25);
-    const starCount = Math.min(Math.floor((canvas.width * canvas.height) / 15000), 50);
-    const circleCount = Math.min(Math.floor((canvas.width * canvas.height) / 20000), 30);
-    const halftoneCount = Math.min(Math.floor((canvas.width * canvas.height) / 25000), 40);
+    const heartCount = tier === 'medium' ? 6 : Math.min(Math.floor((canvas.width * canvas.height) / 30000), 15);
+    const starCount = tier === 'medium' ? 12 : Math.min(Math.floor((canvas.width * canvas.height) / 15000), 30);
+    const circleCount = tier === 'medium' ? 8 : Math.min(Math.floor((canvas.width * canvas.height) / 20000), 20);
+    const halftoneCount = tier === 'medium' ? 0 : Math.min(Math.floor((canvas.width * canvas.height) / 25000), 25);
 
     // Create cute floating heart
     const createHeart = (): Heart => {
@@ -185,8 +191,6 @@ export function ParticleBackground({ theme = 'dark' }: ParticleBackgroundProps) 
 
       ctx.globalAlpha = h.opacity;
       ctx.fillStyle = h.color;
-      ctx.shadowBlur = size;
-      ctx.shadowColor = h.color;
 
       // Heart path
       ctx.beginPath();
@@ -205,7 +209,6 @@ export function ParticleBackground({ theme = 'dark' }: ParticleBackgroundProps) 
       );
       ctx.fill();
 
-      ctx.shadowBlur = 0;
       ctx.restore();
     };
 
@@ -223,8 +226,6 @@ export function ParticleBackground({ theme = 'dark' }: ParticleBackgroundProps) 
 
       const color = effectiveTheme === 'dark' ? '#38BDF8' : '#0ea5e9';
       ctx.fillStyle = color;
-      ctx.shadowBlur = s.size * 3;
-      ctx.shadowColor = color;
 
       // 4-point star
       ctx.beginPath();
@@ -239,7 +240,6 @@ export function ParticleBackground({ theme = 'dark' }: ParticleBackgroundProps) 
       ctx.closePath();
       ctx.fill();
 
-      ctx.shadowBlur = 0;
       ctx.restore();
     };
 
@@ -300,6 +300,7 @@ export function ParticleBackground({ theme = 'dark' }: ParticleBackgroundProps) 
 
     // Draw manga-style speed lines (subtle)
     const drawSpeedLines = () => {
+      if (tier === 'medium') return; // Skip on medium
       if (Math.floor(timeRef.current) % 5 !== 0) return; // Only occasionally
 
       ctx.save();

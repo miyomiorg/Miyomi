@@ -162,6 +162,12 @@ html {
   * {
     @apply border-border;
     outline-color: var(--ring);
+  }
+
+  /* Only apply transitions to interactive elements */
+  button, a, select, input, textarea,
+  [role="button"], summary, label,
+  .transition-colors {
     transition-property: background-color, border-color, color;
     transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
     transition-duration: 300ms;
@@ -181,9 +187,14 @@ html {
   summary {
     cursor: pointer;
   }
+}
 
-  html:not(.dark):not(.light) {
-    visibility: hidden;
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }
 
@@ -361,10 +372,17 @@ html {
 
 .glass {
   background: var(--bg-glass);
+  will-change: transform;
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   border: 1px solid var(--glass-border);
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+}
+
+@supports not (backdrop-filter: blur(1px)) {
+  .glass {
+    background: rgba(15, 23, 42, 0.92); /* solid fallback */
+  }
 }
 
 .text-shadow-sm {

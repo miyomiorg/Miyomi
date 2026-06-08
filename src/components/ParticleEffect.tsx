@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import type { ParticleConfig } from '@/hooks/useThemeEngine';
 import { useTheme } from './ThemeProvider';
+import { getPerformanceTier } from '../utils/performanceTier';
 
 interface ParticleEffectProps {
     className?: string;
@@ -125,6 +126,7 @@ export function ParticleEffect({ className, style, config, countOverride }: Part
     const animFrameRef = useRef<number>(0);
     const { theme } = useTheme();
 
+    if (typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return null;
     if (!config || config.type === 'none') return null;
 
     useEffect(() => {
@@ -143,18 +145,26 @@ export function ParticleEffect({ className, style, config, countOverride }: Part
         };
         resize();
 
-        const count = countOverride ?? config.count;
+        const tier = getPerformanceTier();
+        const tierMultiplier = tier === 'low' ? 0.3 : tier === 'medium' ? 0.6 : 1;
+        const count = Math.max(3, Math.round((countOverride ?? config.count) * tierMultiplier));
+
         particlesRef.current = Array.from({ length: count }, () =>
             createParticle(canvas, config, true)
         );
 
         let time = 0;
+        let lastTime = 0;
 
-        function animate() {
+        function animate(timestamp: number) {
+            if (!lastTime) lastTime = timestamp;
+            const dt = Math.min((timestamp - lastTime) / 1000, 0.1);
+            lastTime = timestamp;
+
             if (!canvas || !ctx) return;
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-            time += 0.016; // ~60fps
+            time += dt;
 
             particlesRef.current.forEach((p, i) => {
                 // Movement
@@ -192,7 +202,7 @@ export function ParticleEffect({ className, style, config, countOverride }: Part
             animFrameRef.current = requestAnimationFrame(animate);
         }
 
-        animate();
+        animFrameRef.current = requestAnimationFrame(animate);
 
         const observer = new ResizeObserver(resize);
         if (canvas.parentElement) observer.observe(canvas.parentElement);

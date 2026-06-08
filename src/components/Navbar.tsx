@@ -17,6 +17,7 @@ import {
 } from './ui/dropdown-menu';
 import { TelegramIcon } from './TelegramIcon';
 import { DiscordIcon } from './DiscordIcon';
+import { getPerformanceTier } from '../utils/performanceTier';
 
 interface NavbarProps {
   onNavigate?: (path: string) => void;
@@ -26,9 +27,14 @@ interface NavbarProps {
 
 function NavbarParticles() {
   try {
+    const tier = getPerformanceTier();
+    if (tier === 'low') return null;
+
     const { particleConfig } = useThemeEngineContext();
     if (!particleConfig || particleConfig.type === 'none') return null;
-    return <ParticleEffect className="absolute inset-0 z-0" config={particleConfig} countOverride={15} />;
+    
+    const countOverride = tier === 'medium' ? 8 : 15;
+    return <ParticleEffect className="absolute inset-0 z-0" config={particleConfig} countOverride={countOverride} />;
   } catch {
     return null;
   }
@@ -196,6 +202,7 @@ export function Navbar({
           ? 'bg-[var(--bg-page)]/80 backdrop-blur-xl border-b border-[var(--divider)]/50 shadow-sm'
           : 'bg-transparent'
           }`}
+        style={{ willChange: scrolled ? 'transform, backdrop-filter' : 'auto' }}
       >
         {/* Background Particles Wrapper */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
@@ -362,6 +369,7 @@ export function Navbar({
           backgroundColor: 'rgba(0,0,0,0.4)',
           backdropFilter: 'blur(4px)',
           WebkitBackdropFilter: 'blur(4px)',
+          willChange: 'opacity, transform',
         }}
         onClick={() => setMobileMenuOpen(false)}
       />
@@ -370,6 +378,7 @@ export function Navbar({
       <div
         className={`fixed left-0 right-0 bottom-0 max-h-[80vh] w-full z-[998] md:hidden bg-[var(--bg-page)]/95 backdrop-blur-xl border-t border-[var(--divider)]/50 shadow-2xl rounded-t-3xl flex flex-col transition-transform duration-300 ease-in-out ${mobileMenuOpen ? 'translate-y-0' : 'translate-y-full'
           }`}
+        style={{ willChange: 'transform' }}
       >
         {/* Drawer Header */}
         <div className="pt-6 pb-4 px-6 border-b border-[var(--divider)]/50 flex items-center justify-between">

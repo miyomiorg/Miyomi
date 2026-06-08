@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { SEASONAL_CONFIG, isSeasonalActive } from '../config/seasonal';
 import { useTheme } from './ThemeProvider';
+import { getPerformanceTier } from '../utils/performanceTier';
 
 interface ChristmasSnowProps {
     className?: string;
@@ -24,33 +25,14 @@ export function ChristmasSnow({ className, style, snowflakeCount }: ChristmasSno
     const requestRef = useRef<number | undefined>(undefined);
     const particlesRef = useRef<Particle[]>([]);
 
-    // Performance tier state
-    const [performanceTier, setPerformanceTier] = useState<'high' | 'low'>('high');
-
     const snowColor = theme === 'dark' ? '255, 255, 255' : '14, 165, 233'; // RGB values for rgba
-
-    // Performance check
-    useEffect(() => {
-        const checkPerformance = () => {
-            const isMobile = window.innerWidth < 768;
-            const isLowConcurrency = navigator.hardwareConcurrency <= 4;
-            // @ts-ignore
-            const isDataSaver = (navigator.connection as any)?.saveData === true;
-
-            if (isMobile || isLowConcurrency || isDataSaver) {
-                setPerformanceTier('low');
-            } else {
-                setPerformanceTier('high');
-            }
-        };
-
-        checkPerformance();
-        window.addEventListener('resize', checkPerformance);
-        return () => window.removeEventListener('resize', checkPerformance);
-    }, []);
 
     useEffect(() => {
         if (!isActive || !canvasRef.current) return;
+        if (typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+        const tier = getPerformanceTier();
+        if (tier === 'low') return;
 
         const canvas = canvasRef.current;
         const ctx = canvas.getContext('2d');
@@ -70,8 +52,7 @@ export function ChristmasSnow({ className, style, snowflakeCount }: ChristmasSno
 
         // Initialize particles
         const initParticles = () => {
-            const isLowPower = performanceTier === 'low';
-            const defaultCount = isLowPower ? 20 : 50;
+            const defaultCount = tier === 'medium' ? 20 : 50;
             const count = snowflakeCount ?? defaultCount;
 
             particlesRef.current = [];
@@ -92,15 +73,21 @@ export function ChristmasSnow({ className, style, snowflakeCount }: ChristmasSno
         };
 
         // Animation loop
-        const animate = () => {
+        let lastTime = 0;
+        const animate = (timestamp: number) => {
+            if (!lastTime) lastTime = timestamp;
+            const dt = Math.min((timestamp - lastTime) / 1000, 0.1);
+            lastTime = timestamp;
+            const dtFactor = dt * 60; // 1.0 at 60fps
+
             if (!ctx || !canvas) return;
 
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
             particlesRef.current.forEach((p, index) => {
                 // Update position
-                p.y += p.speed;
-                p.x += p.wind;
+                p.y += p.speed * dtFactor;
+                p.x += p.wind * dtFactor;
 
                 // Wrap around
                 if (p.y > canvas.height) {
@@ -133,7 +120,7 @@ export function ChristmasSnow({ className, style, snowflakeCount }: ChristmasSno
                 cancelAnimationFrame(requestRef.current);
             }
         };
-    }, [isActive, snowColor, snowflakeCount, performanceTier]);
+    }, [isActive, snowColor, snowflakeCount]);
 
     if (!isActive) return null;
 
