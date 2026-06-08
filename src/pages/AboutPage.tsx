@@ -170,6 +170,25 @@ export function AboutPage() {
         </Card>
       </section>
 
+      {/* RESOURCES & THANKS */}
+      <section className="mb-16">
+        <Card className="relative overflow-hidden border-pink-500/20 bg-pink-500/5 hover:border-pink-500/40 transition-colors">
+          <div className="absolute top-0 left-0 w-1 h-full bg-pink-500/50"></div>
+          <p className="text-[var(--text-primary)] font-medium mb-1 flex items-center gap-2 flex-wrap">
+            <Heart className="w-5 h-5 flex-shrink-0 text-pink-500 fill-current" />
+            <span>
+              Also Visit{' '}
+              <a href="https://everythingmoe.com/" target="_blank" rel="noopener noreferrer" className="text-[var(--brand)] hover:underline">EverythingMoe</a>,{' '}
+              <a href="https://wotaku.moe/" target="_blank" rel="noopener noreferrer" className="text-[var(--brand)] hover:underline">Wotaku</a> &{' '}
+              <a href="https://theindex.moe/" target="_blank" rel="noopener noreferrer" className="text-[var(--brand)] hover:underline">TheIndex</a>
+            </span>
+          </p>
+          <p className="text-sm text-[var(--text-secondary)]">
+            Some amazing resources we refer to.
+          </p>
+        </Card>
+      </section>
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         {/* MIYOMI TEAM */}
         <section>
