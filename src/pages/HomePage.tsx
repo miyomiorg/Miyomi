@@ -118,7 +118,7 @@ export function HomePage({ onNavigate }: HomePageProps) {
       </div>
 
       {/* Hero Section */}
-      <div className="grid lg:grid-cols-2 gap-8 lg:gap-16 items-center pb-2 lg:pb-12 relative z-20">
+      <div className="grid lg:grid-cols-2 gap-8 lg:gap-16 items-center pb-2 relative z-20">
         {/* Mobile Avatar */}
         <div className="lg:hidden flex items-center justify-center mb-4">
           <div className="relative w-48 h-48">
@@ -289,7 +289,7 @@ export function HomePage({ onNavigate }: HomePageProps) {
       </div>
 
       {/* Desktop Feature Cards */}
-      <div className="hidden md:grid grid-cols-3 gap-6 mb-6 relative z-10">
+      {/* <div className="hidden md:grid grid-cols-3 gap-6 mb-6 relative z-10">
         {desktopFeatures.map((feature, index) => {
           const featureCount = feature.path === '/guides'
             ? formatCount(guidesCount)
@@ -341,73 +341,61 @@ export function HomePage({ onNavigate }: HomePageProps) {
             </motion.button>
           );
         })}
-      </div>
+      </div> */}
 
       {/* Desktop Features / Community Card */}
       <div className="hidden md:block mb-8 relative z-10">
-        <div className="bg-[var(--bg-surface)] border border-[var(--divider)] rounded-3xl p-8 shadow-sm flex flex-col lg:flex-row gap-8 lg:gap-10 items-start lg:items-center">
-          {/* Left Side */}
-          <div className="flex-1">
-            <h2 className="text-2xl font-bold text-[var(--brand)] font-['Poppins',sans-serif] mb-2">
-              Made for the Community ❤️
-            </h2>
-            <p className="text-[var(--text-secondary)] font-['Inter',sans-serif] mb-6">
-              Miyomi helps anime and manga fans discover:
-            </p>
-            <div className="flex flex-wrap gap-4">
-              {/* Reading apps */}
-              <div className="flex items-center gap-3 bg-[var(--bg-page)] border border-[var(--divider)]/50 px-4 py-3 rounded-xl shadow-sm">
-                <div className="w-8 h-8 rounded-lg bg-blue-500/10 text-blue-500 flex items-center justify-center flex-shrink-0">
-                  <Smartphone className="w-4 h-4" />
-                </div>
-                <span className="font-semibold text-[var(--text-primary)] text-[13px]">Reading apps</span>
+        <div className="">
+          <h2 className="text-2xl font-bold text-[#1e3a8a] dark:text-[#60a5fa] font-['Poppins',sans-serif] mb-2 flex items-center gap-2">
+            Made for the Community <span className="text-2xl">❤️</span>
+          </h2>
+          <p className="text-[var(--text-secondary)] font-['Inter',sans-serif] mb-6 flex items-center">
+            Miyomi helps anime, manga and novel fans discover:
+          </p>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            {/* Software Card */}
+            <div className="bg-[var(--bg-page)] border border-[var(--divider)]/50 rounded-2xl p-4 flex items-center gap-4 hover:border-blue-500/50 transition-colors cursor-pointer group shadow-sm">
+              <div className="w-12 h-12 rounded-xl bg-[#2563eb] text-white flex items-center justify-center flex-shrink-0 shadow-sm group-hover:scale-105 transition-transform">
+                <Smartphone className="w-6 h-6" />
               </div>
-              {/* Extension repos */}
-              <div className="flex items-center gap-3 bg-[var(--bg-page)] border border-[var(--divider)]/50 px-4 py-3 rounded-xl shadow-sm">
-                <div className="w-8 h-8 rounded-lg bg-purple-500/10 text-purple-500 flex items-center justify-center flex-shrink-0">
-                  <Puzzle className="w-4 h-4" />
-                </div>
-                <span className="font-semibold text-[var(--text-primary)] text-[13px]">Extension repositories</span>
+              <div className="flex-1 min-w-0">
+                <h3 className="font-bold text-[var(--text-primary)] text-sm mb-0.5">Software</h3>
+                <p className="text-[11px] text-[var(--text-secondary)] leading-snug">Software for every Operating System</p>
               </div>
-              {/* Setup guides */}
-              <div className="flex items-center gap-3 bg-[var(--bg-page)] border border-[var(--divider)]/50 px-4 py-3 rounded-xl shadow-sm">
-                <div className="w-8 h-8 rounded-lg bg-green-500/10 text-green-500 flex items-center justify-center flex-shrink-0">
-                  <BookOpen className="w-4 h-4" />
-                </div>
-                <span className="font-semibold text-[var(--text-primary)] text-[13px]">Setup guides</span>
+              <div className="text-[var(--text-secondary)] group-hover:text-blue-500 transition-colors flex-shrink-0 ml-2">&rarr;</div>
+            </div>
+
+            {/* Extensions Card */}
+            <div className="bg-[var(--bg-page)] border border-[var(--divider)]/50 rounded-2xl p-4 flex items-center gap-4 hover:border-purple-500/50 transition-colors cursor-pointer group shadow-sm">
+              <div className="w-12 h-12 rounded-xl bg-[#8b5cf6] text-white flex items-center justify-center flex-shrink-0 shadow-sm group-hover:scale-105 transition-transform">
+                <Puzzle className="w-6 h-6" />
               </div>
-              {/* Helpful resources */}
-              <div className="flex items-center gap-3 bg-[var(--bg-page)] border border-[var(--divider)]/50 px-4 py-3 rounded-xl shadow-sm">
-                <div className="w-8 h-8 rounded-lg bg-orange-500/10 text-orange-500 flex items-center justify-center flex-shrink-0">
-                  <Link className="w-4 h-4" />
-                </div>
-                <span className="font-semibold text-[var(--text-primary)] text-[13px]">Helpful resources</span>
+              <div className="flex-1 min-w-0">
+                <h3 className="font-bold text-[var(--text-primary)] text-sm mb-0.5">Extensions</h3>
+                <p className="text-[11px] text-[var(--text-secondary)] leading-snug line-clamp-2">Cloudstream, Aniyomi & Dantotsu Extension Repos & Guides</p>
               </div>
+              <div className="text-[var(--text-secondary)] group-hover:text-purple-500 transition-colors flex-shrink-0 ml-2">&rarr;</div>
+            </div>
+
+            {/* Guides Card */}
+            <div className="bg-[var(--bg-page)] border border-[var(--divider)]/50 rounded-2xl p-4 flex items-center gap-4 hover:border-orange-500/50 transition-colors cursor-pointer group shadow-sm">
+              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-pink-400 to-orange-400 text-white flex items-center justify-center flex-shrink-0 shadow-sm group-hover:scale-105 transition-transform">
+                <BookOpen className="w-6 h-6" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <h3 className="font-bold text-[var(--text-primary)] text-sm mb-0.5">Guides</h3>
+                <p className="text-[11px] text-[var(--text-secondary)] leading-snug">Get started quickly with our comprehensive guides</p>
+              </div>
+              <div className="text-[var(--text-secondary)] group-hover:text-orange-500 transition-colors flex-shrink-0 ml-2">&rarr;</div>
             </div>
           </div>
 
-          {/* Vertical Divider */}
-          <div className="hidden lg:block w-px h-32 bg-[var(--divider)]/50"></div>
-
-          {/* Right Side */}
-          <div className="w-full lg:w-[420px] flex flex-col gap-6">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-2xl bg-amber-500/10 text-amber-500 flex items-center justify-center flex-shrink-0">
-                <Sparkles className="w-6 h-6" />
-              </div>
-              <p className="text-[var(--text-primary)] font-medium text-[15px] leading-snug">
-                Everything organized in one<br />searchable place.
-              </p>
-            </div>
-
-            <div className="bg-blue-500/5 border border-blue-500/20 rounded-xl p-4 flex items-start gap-3">
-              <Info className="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5" />
-              <p className="text-xs text-blue-500/80 leading-relaxed font-medium">
-                Miyomi indexes links and resources from around the web.
-                <br className="hidden sm:block" />
-                <span className="text-blue-500 font-bold">We do not</span> host or distribute any content.
-              </p>
-            </div>
+          <div className="flex items-center gap-2 pt-4">
+            <Sparkles className="w-5 h-5 text-amber-500 flex-shrink-0" />
+            <h3 className="text-[var(--text-primary)] font-bold text-lg">
+              Everything organized in one searchable place.
+            </h3>
           </div>
         </div>
       </div>
