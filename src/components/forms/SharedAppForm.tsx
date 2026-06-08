@@ -3,6 +3,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { AdminFormField, AdminInput, AdminTextarea, AdminSelect, AdminButton, Label } from '@/components/admin/AdminFormElements';
 import { AdminSmartSelect } from '@/components/admin/AdminSmartSelect';
 import { SocialUrlsInput } from '@/components/admin/SocialUrlsInput';
+import { InstallUrlsInput, type InstallUrlEntry } from '@/components/admin/InstallUrlsInput';
+import { TutorialsInput } from '@/components/admin/TutorialsInput';
 import { Download, Palette, HelpCircle, GitBranch, Loader2, Layers, Puzzle } from 'lucide-react';
 import { toast } from 'sonner';
 import { extractColorFromImage } from '@/utils/extractColorFromImage';
@@ -75,21 +77,7 @@ export function SharedAppForm({ form, setForm, errors, setErrors, isAdmin = true
         setExtOptions((exts || []).map((e: any) => e.name));
     }
 
-    // Pass guides back up via setForm
-    useEffect(() => {
-        const finalTutorials = selectedGuideTitles.map(title => {
-            const guide = guidesData.find(g => g.title === title);
-            if (guide) {
-                return { title: guide.title, url: `/guides/${guide.slug}`, type: 'guide' };
-            }
-            return { title: title, url: '#', type: 'custom' };
-        });
-        // Avoid infinite loop by only updating if different
-        const isDifferent = JSON.stringify(finalTutorials) !== JSON.stringify(form.tutorials);
-        if (isDifferent && guidesData.length > 0) {
-            setForm((f: any) => ({ ...f, tutorials: finalTutorials }));
-        }
-    }, [selectedGuideTitles, guidesData]);
+    // No longer using selectedGuideTitles for sync. form.tutorials is directly modified by TutorialsInput.
 
 
     async function handleColorExtraction(url: string) {
@@ -311,16 +299,13 @@ export function SharedAppForm({ form, setForm, errors, setErrors, isAdmin = true
                             <HelpCircle className="w-4 h-4" /> Tutorials & Guides
                         </h3>
                         <div className="space-y-4">
-                            <AdminSmartSelect
-                                label="Linked Guides & Tutorials"
-                                value={selectedGuideTitles}
-                                onChange={setSelectedGuideTitles}
-                                options={guideOptions}
-                                placeholder="Search and select guides..."
-                                creatable={true}
+                            <TutorialsInput
+                                value={form.tutorials}
+                                onChange={(tutorials) => setForm((f: any) => ({ ...f, tutorials }))}
+                                guidesData={guidesData}
                             />
                             <div className="text-xs text-[var(--text-secondary)]">
-                                Select existing guides from the database. Type to create a new custom entry title.
+                                Link internal guides or add external articles and video tutorials.
                             </div>
                         </div>
                     </div>

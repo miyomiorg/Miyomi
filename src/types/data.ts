@@ -10,7 +10,7 @@ export type FAQCategory = 'installation' | 'configuration' | 'extensions' | 'tro
 
 export interface AppTutorial {
     title: string;
-    type: 'video' | 'guide';
+    type: 'video' | 'guide' | 'external' | 'custom';
     url: string;
     description?: string;
 }
@@ -47,7 +47,7 @@ export interface AppData {
 
 export interface ExtensionTutorial {
     title: string;
-    type: 'video' | 'guide';
+    type: 'video' | 'guide' | 'external' | 'custom';
     url: string;
     description?: string;
     manualUrl?: string;

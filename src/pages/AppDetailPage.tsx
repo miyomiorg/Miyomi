@@ -1,6 +1,6 @@
 import React from 'react';
 import ReactMarkdown from 'react-markdown';
-import { ArrowLeft, Download, Github, Globe, PlayCircle, BookOpen, GitFork } from 'lucide-react';
+import { ArrowLeft, Download, Github, Globe, PlayCircle, BookOpen, GitFork, ExternalLink } from 'lucide-react';
 import { motion } from "motion/react";
 import { useLocation, useNavigate } from 'react-router-dom';
 import { PlatformBadge } from '../components/PlatformBadge';
@@ -732,13 +732,16 @@ export function AppDetailPage({ appId, onNavigate }: AppDetailPageProps) {
                   className="group flex flex-col gap-3 rounded-2xl border border-[var(--divider)] bg-[var(--bg-surface)] p-4 sm:p-5 hover:border-[var(--brand)] hover:shadow-lg transition-all"
                   style={{ boxShadow: '0 6px 20px 0 rgba(0,0,0,0.06)' }}
                 >
-                  <div className="flex items-start gap-3">
-                    <div className="mt-0.5 flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-[var(--chip-bg)] text-[var(--brand)]">
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-[var(--chip-bg)] text-[var(--brand)]">
                       <BookOpen className="w-5 h-5" />
                     </div>
                     <div className="min-w-0">
-                      <h3 className="text-[var(--text-primary)] font-['Inter',sans-serif]" style={{ fontWeight: 600, fontSize: '15px' }}>
+                      <h3 className="text-[var(--text-primary)] font-['Inter',sans-serif] flex items-center gap-2" style={{ fontWeight: 600, fontSize: '15px' }}>
                         {tutorial.title}
+                        {tutorial.type === 'external' && (
+                          <ExternalLink className="w-3.5 h-3.5 text-[var(--text-tertiary)]" />
+                        )}
                       </h3>
                       {tutorial.description && (
                         <p className="text-[var(--text-secondary)] font-['Inter',sans-serif] text-sm mt-1">

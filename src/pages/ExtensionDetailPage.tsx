@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import ReactMarkdown from 'react-markdown';
-import { ArrowLeft, Download, Copy, Github, Globe, Calendar, Heart, Star, Clock, PlayCircle, BookOpen } from 'lucide-react';
+import { ArrowLeft, Download, Copy, Github, Globe, Calendar, Heart, Star, Clock, PlayCircle, BookOpen, ExternalLink } from 'lucide-react';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'motion/react';
 import { useLocation, useNavigate } from 'react-router-dom';
@@ -603,8 +603,11 @@ export function ExtensionDetailPage({ extensionId, onNavigate }: ExtensionDetail
                       <BookOpen className="w-5 h-5" />
                     </div>
                     <div className="min-w-0">
-                      <h3 className="text-[var(--text-primary)] font-['Inter',sans-serif]" style={{ fontWeight: 600, fontSize: '15px' }}>
+                      <h3 className="text-[var(--text-primary)] font-['Inter',sans-serif] flex items-center gap-2" style={{ fontWeight: 600, fontSize: '15px' }}>
                         {tutorial.title}
+                        {tutorial.type === 'external' && (
+                          <ExternalLink className="w-3.5 h-3.5 text-[var(--text-tertiary)]" />
+                        )}
                       </h3>
                       {tutorial.description && (
                         <p className="text-[var(--text-secondary)] font-['Inter',sans-serif] text-sm mt-1">

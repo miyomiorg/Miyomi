@@ -289,6 +289,7 @@ export type Database = {
           submitter_email: string | null
           submitter_name: string | null
           tags: string[] | null
+          tutorials: Json | null
           types: string[] | null
           updated_at: string
           website_url: string | null
@@ -323,6 +324,7 @@ export type Database = {
           submitter_email?: string | null
           submitter_name?: string | null
           tags?: string[] | null
+          tutorials?: Json | null
           types?: string[] | null
           updated_at?: string
           website_url?: string | null
@@ -357,6 +359,7 @@ export type Database = {
           submitter_email?: string | null
           submitter_name?: string | null
           tags?: string[] | null
+          tutorials?: Json | null
           types?: string[] | null
           updated_at?: string
           website_url?: string | null
