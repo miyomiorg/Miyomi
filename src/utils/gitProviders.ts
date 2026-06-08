@@ -1,4 +1,5 @@
-import { Github, Gitlab, Code2, Database } from 'lucide-react'; // Using generic icons for unsupported ones if needed, or we can use custom SVGs. Wait, Lucide has Github, Gitlab, Bitbucket (maybe). Let's check.
+import { Github, Gitlab, Code2, Database, Mountain } from 'lucide-react';
+import { CodebergIcon } from '../components/CodebergIcon';
 
 export type GitProvider = 'GitHub' | 'GitLab' | 'Codeberg' | 'Bitbucket' | 'Forgejo' | 'Gitea' | 'Other';
 
@@ -25,6 +26,8 @@ export function getProviderIcon(provider: GitProvider) {
             return Github;
         case 'GitLab':
             return Gitlab;
+        case 'Codeberg':
+            return CodebergIcon;
         default:
             return Code2;
     }

@@ -309,9 +309,12 @@ export function AppDetailPage({ appId, onNavigate }: AppDetailPageProps) {
           target="_blank"
           rel="noopener noreferrer"
           className="p-3 bg-[var(--bg-elev-1)] border border-[var(--divider)] rounded-xl hover:bg-[var(--chip-bg)] hover:border-[var(--brand)] transition-all text-[var(--text-secondary)] hover:text-[var(--brand)]"
-          title="GitHub"
+          title={detectGitProvider(app.githubUrl) === 'Other' ? 'Repository' : detectGitProvider(app.githubUrl)}
         >
-          <Github className="w-5 h-5" />
+          {(() => {
+            const ProviderIcon = getProviderIcon(detectGitProvider(app.githubUrl));
+            return <ProviderIcon className="w-5 h-5" />;
+          })()}
         </a>
       )}
       {socialUrls.map((url, idx) => {
