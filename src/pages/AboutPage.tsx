@@ -1,4 +1,4 @@
-import { AlertCircle, Smartphone, Puzzle, BookOpen, Link as LinkIcon, Heart, Users, Github, ArrowUpRight, UploadCloud, Coffee } from 'lucide-react';
+import { AlertCircle, Smartphone, Puzzle, BookOpen, Link as LinkIcon, Heart, Users, Github, ArrowUpRight, UploadCloud, Coffee, Youtube, MessageCircle, Send } from 'lucide-react';
 import { motion } from 'motion/react';
 import { useState, type ReactNode } from 'react';
 import { FeedbackPanel } from '../components/FeedbackPanel';
@@ -196,9 +196,9 @@ export function AboutPage() {
                   </div>
                 </div>
               ))}
-              <div className="flex items-center justify-between p-4 bg-[var(--brand)]/10 rounded-xl border border-[var(--brand)]/20">
-                <span className="font-bold text-lg text-[var(--brand)] flex items-center gap-2">
-                  and YOU <Heart className="w-5 h-5 fill-current" />
+              <div className="flex flex-col items-center justify-center p-4 bg-sky-500/10 rounded-xl border border-sky-500/20 text-center">
+                <span className="font-bold text-sky-500 md:text-lg leading-snug">
+                  And You! Thank you for your feedback,<br className="hidden sm:block" /> reports, and submissions
                 </span>
               </div>
             </div>
@@ -217,11 +217,29 @@ export function AboutPage() {
             </p>
             <Link
               to="/donate"
-              className="inline-flex items-center justify-center w-full gap-2 px-6 py-4 bg-rose-500 text-white rounded-xl font-bold hover:bg-rose-600 transition-colors shadow-sm text-lg"
+              className="inline-flex items-center justify-center w-full gap-2 px-6 py-4 bg-rose-500 text-white rounded-xl font-bold hover:bg-rose-600 transition-colors shadow-sm text-lg mb-8"
             >
               <Heart className="w-5 h-5 fill-current" />
               Support Us
             </Link>
+
+            <div className="flex flex-col items-center pt-2">
+              <p className="text-[var(--text-secondary)] text-sm mb-4 font-medium">Follow us on social networks</p>
+              <div className="flex items-center gap-4">
+                <a href="https://www.youtube.com/@iitachiyomi" target="_blank" rel="noopener noreferrer" className="w-11 h-11 rounded-full bg-[var(--bg-elev-1)] border border-[var(--divider)] flex items-center justify-center text-[var(--text-secondary)] hover:text-[#FF0000] hover:border-[#FF0000] hover:-translate-y-1 transition-all shadow-sm">
+                  <Youtube className="w-5 h-5" />
+                </a>
+                <a href="https://discord.gg/hfYtH9hrRm" target="_blank" rel="noopener noreferrer" className="w-11 h-11 rounded-full bg-[var(--bg-elev-1)] border border-[var(--divider)] flex items-center justify-center text-[var(--text-secondary)] hover:text-[#5865F2] hover:border-[#5865F2] hover:-translate-y-1 transition-all shadow-sm">
+                  <MessageCircle className="w-5 h-5" />
+                </a>
+                <a href="https://t.me/iitachiyomi" target="_blank" rel="noopener noreferrer" className="w-11 h-11 rounded-full bg-[var(--bg-elev-1)] border border-[var(--divider)] flex items-center justify-center text-[var(--text-secondary)] hover:text-[#0088cc] hover:border-[#0088cc] hover:-translate-y-1 transition-all shadow-sm">
+                  <Send className="w-5 h-5" />
+                </a>
+                <a href="https://github.com/tas33n/miyomi" target="_blank" rel="noopener noreferrer" className="w-11 h-11 rounded-full bg-[var(--bg-elev-1)] border border-[var(--divider)] flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:border-[var(--text-primary)] hover:-translate-y-1 transition-all shadow-sm">
+                  <Github className="w-5 h-5" />
+                </a>
+              </div>
+            </div>
           </Card>
         </section>
       </div>

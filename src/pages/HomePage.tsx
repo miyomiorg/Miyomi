@@ -440,11 +440,11 @@ export function HomePage({ onNavigate }: HomePageProps) {
             </div>
           </div>
 
-          <div className="flex items-center justify-between pt-3 border-t border-[var(--divider)]/50">
-            <p className="text-[10px] text-[var(--text-secondary)] font-medium leading-tight">
-              Everything organized in one<br />searchable place.
-            </p>
+          <div className="flex items-center gap-1.5 pt-3 border-t border-[var(--divider)]/50">
             <Sparkles className="w-4 h-4 text-amber-400 flex-shrink-0" />
+            <p className="text-[11px] text-[var(--text-secondary)] font-medium leading-tight">
+              Everything organized in one searchable place.
+            </p>
           </div>
         </div>
       </div>
