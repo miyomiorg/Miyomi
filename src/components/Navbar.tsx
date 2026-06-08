@@ -117,8 +117,8 @@ export function Navbar({
   const socialLinks = [
     // { icon: <Facebook className="w-5 h-5" />, label: 'Facebook', link: 'https://www.facebook.com/iitachiyomi' },
     { icon: <DiscordIcon className="w-5 h-5" />, label: 'Discord', link: 'https://discord.gg/hfYtH9hrRm', color: '#5865F2' },
-    { icon: <TelegramIcon className="w-5 h-5" />, label: 'Telegram', link: 'https://t.me/iitachiyomi', color: '#1877F2' },
-    { icon: <Youtube className="w-5 h-5" />, label: 'YouTube', link: 'https://www.youtube.com/@iitachiyomi' },
+    // { icon: <TelegramIcon className="w-5 h-5" />, label: 'Telegram', link: 'https://t.me/iitachiyomi', color: '#1877F2' },
+    // { icon: <Youtube className="w-5 h-5" />, label: 'YouTube', link: 'https://www.youtube.com/@iitachiyomi' },
     // { icon: <Instagram className="w-5 h-5" />, label: 'Instagram', link: 'https://www.instagram.com/iitachiyomi/' },
     { icon: <Github className="w-5 h-5" />, label: 'GitHub', link: 'https://github.com/tas33n/miyomi' },
   ];
@@ -222,7 +222,7 @@ export function Navbar({
                 onClick={() => handleClick('/software')}
                 className={`flex items-center gap-1.5 px-3 py-1.5 text-sm font-['Inter',sans-serif] transition-all rounded-full ${isActive('/software') ? 'bg-[var(--bg-surface)] text-[var(--brand)] shadow-sm font-medium' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-elev-2)]'}`}
               >
-                <LayoutGrid className="w-4 h-4" />
+                {/* <LayoutGrid className="w-4 h-4" /> */}
                 <span>Software</span>
               </button>
 
@@ -230,7 +230,7 @@ export function Navbar({
                 onClick={() => handleClick('/extensions')}
                 className={`flex items-center gap-1.5 px-3 py-1.5 text-sm font-['Inter',sans-serif] transition-all rounded-full ${isActive('/extensions') ? 'bg-[var(--bg-surface)] text-[var(--brand)] shadow-sm font-medium' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-elev-2)]'}`}
               >
-                <Puzzle className="w-4 h-4" />
+                {/* <Puzzle className="w-4 h-4" /> */}
                 <span>Extensions</span>
               </button>
 
@@ -243,7 +243,7 @@ export function Navbar({
                     onMouseLeave={() => scheduleDropdownClose('pages')}
                     className={`flex items-center gap-1.5 px-3 py-1.5 text-sm font-['Inter',sans-serif] transition-all rounded-full outline-none ${pagesDropdownOpen ? 'bg-[var(--bg-surface)] text-[var(--text-primary)] shadow-sm' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-elev-2)]'}`}
                   >
-                    <FileText className="w-4 h-4" />
+                    {/* <FileText className="w-4 h-4" /> */}
                     <span>Pages</span>
                     <ChevronDown className="w-3.5 h-3.5" />
                   </button>
@@ -262,7 +262,7 @@ export function Navbar({
                 onClick={() => handleClick('/contribute')}
                 className={`flex items-center gap-1.5 px-3 py-1.5 text-sm font-['Inter',sans-serif] transition-all rounded-full ${isActive('/contribute') ? 'bg-[var(--bg-surface)] text-[var(--brand)] shadow-sm font-medium' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-elev-2)]'}`}
               >
-                <Users className="w-4 h-4" />
+                {/* <Users className="w-4 h-4" /> */}
                 <span>Contribute</span>
               </button>
 
@@ -270,7 +270,7 @@ export function Navbar({
                 onClick={() => setIsFeedbackOpen(true)}
                 className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-['Inter',sans-serif] transition-all rounded-full text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-elev-2)]"
               >
-                <MessageSquare className="w-4 h-4" />
+                {/* <MessageSquare className="w-4 h-4" /> */}
                 <span>Feedback</span>
               </button>
             </div>
@@ -278,7 +278,7 @@ export function Navbar({
 
           {/* Right Section: Search, Donate, Theme, Social Links */}
           <div className="hidden md:flex items-center gap-1.5 lg:gap-2">
-            
+
             {/* Desktop Search Box */}
             <button
               onClick={() => setSearchModalOpen(true)}
