@@ -111,19 +111,19 @@ export function ReportModal({ isOpen, onClose, targetType, targetId, targetName,
   return (
     <AnimatePresence>
       {isOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center px-4 py-8">
+        <div className="fixed inset-0 z-[1000] flex items-center justify-center px-4 py-8">
           <motion.div 
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={handleClose}
-            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            className="absolute inset-0 bg-black/20 dark:bg-black/40 backdrop-blur-md"
           />
           <motion.div 
             initial={{ opacity: 0, scale: 0.95, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
-            className="relative w-full max-w-lg rounded-3xl border border-[var(--divider)] bg-[var(--bg-surface)] shadow-2xl overflow-hidden flex flex-col max-h-full"
+            className="relative w-full max-w-lg rounded-3xl border border-[var(--divider)]/50 bg-[var(--bg-surface)]/80 backdrop-blur-2xl shadow-2xl overflow-hidden flex flex-col max-h-full"
           >
             <div className="flex items-center justify-between p-6 border-b border-[var(--divider)] shrink-0">
               <div className="flex items-center gap-3">
