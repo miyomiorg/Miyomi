@@ -1,16 +1,13 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useLocation, useNavigationType } from 'react-router-dom';
-import { Search } from 'lucide-react';
+import { Search, SortDesc, SortAsc } from 'lucide-react';
 import { FilterDropdown } from '../components/FilterDropdown';
 import { AppGridCard } from '../components/AppGridCard';
 import { AppListCard } from '../components/AppListCard';
 import { ViewToggle } from '../components/ViewToggle';
 import type { AppData } from '../types/data';
 import { useAppMeta } from '../hooks/useAppMeta';
-import { FeedbackPanel } from '../components/FeedbackPanel';
-import { FeedbackTrigger } from '../components/FeedbackTrigger';
 import { useFeedbackState } from '../hooks/useFeedbackState';
-import { AnimatePresence } from 'motion/react';
 import { useLikes } from '../context/LikeContext';
 import { Skeleton } from '../components/ui/skeleton';
 
@@ -92,13 +89,9 @@ export function SoftwarePage({ onNavigate }: SoftwarePageProps) {
   };
 
   const getSortLabel = () => {
-    const [currentField, currentDir] = sortBy.split('-');
+    const [currentField] = sortBy.split('-');
     const field = sortFields.find(f => f.id === currentField);
-    if (!field) return 'Names ↧'; // default
-
-
-    const arrow = currentDir === 'desc' ? '↧' : '↥';
-    return `${field.label} ${arrow}`;
+    return field ? field.label : 'Names';
   };
 
   const { isFeedbackOpen, handleToggle, handleClose } = useFeedbackState();
@@ -279,19 +272,19 @@ export function SoftwarePage({ onNavigate }: SoftwarePageProps) {
 
           <FilterDropdown
             label="Sort By"
-            value={getSortLabel()}
+            className="min-w-[110px] sm:min-w-[130px]"
+            value={sortBy.split('-')[0]}
+            displayValue={
+              <>
+                <span className="truncate">{getSortLabel()}</span>
+                {sortBy.split('-')[1] === 'desc' ? <SortDesc className="w-4 h-4 ml-1 flex-shrink-0" /> : <SortAsc className="w-4 h-4 ml-1 flex-shrink-0" />}
+              </>
+            }
             options={sortFields.map(f => {
               const [currentField, currentDir] = sortBy.split('-');
               const isActive = currentField === f.id;
-
-              let nextDir = f.defaultDir;
-              if (isActive) {
-                nextDir = currentDir === 'asc' ? 'desc' : 'asc';
-              }
-              const arrow = nextDir === 'desc' ? '↧' : '↥';
-
               return {
-                label: `${f.label} ${arrow}`,
+                label: f.label,
                 value: f.id,
                 isSelected: isActive
               };

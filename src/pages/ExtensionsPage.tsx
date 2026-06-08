@@ -1,6 +1,6 @@
 import { useMemo, useState, useEffect } from 'react';
 import { useLocation, useNavigationType } from 'react-router-dom';
-import { Search } from 'lucide-react';
+import { Search, SortDesc, SortAsc } from 'lucide-react';
 import { FilterDropdown } from '../components/FilterDropdown';
 import { ViewToggle } from '../components/ViewToggle';
 import { useExtensions } from '../hooks/useExtensions';
@@ -93,13 +93,9 @@ export function ExtensionsPage({ onNavigate }: ExtensionsPageProps) {
   };
 
   const getSortLabel = () => {
-    const [currentField, currentDir] = sortBy.split('-');
+    const [currentField] = sortBy.split('-');
     const field = sortFields.find(f => f.id === currentField);
-    if (!field) return 'Names ↧';
-
-
-    const dir = currentDir || (field.id === 'name' ? 'asc' : 'desc');
-    return `${field.label} ${dir === 'desc' ? '↧' : '↥'}`;
+    return field ? field.label : 'Names';
   };
 
 
@@ -300,20 +296,19 @@ export function ExtensionsPage({ onNavigate }: ExtensionsPageProps) {
           />
           <FilterDropdown
             label="Sort By"
-            value={getSortLabel()}
+            className="min-w-[110px] sm:min-w-[130px]"
+            value={sortBy.split('-')[0]}
+            displayValue={
+              <>
+                <span className="truncate">{getSortLabel()}</span>
+                {(sortBy.split('-')[1] || (sortBy.split('-')[0] === 'name' ? 'asc' : 'desc')) === 'desc' ? <SortDesc className="w-4 h-4 ml-1 flex-shrink-0" /> : <SortAsc className="w-4 h-4 ml-1 flex-shrink-0" />}
+              </>
+            }
             options={sortFields.map(f => {
-              const [currentField, currentDir] = sortBy.split('-');
+              const [currentField] = sortBy.split('-');
               const isActive = currentField === f.id;
-
-              let nextDir = f.defaultDir;
-              if (isActive) {
-                const normalizedDir = currentDir || f.defaultDir;
-                nextDir = normalizedDir === 'asc' ? 'desc' : 'asc';
-              }
-              const arrow = nextDir === 'desc' ? '↧' : '↥';
-
               return {
-                label: `${f.label} ${arrow}`,
+                label: f.label,
                 value: f.id,
                 isSelected: isActive
               };
