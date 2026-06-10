@@ -4,6 +4,7 @@ import { useAdminLogger } from '@/hooks/useAdminLogger';
 import { Flag, Check, Trash2, Eye, ShieldAlert, Monitor, User, Globe, Hash } from 'lucide-react';
 import { AdminButton, StatusBadge, EmptyState } from '@/components/admin/AdminFormElements';
 import { ConfirmDialog } from '@/components/admin/ConfirmDialog';
+import { EndpointToggle } from '@/components/admin/EndpointToggle';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'motion/react';
 import { Link } from 'react-router-dom';
@@ -124,6 +125,12 @@ export function AdminReportsPage() {
             <p className="text-[var(--text-secondary)] mt-1">Review and manage content reports submitted by users.</p>
         </div>
       </div>
+
+      <EndpointToggle 
+        endpointKey="reports"
+        title="Accept Reports"
+        description="When enabled, users can report extensions, apps, and reviews."
+      />
 
       {/* Tabs */}
       <div className="flex gap-4 mb-6 border-b border-[var(--divider)]">

@@ -1,7 +1,9 @@
-import { useState } from 'react';
-import { X, Send, Smile } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { X, Send, Smile, AlertTriangle } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { toast } from 'sonner';
+import Turnstile from 'react-turnstile';
+import { supabase } from '@/integrations/supabase/client';
 
 interface FeedbackPanelProps {
   page: string;
@@ -12,10 +14,36 @@ export function FeedbackPanel({ page, onClose }: FeedbackPanelProps) {
   const [message, setMessage] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
+  const [turnstileToken, setTurnstileToken] = useState(import.meta.env.VITE_DISABLE_TURNSTILE === 'true' ? 'dummy-token' : '');
+  const [enabled, setEnabled] = useState(true);
+  const [disabledReason, setDisabledReason] = useState('');
+  const [loadingConfig, setLoadingConfig] = useState(true);
+
+  useEffect(() => {
+    async function checkStatus() {
+      try {
+        const { data: enabledData } = await supabase.from('settings').select('value').eq('key', 'feedback_enabled').single();
+        const { data: reasonData } = await supabase.from('settings').select('value').eq('key', 'feedback_disabled_reason').single();
+        if (enabledData && (enabledData.value === 'false' || enabledData.value === false)) {
+          setEnabled(false);
+          setDisabledReason(reasonData?.value || 'Feedback is currently disabled.');
+        }
+      } catch (err) {
+        // Assume enabled if fetch fails
+      }
+      setLoadingConfig(false);
+    }
+    checkStatus();
+  }, []);
 
   const handleSubmit = async () => {
     if (!message.trim()) {
       toast.error('Please enter a message');
+      return;
+    }
+    
+    if (!turnstileToken) {
+      toast.error('Please complete the CAPTCHA');
       return;
     }
 
@@ -35,6 +63,7 @@ export function FeedbackPanel({ page, onClose }: FeedbackPanelProps) {
           message: message.trim(),
           page,
           timestamp: new Date().toISOString(),
+          turnstileToken,
         }),
       });
 
@@ -45,8 +74,11 @@ export function FeedbackPanel({ page, onClose }: FeedbackPanelProps) {
           setMessage('');
           onClose();
         }, 3000);
+      } else if (response.status === 429) {
+        toast.error('Too many requests. Please try again later.');
       } else {
-        toast.error('Failed to send feedback. Please try again.');
+        const data = await response.json().catch(() => ({}));
+        toast.error(data.error || 'Failed to send feedback. Please try again.');
       }
     } catch (error) {
       console.error('Feedback submission error:', error);
@@ -98,6 +130,24 @@ export function FeedbackPanel({ page, onClose }: FeedbackPanelProps) {
                   Your feedback helps us improve Miyomi for everyone.
                 </p>
               </motion.div>
+            ) : !enabled ? (
+              <div className="flex flex-col items-center justify-center py-8 text-center">
+                <div className="w-16 h-16 rounded-full bg-red-500/10 flex items-center justify-center mb-4 text-red-500">
+                  <AlertTriangle className="w-8 h-8" />
+                </div>
+                <h3 className="text-xl font-bold font-['Poppins',sans-serif] text-[var(--text-primary)] mb-2">
+                  Feedback Disabled
+                </h3>
+                <p className="text-[var(--text-secondary)] font-['Inter',sans-serif] mb-6">
+                  {disabledReason}
+                </p>
+                <button
+                  onClick={() => onClose()}
+                  className="rounded-xl bg-[var(--bg-elev-2)] px-6 py-2.5 font-semibold text-[var(--text-primary)] hover:bg-[var(--chip-bg)] transition-colors"
+                >
+                  Close
+                </button>
+              </div>
             ) : (
               <>
                 <div className="mb-5 flex items-start justify-between gap-4">
@@ -146,18 +196,29 @@ export function FeedbackPanel({ page, onClose }: FeedbackPanelProps) {
             If you want a reply to your feedback, feel free to mention a contact in the message.
           </p>
 
-          {/* Action Buttons */}
-          <div className="flex justify-end pt-2">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-2">
+            {/* Turnstile */}
+            <div className="h-[65px] flex items-center">
+              {import.meta.env.VITE_DISABLE_TURNSTILE !== 'true' && !loadingConfig && enabled && (
+                <Turnstile
+                  sitekey={import.meta.env.VITE_TURNSTILE_SITE_KEY || "1x00000000000000000000AA"}
+                  onVerify={(token) => setTurnstileToken(token)}
+                  theme="auto"
+                />
+              )}
+            </div>
+
+            {/* Action Buttons */}
             <button
               onClick={handleSubmit}
-              disabled={!message.trim() || isSubmitting}
+              disabled={!message.trim() || isSubmitting || !turnstileToken}
               className="flex items-center justify-center rounded-xl bg-[var(--brand)] px-5 py-2 font-['Inter',sans-serif] text-sm font-semibold text-white transition-colors hover:bg-[var(--brand-strong)] disabled:cursor-not-allowed disabled:opacity-60"
             >
               {isSubmitting ? 'Sending...' : 'Send Feedback'}
               <Send className="h-4 w-4 ml-2" />
             </button>
-                </div>
-              </div>
+          </div>
+        </div>
             </>
           )}
           </div>

@@ -5,6 +5,7 @@ import { useAdminLogger } from '@/hooks/useAdminLogger';
 import { PenTool, User, Check, X as XIcon, Eye, Trash2, RotateCcw, Package, Puzzle, FileText, StickyNote } from 'lucide-react';
 import { AdminButton, StatusBadge, EmptyState } from '@/components/admin/AdminFormElements';
 import { ConfirmDialog } from '@/components/admin/ConfirmDialog';
+import { EndpointToggle } from '@/components/admin/EndpointToggle';
 import { toast } from 'sonner';
 
 export function AdminEditSuggestionsPage() {
@@ -154,7 +155,10 @@ export function AdminEditSuggestionsPage() {
   return (
     <div className="animate-in fade-in duration-500">
       <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-6 mb-8">
-        <h1 className="text-2xl font-bold font-['Poppins',sans-serif]" style={{ color: 'var(--text-primary)' }}>Edit Suggestions</h1>
+        <div>
+          <h1 className="text-2xl font-bold font-['Poppins',sans-serif]" style={{ color: 'var(--text-primary)' }}>Edit Suggestions</h1>
+          <p className="text-[var(--text-secondary)] mt-1">Review user-submitted edits for apps and extensions.</p>
+        </div>
 
         <div className="flex flex-col sm:flex-row gap-3 flex-wrap">
           {/* Type Filter */}
@@ -218,6 +222,12 @@ export function AdminEditSuggestionsPage() {
           )}
         </div>
       </div>
+
+      <EndpointToggle 
+        endpointKey="edit_suggestions"
+        title="Accept Edit Suggestions"
+        description="When enabled, users can suggest edits to existing apps and extensions."
+      />
 
       {loading ? (
         <div className="text-center py-12" style={{ color: 'var(--text-secondary)' }}>Loading...</div>

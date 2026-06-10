@@ -6,6 +6,7 @@ import type { Tables } from '@/integrations/supabase/types';
 import { Inbox, User, Check, X as XIcon, Eye, Trash2, AlertTriangle, RotateCcw, Package, Puzzle, StickyNote, FileText } from 'lucide-react';
 import { AdminButton, StatusBadge, EmptyState } from '@/components/admin/AdminFormElements';
 import { ConfirmDialog } from '@/components/admin/ConfirmDialog';
+import { EndpointToggle } from '@/components/admin/EndpointToggle';
 import { toast } from 'sonner';
 
 export function AdminSubmissionsPage() {
@@ -205,7 +206,10 @@ export function AdminSubmissionsPage() {
   return (
     <div className="animate-in fade-in duration-500">
       <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-6 mb-8">
-        <h1 className="text-2xl font-bold font-['Poppins',sans-serif]" style={{ color: 'var(--text-primary)' }}>Submissions</h1>
+        <div>
+          <h1 className="text-2xl font-bold font-['Poppins',sans-serif]" style={{ color: 'var(--text-primary)' }}>Submissions</h1>
+          <p className="text-[var(--text-secondary)] mt-1">Review user-submitted new apps and extensions.</p>
+        </div>
 
         <div className="flex flex-col sm:flex-row gap-3 flex-wrap">
           {/* Type Filter */}
@@ -275,6 +279,12 @@ export function AdminSubmissionsPage() {
           )}
         </div>
       </div>
+
+      <EndpointToggle 
+        endpointKey="submissions"
+        title="Accept Content Submissions"
+        description="When enabled, users can submit new apps and extensions."
+      />
 
       {loading ? (
         <div className="text-center py-12" style={{ color: 'var(--text-secondary)' }}>Loading...</div>

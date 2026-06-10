@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Flag, X, Loader2, CheckCircle2 } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Flag, X, Loader2, CheckCircle2, AlertTriangle } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { toast } from 'sonner';
 import Turnstile from 'react-turnstile';
@@ -34,6 +34,26 @@ export function ReportModal({ isOpen, onClose, targetType, targetId, targetName,
   const [turnstileToken, setTurnstileToken] = useState(import.meta.env.VITE_DISABLE_TURNSTILE === 'true' ? 'dummy-token' : '');
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [enabled, setEnabled] = useState(true);
+  const [disabledReason, setDisabledReason] = useState('');
+  const [loadingConfig, setLoadingConfig] = useState(true);
+
+  useEffect(() => {
+    async function checkStatus() {
+      try {
+        const { data: enabledData } = await supabase.from('settings').select('value').eq('key', 'reports_enabled').single();
+        const { data: reasonData } = await supabase.from('settings').select('value').eq('key', 'reports_disabled_reason').single();
+        if (enabledData && (enabledData.value === 'false' || enabledData.value === false)) {
+          setEnabled(false);
+          setDisabledReason(reasonData?.value || 'Reporting is currently disabled.');
+        }
+      } catch (err) {
+        // Assume enabled if fetch fails
+      }
+      setLoadingConfig(false);
+    }
+    checkStatus();
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -149,6 +169,24 @@ export function ReportModal({ isOpen, onClose, targetType, targetId, targetName,
                     Close
                   </button>
                 </div>
+              ) : !enabled ? (
+                <div className="flex flex-col items-center justify-center py-8 text-center">
+                  <div className="w-16 h-16 rounded-full bg-red-500/10 flex items-center justify-center mb-4 text-red-500">
+                    <AlertTriangle className="w-8 h-8" />
+                  </div>
+                  <h3 className="text-xl font-bold text-[var(--text-primary)] mb-2">
+                    Reporting Disabled
+                  </h3>
+                  <p className="text-[var(--text-secondary)] mb-6">
+                    {disabledReason}
+                  </p>
+                  <button
+                    onClick={handleClose}
+                    className="rounded-xl bg-[var(--bg-elev-1)] px-6 py-2.5 font-medium text-[var(--text-primary)] hover:bg-[var(--bg-elev-2)] transition-colors"
+                  >
+                    Close
+                  </button>
+                </div>
               ) : (
                 <form onSubmit={handleSubmit} className="space-y-4">
                   <div>
@@ -212,7 +250,7 @@ export function ReportModal({ isOpen, onClose, targetType, targetId, targetName,
                     </div>
                   </div>
 
-                  {import.meta.env.VITE_DISABLE_TURNSTILE !== 'true' && (
+                  {!loadingConfig && import.meta.env.VITE_DISABLE_TURNSTILE !== 'true' && (
                     <div className="pt-2 flex justify-center">
                       <Turnstile
                         sitekey={import.meta.env.VITE_TURNSTILE_SITE_KEY || "1x00000000000000000000AA"}

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { AdminFormField, AdminInput, AdminTextarea, AdminButton } from '@/components/admin/AdminFormElements';
@@ -28,6 +28,29 @@ export function SubmitPage() {
 
   const defaultStep = urlMode === 'edit' ? 2 : 0;
   const step = urlStep ? (STEP_MAP[urlStep] ?? defaultStep) : defaultStep;
+
+  const [enabled, setEnabled] = useState(true);
+  const [disabledReason, setDisabledReason] = useState('');
+  const [loadingConfig, setLoadingConfig] = useState(true);
+
+  useEffect(() => {
+    async function checkStatus() {
+      try {
+        const isEdit = urlMode === 'edit';
+        const keyPrefix = isEdit ? 'edit_suggestions' : 'submissions';
+        const { data: enabledData } = await supabase.from('settings').select('value').eq('key', `${keyPrefix}_enabled`).single();
+        const { data: reasonData } = await supabase.from('settings').select('value').eq('key', `${keyPrefix}_disabled_reason`).single();
+        if (enabledData && (enabledData.value === 'false' || enabledData.value === false)) {
+          setEnabled(false);
+          setDisabledReason(reasonData?.value || (isEdit ? 'Edit suggestions are currently disabled.' : 'Submissions are currently disabled.'));
+        }
+      } catch (err) {
+        // Assume enabled if fetch fails
+      }
+      setLoadingConfig(false);
+    }
+    checkStatus();
+  }, [urlMode]);
 
   useEffect(() => {
     if (step > 0 && !type) {
@@ -209,7 +232,6 @@ export function SubmitPage() {
       return toast.error("Please resolve duplicate warnings before submitting.");
     }
 
-    // Check if there are form errors from Shared components
     if (Object.values(errors).some(v => !!v)) {
       return toast.error("Please fix duplicate entries before saving.");
     }
@@ -231,7 +253,7 @@ export function SubmitPage() {
           author: appForm.author || null,
           category: appForm.category || null,
           version: appForm.version || null,
-          status: 'pending', // Submissions default to pending, not approved
+          status: 'pending',
           platforms: appForm.platforms.length ? appForm.platforms : null,
           tags: appForm.tags.length ? appForm.tags : null,
           // @ts-ignore
@@ -262,7 +284,7 @@ export function SubmitPage() {
           author: extForm.author || null,
           category: extForm.category || null,
           language: extForm.language || null,
-          status: 'pending', // Submissions default to pending
+          status: 'pending',
           platforms: extForm.platforms.length ? extForm.platforms : null,
           tags: extForm.tags.length ? extForm.tags : null,
           // @ts-ignore
@@ -507,7 +529,6 @@ export function SubmitPage() {
             )}
 
             <div className="mt-8 mx-auto space-y-6">
-              {/* Submitter Info */}
               <div className="p-6 rounded-2xl border border-[var(--divider)] bg-[var(--bg-surface)] space-y-4">
                 <h3 className="text-lg font-semibold text-[var(--text-primary)] mb-4 flex items-center gap-2">
                   <MessageSquare className="w-5 h-5" /> Your Details
@@ -537,10 +558,8 @@ export function SubmitPage() {
                 </AdminFormField>
               </div>
 
-              {/* Submit Action */}
               <div className="space-y-4 pt-4">
-                {/* Turnstile */}
-                {import.meta.env.VITE_DISABLE_TURNSTILE !== 'true' && (
+                {!loadingConfig && import.meta.env.VITE_DISABLE_TURNSTILE !== 'true' && (
                   <div className="pt-4 flex justify-center">
                     <Turnstile
                       sitekey={import.meta.env.VITE_TURNSTILE_SITE_KEY || "1x00000000000000000000AA"}
@@ -588,16 +607,42 @@ export function SubmitPage() {
     </div>
   );
 
+  const renderDisabled = () => (
+    <div className="max-w-xl mx-auto py-20 px-4 text-center animate-in zoom-in-95 duration-500">
+      <div className="w-24 h-24 bg-red-500/10 text-red-500 rounded-full flex items-center justify-center mx-auto mb-6">
+        <AlertTriangle className="w-12 h-12" />
+      </div>
+      <h2 className="text-3xl font-bold text-[var(--text-primary)] mb-4">Feature Disabled</h2>
+      <p className="text-[var(--text-secondary)] text-lg mb-8">
+        {disabledReason}
+      </p>
+      <div className="flex justify-center gap-4">
+        <AdminButton variant="secondary" onClick={() => navigate(-1)}>
+          Go Back
+        </AdminButton>
+        <AdminButton onClick={() => navigate('/')}>
+          Return Home
+        </AdminButton>
+      </div>
+    </div>
+  );
+
   return (
     <div className="min-h-screen bg-[var(--bg-default)]">
       <div
         className="pb-12 sm:pt-24"
         style={{ paddingTop: 'calc(env(safe-area-inset-top, 16px) + 16px)' }}
       >
-        {step === 0 && urlMode !== 'edit' && renderSelection()}
-        {step === 1 && urlMode !== 'edit' && renderGuidelines()}
-        {step === 2 && renderForm()}
-        {step === 3 && renderSuccess()}
+        {!enabled ? (
+          renderDisabled()
+        ) : (
+          <>
+            {step === 0 && urlMode !== 'edit' && renderSelection()}
+            {step === 1 && urlMode !== 'edit' && renderGuidelines()}
+            {step === 2 && renderForm()}
+            {step === 3 && renderSuccess()}
+          </>
+        )}
       </div>
     </div>
   );
