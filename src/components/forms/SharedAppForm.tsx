@@ -259,12 +259,22 @@ export function SharedAppForm({ form, setForm, errors, setErrors, isAdmin = true
                             </AdminFormField>
                         </div>
                     </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2 border-t border-[var(--divider)] mt-2">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2 border-t border-[var(--divider)] mt-2">
                         <AdminFormField label="Fork Of (Parent App)">
                             <AdminInput value={form.fork_of} onChange={e => setForm((f: any) => ({ ...f, fork_of: e.target.value }))} placeholder="e.g. Mihon" />
                         </AdminFormField>
                         <AdminFormField label="Upstream URL">
                             <AdminInput value={form.upstream_url} onChange={e => setForm((f: any) => ({ ...f, upstream_url: e.target.value }))} placeholder="https://github.com/parent/repo" />
+                        </AdminFormField>
+                        <AdminFormField label="Development Status">
+                            <AdminSelect value={form.dev_status || 'active'} onChange={e => setForm((f: any) => ({ ...f, dev_status: e.target.value }))}>
+                                <option value="active">Active</option>
+                                <option value="discontinued">Discontinued</option>
+                                <option value="abandoned">Abandoned</option>
+                                <option value="suspended">Suspended</option>
+                                <option value="dmca">DMCA</option>
+                                <option value="dead">Dead</option>
+                            </AdminSelect>
                         </AdminFormField>
                     </div>
                 </div>

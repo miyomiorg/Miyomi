@@ -30,7 +30,8 @@ export const emptyApp = {
     repo_url: '', download_url: '', website_url: '', icon_url: '', icon_color: '',
     fork_of: '', upstream_url: '', social_urls: [] as string[],
     tutorials: [] as any[],
-    download_count: 0, likes_count: 0, last_release_date: ''
+    download_count: 0, likes_count: 0, last_release_date: '',
+    dev_status: 'active', metadata: {} as any
 };
 
 export function AdminAppFormPage() {
@@ -156,7 +157,9 @@ export function AdminAppFormPage() {
                     tutorials: loadedTutorials,
                     download_count: appData.download_count || 0,
                     likes_count: appData.likes_count || 0,
-                    last_release_date: appData.last_release_date || ''
+                    last_release_date: appData.last_release_date || '',
+                    metadata: appData.metadata || {},
+                    dev_status: appData.metadata?.dev_status || 'active'
                 });
             }
         } catch (err: any) {
@@ -216,7 +219,11 @@ export function AdminAppFormPage() {
                 tutorials: form.tutorials,
                 download_count: form.download_count || 0,
                 likes_count: form.likes_count || 0,
-                last_release_date: form.last_release_date || null
+                last_release_date: form.last_release_date || null,
+                metadata: {
+                    ...form.metadata,
+                    dev_status: form.dev_status
+                }
             };
 
             let savedId = id;

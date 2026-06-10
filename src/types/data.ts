@@ -23,6 +23,7 @@ export interface AppData {
     shortDescription?: string;
     description: string;
     version?: string;
+    devStatus?: string;
     contentTypes: readonly ContentType[];
     platforms: readonly Platform[];
     accentColor?: string;

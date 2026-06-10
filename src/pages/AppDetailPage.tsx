@@ -404,7 +404,7 @@ export function AppDetailPage({ appId, onNavigate }: AppDetailPageProps) {
         className="relative bg-[var(--bg-surface)] border border-[var(--divider)] rounded-2xl p-6 sm:p-8 mb-6 sm:mb-8 overflow-hidden"
         style={{ boxShadow: '0 6px 20px 0 rgba(0,0,0,0.08)' }}
       >
-        <ParticleBackground />
+        <ParticleBackground appStatus={app.devStatus} />
         <div className="relative z-10 grid grid-cols-1 lg:grid-cols-[auto_1fr_auto] gap-6 lg:gap-12 items-center">
           {/* App Icon - Left */}
           <div className="mx-auto flex h-24 w-24 sm:h-32 sm:w-32 lg:h-40 lg:w-40 items-center justify-center rounded-3xl text-white flex-shrink-0 shadow-2xl ring-1 ring-white/10">
@@ -430,6 +430,18 @@ export function AppDetailPage({ appId, onNavigate }: AppDetailPageProps) {
               </h1>
               <LoveButton itemId={app.id} fallbackCount={app.likes || 0} size="lg" />
             </div>
+            {app.devStatus && app.devStatus !== 'active' && (
+              <div
+                className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold tracking-wide uppercase shadow-sm"
+                style={{
+                  backgroundColor: STATUS_STYLE_MAP[app.devStatus.toLowerCase()]?.bg || DEFAULT_STATUS_STYLE.bg,
+                  color: STATUS_STYLE_MAP[app.devStatus.toLowerCase()]?.text || DEFAULT_STATUS_STYLE.text,
+                  border: `1px solid ${STATUS_STYLE_MAP[app.devStatus.toLowerCase()]?.border || DEFAULT_STATUS_STYLE.border}`
+                }}
+              >
+                {getStatusLabel(app.devStatus)}
+              </div>
+            )}
 
             {authorInfo && (
               <p className="text-[var(--text-secondary)] font-['Inter',sans-serif] text-base">

@@ -49,6 +49,7 @@ export function useApp(appId: string): { app: AppData | null; loading: boolean }
             likes: data.likes_count || undefined,
             shortDescription: data.short_description || data.metadata?.shortDescription || undefined,
             rating: data.metadata?.rating || undefined,
+            devStatus: data.metadata?.dev_status || undefined,
         };
     };
 
