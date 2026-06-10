@@ -14,9 +14,7 @@ import { useAccentColor } from '../hooks/useAccentColor';
 import { LoveButton } from '../components/LoveButton';
 import { DetailActions } from '../components/DetailActions';
 import { BackButton } from '../components/BackButton';
-import { ShareModal } from '../components/ShareModal';
 import { ReportModal } from '../components/ReportModal';
-import type { AppData } from '../types/data';
 import { useApp } from '../hooks/useApp';
 import { useExtensions } from '../hooks/useExtensions';
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious, type CarouselApi } from '../components/ui/carousel';
@@ -157,9 +155,10 @@ export function AppDetailPage({ appId, onNavigate }: AppDetailPageProps) {
 
 
   const releaseInitialData = React.useMemo(() => (app ? {
+    version: app.version,
     downloads: app.downloads,
     date: app.lastUpdated,
-  } : undefined), [app?.downloads, app?.lastUpdated]);
+  } : undefined), [app?.downloads, app?.lastUpdated, app?.version]);
 
   const { release, loading: releaseLoading } = useGitHubRelease(
     app?.githubUrl,
@@ -297,7 +296,7 @@ export function AppDetailPage({ appId, onNavigate }: AppDetailPageProps) {
   const socialUrls = (app.socialUrls && app.socialUrls.length > 0) ? app.socialUrls : (app.discordUrl ? [app.discordUrl] : []);
   const hasCommunityUrl = socialUrls.length > 0;
   const hasOfficialSite = Boolean(app.officialSite);
-  const downloadUrl = app.officialSite || app.githubUrl;
+  const downloadUrl = app.getApp || release?.url
   const hasDownload = Boolean(downloadUrl);
   const hasAnyActions = hasDownload || hasCommunityUrl || hasOfficialSite;
 

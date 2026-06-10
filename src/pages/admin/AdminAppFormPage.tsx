@@ -30,7 +30,7 @@ export const emptyApp = {
     repo_url: '', download_url: '', website_url: '', icon_url: '', icon_color: '',
     fork_of: '', upstream_url: '', social_urls: [] as string[],
     tutorials: [] as any[],
-    download_count: 0, likes_count: 0
+    download_count: 0, likes_count: 0, last_release_date: ''
 };
 
 export function AdminAppFormPage() {
@@ -155,7 +155,8 @@ export function AdminAppFormPage() {
                     social_urls: appData.social_urls || [],
                     tutorials: loadedTutorials,
                     download_count: appData.download_count || 0,
-                    likes_count: appData.likes_count || 0
+                    likes_count: appData.likes_count || 0,
+                    last_release_date: appData.last_release_date || ''
                 });
             }
         } catch (err: any) {
@@ -214,7 +215,8 @@ export function AdminAppFormPage() {
                 discord_url: form.social_urls.filter((u: string) => u.trim())[0] || null,
                 tutorials: form.tutorials,
                 download_count: form.download_count || 0,
-                likes_count: form.likes_count || 0
+                likes_count: form.likes_count || 0,
+                last_release_date: form.last_release_date || null
             };
 
             let savedId = id;

@@ -250,9 +250,14 @@ export function SharedAppForm({ form, setForm, errors, setErrors, isAdmin = true
                             options={CONTENT_TYPE_OPTIONS}
                             placeholder="Select content types..."
                         />
-                        <AdminFormField label="Version">
-                            <AdminInput value={form.version} onChange={e => setForm((f: any) => ({ ...f, version: e.target.value }))} placeholder="1.0.0" />
-                        </AdminFormField>
+                        <div className="grid grid-cols-2 gap-2">
+                            <AdminFormField label="Version">
+                                <AdminInput value={form.version} onChange={e => setForm((f: any) => ({ ...f, version: e.target.value }))} placeholder="1.0.0" />
+                            </AdminFormField>
+                            <AdminFormField label="Last Updated">
+                                <AdminInput type="date" value={form.last_release_date?.split('T')[0] || ''} onChange={e => setForm((f: any) => ({ ...f, last_release_date: e.target.value }))} />
+                            </AdminFormField>
+                        </div>
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2 border-t border-[var(--divider)] mt-2">
                         <AdminFormField label="Fork Of (Parent App)">

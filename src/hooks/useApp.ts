@@ -25,6 +25,7 @@ export function useApp(appId: string): { app: AppData | null; loading: boolean }
             slug: data.slug || undefined,
             name: data.name,
             description: data.description || '',
+            version: data.version || undefined,
             contentTypes: data.content_types || data.tags || [],
             platforms: data.platforms || [],
             accentColor: data.icon_color || data.accent_color,
@@ -32,8 +33,9 @@ export function useApp(appId: string): { app: AppData | null; loading: boolean }
             author: data.author,
             keywords: data.tags || [],
             supportedExtensions: data.compatible_with || [],
-            lastUpdated: data.last_release_date || data.updated_at || data.created_at,
+            lastUpdated: data.last_release_date || undefined,
             githubUrl: data.repo_url,
+            getApp: data.download_url || undefined,
             officialSite: data.website_url,
             discordUrl: data.discord_url,
             socialUrls: (Array.isArray(data.social_urls) && data.social_urls.length > 0)

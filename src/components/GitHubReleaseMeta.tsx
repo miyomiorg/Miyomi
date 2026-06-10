@@ -66,15 +66,17 @@ export function GitHubReleaseMeta({
             </div>
           )}
 
-          <div className="inline-flex items-center gap-1.5 rounded-full border border-[var(--divider)] bg-[var(--chip-bg)] px-3 py-1.5">
-            <Calendar className="w-3.5 h-3.5 text-[var(--text-secondary)]" />
-            <span
-              className="text-xs sm:text-sm text-[var(--text-secondary)] font-['Inter',sans-serif]"
-              style={{ fontWeight: 500 }}
-            >
-              {formatDate(release?.date)}
-            </span>
-          </div>
+          {release?.date && (
+            <div className="inline-flex items-center gap-1.5 rounded-full border border-[var(--divider)] bg-[var(--chip-bg)] px-3 py-1.5">
+              <Calendar className="w-3.5 h-3.5 text-[var(--text-secondary)]" />
+              <span
+                className="text-xs sm:text-sm text-[var(--text-secondary)] font-['Inter',sans-serif]"
+                style={{ fontWeight: 500 }}
+              >
+                {formatDate(release.date)}
+              </span>
+            </div>
+          )}
 
           {typeof release?.downloads === 'number' && release.downloads > 0 && (
             <div className="inline-flex items-center gap-1.5 rounded-full border border-[var(--divider)] bg-[var(--chip-bg)] px-3 py-1.5">
