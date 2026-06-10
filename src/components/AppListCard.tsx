@@ -117,7 +117,13 @@ export function AppListCard({
         {downloads ? (
           <div className="flex items-center gap-1 text-xs text-[var(--text-secondary)] font-medium font-sans">
             <Download className="w-3.5 h-3.5 opacity-70" />
-            <span>{downloads >= 1000 ? `${(downloads / 1000).toFixed(1)}k` : downloads}</span>
+            <span>
+              {downloads >= 1000000
+                ? `${(downloads / 1000000).toFixed(1)}M`
+                : downloads >= 1000
+                  ? `${(downloads / 1000).toFixed(1)}k`
+                  : downloads}
+            </span>
           </div>
         ) : <div />}
       </div>

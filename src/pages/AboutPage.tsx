@@ -3,6 +3,8 @@ import { motion } from 'motion/react';
 import { useState, type ReactNode } from 'react';
 import { FeedbackPanel } from '../components/FeedbackPanel';
 import { Link } from 'react-router-dom';
+import { DiscordIcon } from '../components/DiscordIcon';
+import { TelegramIcon } from '../components/TelegramIcon';
 
 function Card({ children, className = '' }: { children: ReactNode; className?: string }) {
   return (
@@ -249,10 +251,10 @@ export function AboutPage() {
                   <Youtube className="w-5 h-5" />
                 </a>
                 <a href="https://discord.gg/hfYtH9hrRm" target="_blank" rel="noopener noreferrer" className="w-11 h-11 rounded-full bg-[var(--bg-elev-1)] border border-[var(--divider)] flex items-center justify-center text-[var(--text-secondary)] hover:text-[#5865F2] hover:border-[#5865F2] hover:-translate-y-1 transition-all shadow-sm">
-                  <MessageCircle className="w-5 h-5" />
+                  <DiscordIcon className="w-5 h-5" />
                 </a>
                 <a href="https://t.me/iitachiyomi" target="_blank" rel="noopener noreferrer" className="w-11 h-11 rounded-full bg-[var(--bg-elev-1)] border border-[var(--divider)] flex items-center justify-center text-[var(--text-secondary)] hover:text-[#0088cc] hover:border-[#0088cc] hover:-translate-y-1 transition-all shadow-sm">
-                  <Send className="w-5 h-5" />
+                  <TelegramIcon className="w-5 h-5" />
                 </a>
                 <a href="https://github.com/tas33n/miyomi" target="_blank" rel="noopener noreferrer" className="w-11 h-11 rounded-full bg-[var(--bg-elev-1)] border border-[var(--divider)] flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:border-[var(--text-primary)] hover:-translate-y-1 transition-all shadow-sm">
                   <Github className="w-5 h-5" />

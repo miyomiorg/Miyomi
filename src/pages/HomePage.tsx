@@ -71,9 +71,9 @@ export function HomePage({ onNavigate }: HomePageProps) {
   const avatarImage = useSeasonalAsset('homeAvatar', '/polic.png');
 
   const socialLinks = [
-    { icon: <DiscordIcon className="w-5 h-5" />, label: 'Discord', link: 'https://discord.gg/hfYtH9hrRm', color: '#5865F2' },
-    { icon: <TelegramIcon className="w-5 h-5" />, label: 'Telegram', link: 'https://t.me/iitachiyomi', color: '#1877F2' },
-    { icon: <Youtube className="w-5 h-5" />, label: 'YouTube', link: 'https://www.youtube.com/@iitachiyomi', color: '#FF0000' },
+    { icon: <DiscordIcon className="w-5 h-5" />, label: 'Discord', link: 'https://discord.gg/hfYtH9hrRm', color: '#5865F2', showDesktop: true, showMobile: true },
+    { icon: <TelegramIcon className="w-5 h-5" />, label: 'Telegram', link: 'https://t.me/iitachiyomi', color: '#1877F2', showDesktop: true, showMobile: true },
+    { icon: <Youtube className="w-5 h-5" />, label: 'YouTube', link: 'https://www.youtube.com/@iitachiyomi', color: '#FF0000', showDesktop: true, showMobile: true },
   ];
 
   const formatCount = (value: number) => {
@@ -227,19 +227,30 @@ export function HomePage({ onNavigate }: HomePageProps) {
 
           {/* Social Buttons - Centered Icon Only flex-row */}
           <div className="flex justify-center lg:justify-start gap-4 mb-4 lg:mb-8">
-            {socialLinks.map((social, index) => (
-              <button
-                key={index}
-                onClick={() => window.open(social.link, '_blank')}
-                className="w-12 h-12 bg-[var(--bg-surface)] hover:bg-[var(--chip-bg)] border border-[var(--divider)] text-[var(--text-primary)] rounded-xl transition-all flex items-center justify-center shadow-sm hover:shadow-md hover:scale-105 active:scale-95 group cursor-pointer"
-                title={social.label}
-                aria-label={social.label}
-              >
-                <div className="transition-transform group-hover:scale-110 text-[var(--text-primary)] flex-shrink-0 flex items-center justify-center">
-                  {social.icon}
-                </div>
-              </button>
-            ))}
+            {socialLinks.map((social, index) => {
+              let displayClass = 'flex';
+              if (social.showDesktop && !social.showMobile) {
+                displayClass = 'hidden md:flex';
+              } else if (!social.showDesktop && social.showMobile) {
+                displayClass = 'flex md:hidden';
+              } else if (!social.showDesktop && !social.showMobile) {
+                displayClass = 'hidden';
+              }
+
+              return (
+                <button
+                  key={index}
+                  onClick={() => window.open(social.link, '_blank')}
+                  className={`w-12 h-12 bg-[var(--bg-surface)] hover:bg-[var(--chip-bg)] border border-[var(--divider)] text-[var(--text-primary)] rounded-xl transition-all items-center justify-center shadow-sm hover:shadow-md hover:scale-105 active:scale-95 group cursor-pointer ${displayClass}`}
+                  title={social.label}
+                  aria-label={social.label}
+                >
+                  <div className="transition-transform group-hover:scale-110 text-[var(--text-primary)] flex-shrink-0 flex items-center justify-center">
+                    {social.icon}
+                  </div>
+                </button>
+              );
+            })}
           </div>
         </div>
 
@@ -276,48 +287,63 @@ export function HomePage({ onNavigate }: HomePageProps) {
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
             {/* Software Card */}
-            <div 
+            <div
               onClick={() => onNavigate?.('/software')}
-              className="bg-[var(--bg-page)] border border-[var(--divider)]/50 rounded-2xl p-4 flex items-center gap-4 hover:border-blue-500/50 transition-colors cursor-pointer group shadow-sm"
+              className="relative overflow-hidden bg-[var(--bg-page)] border border-[var(--divider)]/50 rounded-2xl p-4 flex items-center gap-4 hover:border-blue-500/50 transition-colors cursor-pointer group shadow-sm"
             >
-              <div className="w-12 h-12 rounded-xl bg-[#2563eb] text-white flex items-center justify-center flex-shrink-0 shadow-sm group-hover:scale-105 transition-transform">
+              {/* Background Count */}
+              <div className="hidden md:block absolute right-12 top-1/2 -translate-y-1/2 text-6xl font-extrabold bg-gradient-to-l from-[var(--text-primary)] to-transparent bg-clip-text text-transparent opacity-5 dark:opacity-10 select-none pointer-events-none transition-transform duration-300 group-hover:scale-110 z-0">
+                {unifiedApps.length > 0 ? `${unifiedApps.length}+` : ''}
+              </div>
+
+              <div className="w-12 h-12 rounded-xl bg-[#2563eb] text-white flex items-center justify-center flex-shrink-0 shadow-sm group-hover:scale-105 transition-transform relative z-10">
                 <Smartphone className="w-6 h-6" />
               </div>
-              <div className="flex-1 min-w-0">
+              <div className="flex-1 min-w-0 relative z-10">
                 <h3 className="font-bold text-[var(--text-primary)] text-sm mb-0.5">Software</h3>
-                <p className="text-[11px] text-[var(--text-secondary)] leading-snug">Software for every Operating System</p>
+                <p className="text-[11px] text-[var(--text-secondary)] leading-snug">for your Mobile and desktop</p>
               </div>
-              <div className="text-[var(--text-secondary)] group-hover:text-blue-500 transition-colors flex-shrink-0 ml-2">&rarr;</div>
+              <div className="text-[var(--text-secondary)] group-hover:text-blue-500 transition-colors flex-shrink-0 ml-2 relative z-10">&rarr;</div>
             </div>
 
             {/* Extensions Card */}
-            <div 
+            <div
               onClick={() => onNavigate?.('/extensions')}
-              className="bg-[var(--bg-page)] border border-[var(--divider)]/50 rounded-2xl p-4 flex items-center gap-4 hover:border-purple-500/50 transition-colors cursor-pointer group shadow-sm"
+              className="relative overflow-hidden bg-[var(--bg-page)] border border-[var(--divider)]/50 rounded-2xl p-4 flex items-center gap-4 hover:border-purple-500/50 transition-colors cursor-pointer group shadow-sm"
             >
-              <div className="w-12 h-12 rounded-xl bg-[#8b5cf6] text-white flex items-center justify-center flex-shrink-0 shadow-sm group-hover:scale-105 transition-transform">
+              {/* Background Count */}
+              <div className="hidden md:block absolute right-12 top-1/2 -translate-y-1/2 text-6xl font-extrabold bg-gradient-to-l from-[var(--text-primary)] to-transparent bg-clip-text text-transparent opacity-5 dark:opacity-10 select-none pointer-events-none transition-transform duration-300 group-hover:scale-110 z-0">
+                {extensionsCount > 0 ? `${extensionsCount}+` : ''}
+              </div>
+
+              <div className="w-12 h-12 rounded-xl bg-[#8b5cf6] text-white flex items-center justify-center flex-shrink-0 shadow-sm group-hover:scale-105 transition-transform relative z-10">
                 <Puzzle className="w-6 h-6" />
               </div>
-              <div className="flex-1 min-w-0">
+              <div className="flex-1 min-w-0 relative z-10">
                 <h3 className="font-bold text-[var(--text-primary)] text-sm mb-0.5">Extensions</h3>
-                <p className="text-[11px] text-[var(--text-secondary)] leading-snug line-clamp-2">Cloudstream, Aniyomi & Dantotsu Extension Repos & Guides</p>
+                <p className="text-[11px] text-[var(--text-secondary)] leading-snug line-clamp-2">that are compatible with your favorite apps</p>
               </div>
-              <div className="text-[var(--text-secondary)] group-hover:text-purple-500 transition-colors flex-shrink-0 ml-2">&rarr;</div>
+              <div className="text-[var(--text-secondary)] group-hover:text-purple-500 transition-colors flex-shrink-0 ml-2 relative z-10">&rarr;</div>
             </div>
 
             {/* Guides Card */}
-            <div 
+            <div
               onClick={() => onNavigate?.('/guides')}
-              className="bg-[var(--bg-page)] border border-[var(--divider)]/50 rounded-2xl p-4 flex items-center gap-4 hover:border-orange-500/50 transition-colors cursor-pointer group shadow-sm"
+              className="relative overflow-hidden bg-[var(--bg-page)] border border-[var(--divider)]/50 rounded-2xl p-4 flex items-center gap-4 hover:border-orange-500/50 transition-colors cursor-pointer group shadow-sm"
             >
-              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-pink-400 to-orange-400 text-white flex items-center justify-center flex-shrink-0 shadow-sm group-hover:scale-105 transition-transform">
+              {/* Background Count */}
+              <div className="hidden md:block absolute right-12 top-1/2 -translate-y-1/2 text-6xl font-extrabold bg-gradient-to-l from-[var(--text-primary)] to-transparent bg-clip-text text-transparent opacity-5 dark:opacity-10 select-none pointer-events-none transition-transform duration-300 group-hover:scale-110 z-0">
+                {guidesCount > 0 ? `${guidesCount}+` : ''}
+              </div>
+
+              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-pink-400 to-orange-400 text-white flex items-center justify-center flex-shrink-0 shadow-sm group-hover:scale-105 transition-transform relative z-10">
                 <BookOpen className="w-6 h-6" />
               </div>
-              <div className="flex-1 min-w-0">
+              <div className="flex-1 min-w-0 relative z-10">
                 <h3 className="font-bold text-[var(--text-primary)] text-sm mb-0.5">Guides</h3>
-                <p className="text-[11px] text-[var(--text-secondary)] leading-snug">Get started quickly with our comprehensive guides</p>
+                <p className="text-[11px] text-[var(--text-secondary)] leading-snug">to setup and configure your favorite apps</p>
               </div>
-              <div className="text-[var(--text-secondary)] group-hover:text-orange-500 transition-colors flex-shrink-0 ml-2">&rarr;</div>
+              <div className="text-[var(--text-secondary)] group-hover:text-orange-500 transition-colors flex-shrink-0 ml-2 relative z-10">&rarr;</div>
             </div>
           </div>
 
@@ -333,11 +359,11 @@ export function HomePage({ onNavigate }: HomePageProps) {
       {/* Mobile Features / Community Card */}
       <div className="md:hidden relative z-10">
         <div className="bg-[var(--bg-surface)] border border-[var(--divider)] rounded-[20px] p-4 shadow-sm">
-          <h2 className="text-[16px] font-bold text-[var(--brand)] font-['Poppins',sans-serif] mb-1">
+          <h2 className="text-lg font-bold text-[var(--brand)] font-['Poppins',sans-serif] mb-1">
             Made for the Community ❤️
           </h2>
-          <p className="text-xs text-[var(--text-secondary)] font-['Inter',sans-serif] mb-3">
-            Miyomi helps anime and manga fans discover:
+          <p className="text-sm text-[var(--text-secondary)] font-['Inter',sans-serif] mb-3">
+            Miyomi helps anime, manga and novel fans discover:
           </p>
 
           <div className="space-y-3 mb-3">
@@ -346,8 +372,8 @@ export function HomePage({ onNavigate }: HomePageProps) {
                 <MonitorSmartphone className="w-4 h-4" />
               </div>
               <div className="flex-1 min-w-0">
-                <h3 className="font-bold text-[var(--text-primary)] text-xs mb-0.5">Software</h3>
-                <p className="text-[11px] text-[var(--text-secondary)] leading-snug">for your Mobile and desktop</p>
+                <h3 className="font-bold text-[var(--text-primary)] text-sm mb-0.5">Software</h3>
+                <p className="text-xs text-[var(--text-secondary)] leading-snug">for your Mobile and desktop</p>
               </div>
             </div>
 
@@ -356,8 +382,8 @@ export function HomePage({ onNavigate }: HomePageProps) {
                 <Puzzle className="w-4 h-4" />
               </div>
               <div className="flex-1 min-w-0">
-                <h3 className="font-bold text-[var(--text-primary)] text-xs mb-0.5">Extensions & Plugins</h3>
-                <p className="text-[11px] text-[var(--text-secondary)] leading-snug">that are compatible with your favorite apps</p>
+                <h3 className="font-bold text-[var(--text-primary)] text-sm mb-0.5">Extensions & Plugins</h3>
+                <p className="text-xs text-[var(--text-secondary)] leading-snug">that are compatible with your favorite apps</p>
               </div>
             </div>
 
@@ -366,8 +392,8 @@ export function HomePage({ onNavigate }: HomePageProps) {
                 <BookOpen className="w-4 h-4" />
               </div>
               <div className="flex-1 min-w-0">
-                <h3 className="font-bold text-[var(--text-primary)] text-xs mb-0.5">Helpful Guides</h3>
-                <p className="text-[11px] text-[var(--text-secondary)] leading-snug">to setup and configure your favorite apps</p>
+                <h3 className="font-bold text-[var(--text-primary)] text-sm mb-0.5">Helpful Guides</h3>
+                <p className="text-xs text-[var(--text-secondary)] leading-snug">to setup and configure your favorite apps</p>
               </div>
             </div>
 
@@ -376,15 +402,15 @@ export function HomePage({ onNavigate }: HomePageProps) {
                 <Link className="w-4 h-4" />
               </div>
               <div className="flex-1 min-w-0">
-                <h3 className="font-bold text-[var(--text-primary)] text-xs mb-0.5">Other resources</h3>
-                <p className="text-[11px] text-[var(--text-secondary)] leading-snug">like links to App's socials, FAQs and more</p>
+                <h3 className="font-bold text-[var(--text-primary)] text-sm mb-0.5">Other resources</h3>
+                <p className="text-xs text-[var(--text-secondary)] leading-snug">like links to App's socials, FAQs and more</p>
               </div>
             </div>
           </div>
 
           <div className="flex items-center gap-1.5 pt-3 border-t border-[var(--divider)]/50">
             <Sparkles className="w-4 h-4 text-amber-400 flex-shrink-0" />
-            <p className="text-[11px] text-[var(--text-secondary)] font-medium leading-tight">
+            <p className="text-xs text-[var(--text-secondary)] font-medium leading-tight">
               Everything organized in one searchable place.
             </p>
           </div>
