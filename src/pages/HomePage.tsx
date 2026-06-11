@@ -143,6 +143,7 @@ export function HomePage({ onNavigate }: HomePageProps) {
             >
               <Search className="w-5 h-5 text-[var(--text-secondary)] flex-shrink-0" />
               <input
+                id="hero-search-input"
                 type="text"
                 placeholder="Search apps, extensions, guides..."
                 value={searchQuery}

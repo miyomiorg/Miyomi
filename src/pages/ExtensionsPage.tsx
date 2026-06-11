@@ -199,15 +199,23 @@ export function ExtensionsPage({ onNavigate }: ExtensionsPageProps) {
       switch (field) {
         case 'name':
           return dir === 1 ? a.name.localeCompare(b.name) : b.name.localeCompare(a.name);
-        case 'updated':
-          return dir * ((a.lastUpdated || '').localeCompare(b.lastUpdated || ''));
+        case 'updated': {
+          if (!a.lastUpdated && !b.lastUpdated) return 0;
+          if (!a.lastUpdated) return 1;
+          if (!b.lastUpdated) return -1;
+          return dir * a.lastUpdated.localeCompare(b.lastUpdated);
+        }
         case 'loved': {
           const aLoved = getLikeData(a.id).count;
           const bLoved = getLikeData(b.id).count;
           return dir * (aLoved - bLoved);
         }
-        case 'added':
-          return dir * ((a.createdAt || '').localeCompare(b.createdAt || ''));
+        case 'added': {
+          if (!a.createdAt && !b.createdAt) return 0;
+          if (!a.createdAt) return 1;
+          if (!b.createdAt) return -1;
+          return dir * a.createdAt.localeCompare(b.createdAt);
+        }
         default:
           return 0;
       }

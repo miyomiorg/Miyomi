@@ -87,12 +87,19 @@ export function Navbar({
 
       if (e.key.toLowerCase() === 's' && !e.ctrlKey && !e.metaKey && !e.altKey) {
         e.preventDefault();
-        setSearchModalOpen(true);
+        if (location.pathname === '/') {
+          const heroSearchInput = document.getElementById('hero-search-input');
+          if (heroSearchInput) {
+            heroSearchInput.focus();
+          }
+        } else {
+          setSearchModalOpen(true);
+        }
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, []);
+  }, [location.pathname]);
 
   // Close mobile menu when route changes
   useEffect(() => {
@@ -296,16 +303,18 @@ export function Navbar({
           <div className="hidden md:flex items-center gap-1.5 lg:gap-2">
 
             {/* Desktop Search Box */}
-            <button
-              onClick={() => setSearchModalOpen(true)}
-              className="hidden lg:flex items-center gap-2 px-3 py-1.5 rounded-full bg-[var(--bg-elev-1)]/80 backdrop-blur-md border border-[var(--divider)]/50 hover:bg-[var(--bg-elev-2)] hover:border-[var(--brand)]/50 transition-all text-sm group w-48 xl:w-56"
-            >
-              <Search className="w-4 h-4 flex-shrink-0 text-[var(--text-secondary)] group-hover:text-[var(--brand)] transition-colors" />
-              <span className="text-[var(--text-secondary)] font-medium mr-auto truncate">Search...</span>
-              <kbd className="hidden sm:inline-block flex-shrink-0 px-1.5 py-0.5 text-[10px] font-mono text-[var(--text-secondary)] bg-[var(--chip-bg)] border border-[var(--divider)] rounded opacity-70 group-hover:opacity-100 transition-opacity">
-                S
-              </kbd>
-            </button>
+            {location.pathname !== '/' && (
+              <button
+                onClick={() => setSearchModalOpen(true)}
+                className="hidden lg:flex items-center gap-2 px-3 py-1.5 rounded-full bg-[var(--bg-elev-1)]/80 backdrop-blur-md border border-[var(--divider)]/50 hover:bg-[var(--bg-elev-2)] hover:border-[var(--brand)]/50 transition-all text-sm group w-48 xl:w-56"
+              >
+                <Search className="w-4 h-4 flex-shrink-0 text-[var(--text-secondary)] group-hover:text-[var(--brand)] transition-colors" />
+                <span className="text-[var(--text-secondary)] font-medium mr-auto truncate">Search...</span>
+                <kbd className="hidden sm:inline-block flex-shrink-0 px-1.5 py-0.5 text-[10px] font-mono text-[var(--text-secondary)] bg-[var(--chip-bg)] border border-[var(--divider)] rounded opacity-70 group-hover:opacity-100 transition-opacity">
+                  S
+                </kbd>
+              </button>
+            )}
 
             {/* Search Icon for Tablet (Hidden on desktop lg+) */}
             {location.pathname !== '/' && (
