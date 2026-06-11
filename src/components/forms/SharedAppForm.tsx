@@ -25,6 +25,7 @@ export function SharedAppForm({ form, setForm, errors, setErrors, isAdmin = true
     const [fetchingGithub, setFetchingGithub] = useState(false);
     const [extractingColor, setExtractingColor] = useState(false);
     const [repoProvider, setRepoProvider] = useState('github');
+    const [manuallySelectedProvider, setManuallySelectedProvider] = useState(false);
     const [guideOptions, setGuideOptions] = useState<string[]>([]);
     const [guidesData, setGuidesData] = useState<any[]>([]);
     const [selectedGuideTitles, setSelectedGuideTitles] = useState<string[]>([]);
@@ -56,10 +57,10 @@ export function SharedAppForm({ form, setForm, errors, setErrors, isAdmin = true
     }, [form.icon_url]);
 
     useEffect(() => {
-        if (form.repo_url) {
+        if (form.repo_url && !manuallySelectedProvider) {
             setRepoProvider(detectGitProvider(form.repo_url).toLowerCase());
         }
-    }, [form.repo_url]);
+    }, [form.repo_url, manuallySelectedProvider]);
 
     async function fetchGuides() {
         const { data } = await supabase.from('guides').select('title, slug').order('title');
@@ -163,7 +164,10 @@ export function SharedAppForm({ form, setForm, errors, setErrors, isAdmin = true
                         <AdminFormField label="Provider" className="w-full sm:w-40">
                             <AdminSelect
                                 value={repoProvider}
-                                onChange={e => setRepoProvider(e.target.value)}
+                                onChange={e => {
+                                    setRepoProvider(e.target.value);
+                                    setManuallySelectedProvider(true);
+                                }}
                             >
                                 <option value="github">GitHub</option>
                                 <option value="gitlab">GitLab</option>

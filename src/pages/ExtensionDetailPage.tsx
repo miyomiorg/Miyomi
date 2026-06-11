@@ -498,12 +498,14 @@ export function ExtensionDetailPage({ extensionId, onNavigate }: ExtensionDetail
             </div>
 
             {/* Statistics Row */}
-            <div className="flex flex-wrap items-center justify-center gap-4 sm:gap-6 text-sm text-[var(--text-secondary)] pt-2">
-              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[var(--bg-surface)] border border-[var(--divider)] shadow-sm">
-                <Clock className="w-4 h-4 text-[var(--text-tertiary)]" />
-                <span className="opacity-70">Updated {new Date(extension.lastUpdated || Date.now()).toLocaleDateString()}</span>
+            {extension.lastUpdated && (
+              <div className="flex flex-wrap items-center justify-center gap-4 sm:gap-6 text-sm text-[var(--text-secondary)] pt-2">
+                <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[var(--bg-surface)] border border-[var(--divider)] shadow-sm">
+                  <Clock className="w-4 h-4 text-[var(--text-tertiary)]" />
+                  <span className="opacity-70">Updated {formatDate(extension.lastUpdated)}</span>
+                </div>
               </div>
-            </div>
+            )}
 
             {/* Mobile Actions */}
             <div className="lg:hidden w-full pt-4">{inlineActions}</div>

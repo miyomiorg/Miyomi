@@ -33,7 +33,8 @@ export const emptyExt = {
     auto_url: '', manual_url: '', social_urls: [] as string[],
     install_urls: [] as InstallUrlEntry[],
     tutorials: [] as any[],
-    download_count: 0, likes_count: 0
+    download_count: 0, likes_count: 0,
+    last_updated: ''
 };
 export function AdminExtensionFormPage() {
     const { id } = useParams();
@@ -123,7 +124,8 @@ export function AdminExtensionFormPage() {
                     tutorials: loadedTutorials,
                     download_count: extData.download_count || 0,
                     likes_count: extData.likes_count || 0,
-                    install_urls: loadedInstallUrls
+                    install_urls: loadedInstallUrls,
+                    last_updated: extData.last_updated || ''
                 });
             }
         } catch (err: any) {
@@ -175,11 +177,11 @@ export function AdminExtensionFormPage() {
                 category: form.category || null,
                 language: form.language || null,
                 status: form.status,
-                platforms: form.platforms.length ? form.platforms : null,
-                tags: form.tags.length ? form.tags : null,
+                platforms: form.platforms?.length ? form.platforms : null,
+                tags: form.tags?.length ? form.tags : null,
                 // @ts-ignore
-                types: form.types.length ? form.types : null,
-                compatible_with: form.compatible_with.length ? form.compatible_with : null,
+                types: form.types?.length ? form.types : null,
+                compatible_with: form.compatible_with?.length ? form.compatible_with : null,
                 repo_url: form.repo_url || null,
                 source_url: form.source_url || null,
                 icon_url: form.icon_url || null,
@@ -191,7 +193,8 @@ export function AdminExtensionFormPage() {
                 discord_url: form.social_urls.filter((u: string) => u.trim())[0] || null,
                 tutorials: form.tutorials,
                 download_count: form.download_count || 0,
-                likes_count: form.likes_count || 0
+                likes_count: form.likes_count || 0,
+                last_updated: form.last_updated || null
             };
 
 

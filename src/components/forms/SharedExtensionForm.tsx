@@ -27,6 +27,7 @@ export function SharedExtensionForm({ form, setForm, errors, setErrors, isAdmin 
     const [fetchingGithub, setFetchingGithub] = useState(false);
     const [extractingColor, setExtractingColor] = useState(false);
     const [repoProvider, setRepoProvider] = useState('github');
+    const [manuallySelectedProvider, setManuallySelectedProvider] = useState(false);
     const [appOptions, setAppOptions] = useState<string[]>([]);
     const [appsData, setAppsData] = useState<any[]>([]);
     const [guideOptions, setGuideOptions] = useState<string[]>([]);
@@ -60,10 +61,10 @@ export function SharedExtensionForm({ form, setForm, errors, setErrors, isAdmin 
     }, [form.icon_url]);
 
     useEffect(() => {
-        if (form.repo_url) {
+        if (form.repo_url && !manuallySelectedProvider) {
             setRepoProvider(detectGitProvider(form.repo_url).toLowerCase());
         }
-    }, [form.repo_url]);
+    }, [form.repo_url, manuallySelectedProvider]);
 
     async function fetchAppOptions() {
         const { data } = await supabase.from('apps').select('name, fork_of').order('name');
@@ -174,7 +175,10 @@ export function SharedExtensionForm({ form, setForm, errors, setErrors, isAdmin 
                         <AdminFormField label="Provider" className="w-full sm:w-40">
                             <AdminSelect
                                 value={repoProvider}
-                                onChange={e => setRepoProvider(e.target.value)}
+                                onChange={e => {
+                                    setRepoProvider(e.target.value);
+                                    setManuallySelectedProvider(true);
+                                }}
                             >
                                 <option value="github">GitHub</option>
                                 <option value="gitlab">GitLab</option>
@@ -269,6 +273,11 @@ export function SharedExtensionForm({ form, setForm, errors, setErrors, isAdmin 
                                 </React.Fragment>
                             )}
                         />
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2 border-t border-[var(--divider)] mt-2">
+                        <AdminFormField label="Last Updated">
+                            <AdminInput type="date" value={form.last_updated?.split('T')[0] || ''} onChange={e => setForm((f: any) => ({ ...f, last_updated: e.target.value }))} />
+                        </AdminFormField>
                     </div>
                 </div>
 

@@ -42,7 +42,7 @@ export function useExtension(extensionId: string): { extension: ExtensionData | 
                         autoUrl: data.auto_url || '',
                         manualUrl: data.manual_url || '',
                         supportedApps: (data.compatible_with || []).map((app: string) => app.toLowerCase()),
-                        lastUpdated: data.updated_at || data.created_at,
+                        lastUpdated: data.last_updated || '',
                         overview: data.description || undefined,
                         github: data.repo_url,
                         website: data.source_url || undefined,
