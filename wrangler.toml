@@ -2,13 +2,6 @@
 name = "miyomi"
 pages_build_output_dir = "dist"
 
-[vars]
-VITE_SUPABASE_PROJECT_ID="qijruodreazuicbcyhvk"
-VITE_SUPABASE_URL="https://qijruodreazuicbcyhvk.supabase.co"
-VITE_SUPABASE_PUBLISHABLE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFpanJ1b2RyZWF6dWljYmN5aHZrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA3MDkwMjUsImV4cCI6MjA4NjI4NTAyNX0.vV3oEwvZrQdCmgMRT9EVZrSP9sU3g0XcSmojThx0opE"
-VITE_SUPABASE_ANON_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFpanJ1b2RyZWF6dWljYmN5aHZrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA3MDkwMjUsImV4cCI6MjA4NjI4NTAyNX0.vV3oEwvZrQdCmgMRT9EVZrSP9sU3g0XcSmojThx0opE"
-VITE_TURNSTILE_SITE_KEY="0x4AAAAAACd-NdaHLXAncMhD"
-
 [[d1_databases]]
 binding = "DB"
 database_name = "miyomi-db"

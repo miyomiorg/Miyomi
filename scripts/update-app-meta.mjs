@@ -4,7 +4,7 @@ import { fileURLToPath } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const LIST_APPS_URL = 'https://qijruodreazuicbcyhvk.supabase.co/functions/v1/list-apps';
+const LIST_APPS_URL = 'https://miyomi-api.supabase.co/functions/v1/list-apps';
 const OUTPUT_FILE = path.join(__dirname, '../app-meta.json');
 
 function extractRepo(url) {

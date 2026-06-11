@@ -34,7 +34,7 @@ jobs:
       - name: Checkout or create data-updates branch
         run: |
           # Send data to Supabase Edge Function
-          RESPONSE=$(curl -X POST https://qijruodreazuicbcyhvk.supabase.co/functions/v1/update-app-meta \
+          RESPONSE=$(curl -X POST https://miyomi-api.supabase.co/functions/v1/update-app-meta \
             -H "Content-Type: application/json" \
             -H "x-api-key: ${{ secrets.CRON_API_KEY }}" \
             -d @app-meta.json)
