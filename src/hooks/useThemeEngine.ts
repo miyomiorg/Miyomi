@@ -199,6 +199,13 @@ export function useThemeEngine(colorMode: 'light' | 'dark' = 'light'): ThemeEngi
 
     const fetchThemes = useCallback(async () => {
         try {
+            if (!supabase) {
+                console.warn('[ThemeEngine] Supabase is not initialized. Using fallback themes.');
+                setThemes(FALLBACK_THEMES);
+                setIsLoading(false);
+                return;
+            }
+
             const { data, error } = await supabase
                 .from('themes')
                 .select('*')
@@ -222,6 +229,8 @@ export function useThemeEngine(colorMode: 'light' | 'dark' = 'light'): ThemeEngi
     useEffect(() => { fetchThemes(); }, [fetchThemes]);
 
     useEffect(() => {
+        if (!supabase) return;
+
         const channel = supabase
             .channel('theme-engine-changes')
             .on(
@@ -297,15 +306,18 @@ export function useThemeEngine(colorMode: 'light' | 'dark' = 'light'): ThemeEngi
 
     const activateTheme = useCallback(async (themeId: string) => {
         setIsLoading(true);
-        await supabase.from('themes').update({ is_active: false }).eq('is_active', true);
-        await supabase.from('themes').update({ is_active: true }).eq('id', themeId);
-
+        if (supabase) {
+            await supabase.from('themes').update({ is_active: false }).eq('is_active', true);
+            await supabase.from('themes').update({ is_active: true }).eq('id', themeId);
+        }
         await fetchThemes();
     }, [fetchThemes]);
 
     const deactivateTheme = useCallback(async (themeId: string) => {
         setIsLoading(true);
-        await supabase.from('themes').update({ is_active: false }).eq('id', themeId);
+        if (supabase) {
+            await supabase.from('themes').update({ is_active: false }).eq('id', themeId);
+        }
         await fetchThemes();
     }, [fetchThemes]);
 
