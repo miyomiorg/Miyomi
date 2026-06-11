@@ -67,6 +67,9 @@ export function PrivacyPolicyPage() {
           <p className="text-[var(--text-secondary)] text-sm mb-2">
             To prevent LIKE manipulation and spam, we generate a <strong>hashed device fingerprint</strong> when you LIKE an item or submit a report. This is a one-way hash — we cannot reverse it to identify you. It's only used to limit duplicate LIKEs and flag abusive reports.
           </p>
+          <p className="text-[var(--text-secondary)] text-sm mb-2">
+            For rate limiting (preventing spam submissions), we read your IP address from the server request headers and <strong>immediately hash it with SHA-256</strong> before storing. We never store your raw IP address — only the irreversible hash. This hash cannot be used to identify you, but it lets us block repeated abuse from the same source.
+          </p>
           <p className="text-[var(--text-secondary)] text-sm">
             We also use <strong>Cloudflare Turnstile</strong> on submission forms to verify you're human. Turnstile does not track you across sites — see <a href="https://www.cloudflare.com/privacypolicy/" target="_blank" rel="noopener noreferrer" className="text-[var(--brand)] underline underline-offset-2 hover:opacity-80">Cloudflare's privacy policy</a>.
           </p>
