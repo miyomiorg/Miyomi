@@ -10,6 +10,6 @@ VITE_SUPABASE_ANON_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmF
 VITE_TURNSTILE_SITE_KEY="0x4AAAAAACd-NdaHLXAncMhD"
 
 [[d1_databases]]
-binding = "DB"
+binding = "DB" 
 database_name = "miyomi-db"
 database_id = "0d70949a-e439-41fc-a0a1-78b99d17b9af"
