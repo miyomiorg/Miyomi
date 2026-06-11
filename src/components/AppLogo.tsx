@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useCachedImage } from '../hooks/useCachedImage';
 
 interface AppLogoProps {
   name: string;
@@ -19,6 +20,7 @@ export function AppLogo({
 }: AppLogoProps) {
   const [shouldFallback, setShouldFallback] = useState(!logoUrl);
   const fallbackColor = iconColor || 'var(--brand)';
+  const cachedUrl = useCachedImage(logoUrl);
 
   const handleError = () => setShouldFallback(true);
 
@@ -40,12 +42,8 @@ export function AppLogo({
       aria-hidden="true"
     >
       <img
-        src={logoUrl}
+        src={cachedUrl}
         alt={`${name} logo`}
-        loading="lazy"
-        decoding="async"
-        // @ts-expect-error - fetchpriority is a valid DOM attribute
-        fetchpriority="low"
         className="w-full h-full object-contain"
         onError={handleError}
         referrerPolicy="no-referrer"

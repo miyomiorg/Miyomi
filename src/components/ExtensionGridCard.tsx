@@ -5,6 +5,7 @@ import type { ExtensionData } from '../types/data';
 import { FlagDisplay } from './FlagDisplay';
 import { StarRating } from './StarRating';
 import { useAccentColor } from '../hooks/useAccentColor';
+import { useCachedImage } from '../hooks/useCachedImage';
 import { LoveButton } from './LoveButton';
 import { TagBadge } from './TagBadge';
 
@@ -23,6 +24,7 @@ export function ExtensionGridCard({ extension, isHighlighted, onSelect }: Extens
     defaultColor: 'var(--brand)',
   });
   const [imageError, setImageError] = useState(false);
+  const cachedUrl = useCachedImage(extension.logoUrl);
 
   // Only use layoutId on desktop
   const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
@@ -43,7 +45,7 @@ export function ExtensionGridCard({ extension, isHighlighted, onSelect }: Extens
 
     return (
       <img
-        src={extension.logoUrl}
+        src={cachedUrl}
         alt={`${extension.name} logo`}
         className="w-full h-full object-cover"
         onError={() => setImageError(true)}
