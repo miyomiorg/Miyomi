@@ -1,12 +1,12 @@
 import React from 'react';
-import { ArrowLeft, Shield, Eye, Lock, Server } from 'lucide-react';
+import { ArrowLeft, Shield, Database, Fingerprint, FileText, Globe, Mail } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 export function PrivacyPolicyPage() {
   const navigate = useNavigate();
 
   return (
-    <div className="max-w-4xl mx-auto py-12 px-4 sm:px-6 animate-in fade-in duration-500">
+    <div className="max-w-3xl mx-auto py-12 px-4 sm:px-6 animate-in fade-in duration-500">
       <button
         onClick={() => navigate('/')}
         className="mb-8 p-2 -ml-2 rounded-lg hover:bg-[var(--bg-elev-1)] text-[var(--text-secondary)] transition-colors inline-flex items-center gap-2"
@@ -15,120 +15,119 @@ export function PrivacyPolicyPage() {
         Back to Home
       </button>
 
-      <div className="mb-12 text-center">
-        <div className="w-16 h-16 bg-[var(--chip-bg)] rounded-2xl flex items-center justify-center mx-auto mb-6">
-          <Shield className="w-8 h-8 text-[var(--brand)]" />
+      <div className="mb-10 text-center">
+        <div className="w-14 h-14 bg-[var(--chip-bg)] rounded-2xl flex items-center justify-center mx-auto mb-5">
+          <Shield className="w-7 h-7 text-[var(--brand)]" />
         </div>
-        <h1 className="text-4xl font-bold font-['Poppins',sans-serif] text-[var(--text-primary)] mb-4">
+        <h1 className="text-3xl font-bold font-['Poppins',sans-serif] text-[var(--text-primary)] mb-2">
           Privacy Policy
         </h1>
-        <p className="text-[var(--text-secondary)]">
-          Last updated: June 4, 2026
+        <p className="text-sm text-[var(--text-secondary)]">
+          Last updated: June 11, 2026
         </p>
       </div>
 
-      <div className="space-y-8 text-[var(--text-primary)] font-['Inter',sans-serif] leading-relaxed">
+      {/* TL;DR */}
+      <div className="mb-8 p-5 rounded-2xl bg-[var(--chip-bg)] border border-[var(--brand)]/20">
+        <h2 className="font-semibold text-[var(--text-primary)] mb-2 text-sm uppercase tracking-wider">TL;DR</h2>
+        <p className="text-[var(--text-secondary)] text-sm leading-relaxed">
+          We don't use analytics, tracking scripts, or advertising cookies. We store your preferences locally in your browser. The only personal info we collect is what you <em>voluntarily</em> type into our forms (like your name or contact info when submitting an app). We never sell your data.
+        </p>
+      </div>
 
-        {/* Introduction */}
-        <section className="bg-[var(--bg-surface)] p-8 rounded-2xl border border-[var(--divider)]">
-          <h2 className="text-2xl font-semibold mb-4 text-[var(--text-primary)]">Introduction</h2>
-          <p className="text-[var(--text-secondary)] mb-4">
-            Welcome to Miyomi.app. We respect your privacy and are committed to protecting any personal information you may provide while using our website. This Privacy Policy explains what information we collect, why we collect it, and how we safeguard it.
+      <div className="space-y-6 text-[var(--text-primary)] font-['Inter',sans-serif] leading-relaxed">
+
+        {/* What We Store Locally */}
+        <section className="bg-[var(--bg-surface)] p-6 rounded-2xl border border-[var(--divider)]">
+          <div className="flex items-center gap-2.5 mb-3">
+            <Database className="w-5 h-5 text-[var(--brand)] flex-shrink-0" />
+            <h2 className="text-lg font-semibold text-[var(--text-primary)]">What We Store in Your Browser</h2>
+          </div>
+          <p className="text-[var(--text-secondary)] text-sm mb-3">
+            We use your browser's <strong>localStorage</strong> (not cookies) to remember a few things so the site works smoothly:
           </p>
-          <p className="text-[var(--text-secondary)]">
-            By using Miyomi.app, you agree to the collection and use of information in accordance with this policy.
+          <ul className="space-y-1.5 text-sm text-[var(--text-secondary)]">
+            <li className="flex items-start gap-2"><span className="text-[var(--brand)] mt-0.5">•</span>Your theme choice and display mode (dark/light)</li>
+            <li className="flex items-start gap-2"><span className="text-[var(--brand)] mt-0.5">•</span>Your preferred view layout (grid vs. list)</li>
+            <li className="flex items-start gap-2"><span className="text-[var(--brand)] mt-0.5">•</span>Which items you've liked (so you don't lose your likes)</li>
+            <li className="flex items-start gap-2"><span className="text-[var(--brand)] mt-0.5">•</span>Temporary data caches to speed up page loads</li>
+            <li className="flex items-start gap-2"><span className="text-[var(--brand)] mt-0.5">•</span>Dismissed notice banners</li>
+          </ul>
+          <p className="text-xs text-[var(--text-secondary)] mt-3 opacity-70">
+            This data never leaves your device. Clearing your browser data removes it entirely.
           </p>
         </section>
 
-        {/* Information Collection */}
-        <section className="bg-[var(--bg-surface)] p-8 rounded-2xl border border-[var(--divider)]">
-          <div className="flex items-center gap-3 mb-4">
-            <Eye className="w-6 h-6 text-[var(--brand)]" />
-            <h2 className="text-2xl font-semibold text-[var(--text-primary)]">Information We Collect</h2>
+        {/* Anti-Abuse Fingerprinting */}
+        <section className="bg-[var(--bg-surface)] p-6 rounded-2xl border border-[var(--divider)]">
+          <div className="flex items-center gap-2.5 mb-3">
+            <Fingerprint className="w-5 h-5 text-[var(--brand)] flex-shrink-0" />
+            <h2 className="text-lg font-semibold text-[var(--text-primary)]">Anti-Abuse Protection</h2>
           </div>
-
-          <h3 className="font-semibold mt-6 mb-2">1. Form Submissions</h3>
-          <p className="text-[var(--text-secondary)] mb-4">
-            When you submit an app, extension, guide, or provide feedback through our forms, we collect the information you voluntarily provide. This may include your name, email address, Discord handle, or other contact details. This data is strictly used to review your submissions and contact you regarding them.
+          <p className="text-[var(--text-secondary)] text-sm mb-2">
+            To prevent LIKE manipulation and spam, we generate a <strong>hashed device fingerprint</strong> when you LIKE an item or submit a report. This is a one-way hash — we cannot reverse it to identify you. It's only used to limit duplicate LIKEs and flag abusive reports.
           </p>
-
-          <h3 className="font-semibold mt-6 mb-2">2. Automated Data & Security</h3>
-          <p className="text-[var(--text-secondary)] mb-4">
-            We use Cloudflare Turnstile to protect our forms from spam and abuse. This service may analyze traffic and user interactions to verify human behavior. Please refer to Cloudflare's privacy policy for more details.
-          </p>
-
-          <h3 className="font-semibold mt-6 mb-2">3. Cookies and Local Storage</h3>
-          <p className="text-[var(--text-secondary)] mb-4">
-            We use local storage mechanisms to save your theme preferences (e.g., dark or light mode) and temporarily cache data to speed up your browsing experience. We do not use tracking cookies for targeted advertising.
+          <p className="text-[var(--text-secondary)] text-sm">
+            We also use <strong>Cloudflare Turnstile</strong> on submission forms to verify you're human. Turnstile does not track you across sites — see <a href="https://www.cloudflare.com/privacypolicy/" target="_blank" rel="noopener noreferrer" className="text-[var(--brand)] underline underline-offset-2 hover:opacity-80">Cloudflare's privacy policy</a>.
           </p>
         </section>
 
-        {/* How We Use Information */}
-        <section className="bg-[var(--bg-surface)] p-8 rounded-2xl border border-[var(--divider)]">
-          <div className="flex items-center gap-3 mb-4">
-            <Server className="w-6 h-6 text-[var(--brand)]" />
-            <h2 className="text-2xl font-semibold text-[var(--text-primary)]">How We Use Your Information</h2>
+        {/* Form Submissions */}
+        <section className="bg-[var(--bg-surface)] p-6 rounded-2xl border border-[var(--divider)]">
+          <div className="flex items-center gap-2.5 mb-3">
+            <FileText className="w-5 h-5 text-[var(--brand)] flex-shrink-0" />
+            <h2 className="text-lg font-semibold text-[var(--text-primary)]">Form Submissions</h2>
           </div>
-          <ul className="list-disc pl-5 space-y-2 text-[var(--text-secondary)]">
-            <li>To review, verify, and publish community submissions to our directory.</li>
-            <li>To communicate with you regarding your feedback, bug reports, or edits.</li>
-            <li>To ensure the security and integrity of our platform.</li>
-            <li>To maintain and improve the performance and usability of Miyomi.app.</li>
+          <p className="text-[var(--text-secondary)] text-sm mb-2">
+            When you submit an app, extension, feedback, or report, we store the data you type into the form. This may include:
+          </p>
+          <ul className="space-y-1.5 text-sm text-[var(--text-secondary)] mb-2">
+            <li className="flex items-start gap-2"><span className="text-[var(--brand)] mt-0.5">•</span>Your name and contact info <strong>(optional — you can submit anonymously)</strong></li>
+            <li className="flex items-start gap-2"><span className="text-[var(--brand)] mt-0.5">•</span>The content of your submission or feedback</li>
+            <li className="flex items-start gap-2"><span className="text-[var(--brand)] mt-0.5">•</span>Basic device info (browser, OS, screen size) attached to reports for debugging</li>
+          </ul>
+          <p className="text-xs text-[var(--text-secondary)] opacity-70">
+            This data is stored in our database (hosted on Supabase) and is only accessed by site administrators for review purposes.
+          </p>
+        </section>
+
+        {/* What We DON'T Do */}
+        <section className="bg-[var(--bg-surface)] p-6 rounded-2xl border border-[var(--divider)]">
+          <div className="flex items-center gap-2.5 mb-3">
+            <Shield className="w-5 h-5 text-green-500 flex-shrink-0" />
+            <h2 className="text-lg font-semibold text-[var(--text-primary)]">What We Don't Do</h2>
+          </div>
+          <ul className="space-y-1.5 text-sm text-[var(--text-secondary)]">
+            <li className="flex items-start gap-2"><span className="text-green-500 mt-0.5">✗</span>No Google Analytics or any third-party analytics</li>
+            <li className="flex items-start gap-2"><span className="text-green-500 mt-0.5">✗</span>No tracking cookies or advertising pixels</li>
+            <li className="flex items-start gap-2"><span className="text-green-500 mt-0.5">✗</span>No selling, renting, or sharing your data with third parties</li>
+            <li className="flex items-start gap-2"><span className="text-green-500 mt-0.5">✗</span>No cross-site tracking of any kind</li>
+            <li className="flex items-start gap-2"><span className="text-green-500 mt-0.5">✗</span>No user accounts required for browsing</li>
           </ul>
         </section>
 
-        {/* Data Security */}
-        <section className="bg-[var(--bg-surface)] p-8 rounded-2xl border border-[var(--divider)]">
-          <div className="flex items-center gap-3 mb-4">
-            <Lock className="w-6 h-6 text-[var(--brand)]" />
-            <h2 className="text-2xl font-semibold text-[var(--text-primary)]">Data Security & Sharing</h2>
+        {/* Third-Party Links & Disclaimer */}
+        <section id="disclaimer" className="bg-[var(--bg-surface)] p-6 rounded-2xl border border-[var(--divider)]">
+          <div className="flex items-center gap-2.5 mb-3">
+            <Globe className="w-5 h-5 text-[var(--brand)] flex-shrink-0" />
+            <h2 className="text-lg font-semibold text-[var(--text-primary)]">Third-Party Links & Disclaimer</h2>
           </div>
-          <p className="text-[var(--text-secondary)] mb-4">
-            The security of your data is important to us. Our backend infrastructure is hosted on Supabase, which provides robust security measures. We do not sell, trade, or otherwise transfer your personally identifiable information to outside parties.
+          <p className="text-[var(--text-secondary)] text-sm mb-2">
+            Miyomi is a directory — we list apps and extensions but <strong>have no affiliation</strong> with their developers. We don't guarantee external links are safe or functional. Use them at your own discretion.
           </p>
-          <p className="text-[var(--text-secondary)]">
-            We may disclose your personal information only if required to do so by law or in response to valid requests by public authorities.
+          <p className="text-[var(--text-secondary)] text-sm">
+            If you find a suspicious or broken listing, please report it using the feedback button so we can investigate.
           </p>
         </section>
 
-        {/* Disclaimer */}
-        <section id="disclaimer" className="bg-[var(--bg-surface)] p-8 rounded-2xl border border-[var(--divider)]">
-          <div className="flex items-center gap-3 mb-4">
-            <Shield className="w-6 h-6 text-[var(--brand)]" />
-            <h2 className="text-2xl font-semibold text-[var(--text-primary)]">Disclaimer of Liability & Affiliation</h2>
+        {/* Contact & Data Removal */}
+        <section className="bg-[var(--bg-surface)] p-6 rounded-2xl border border-[var(--divider)]">
+          <div className="flex items-center gap-2.5 mb-3">
+            <Mail className="w-5 h-5 text-[var(--brand)] flex-shrink-0" />
+            <h2 className="text-lg font-semibold text-[var(--text-primary)]">Contact & Data Removal</h2>
           </div>
-          <p className="text-[var(--text-secondary)] mb-4">
-            Miyomi acts exclusively as a directory and index. We have <strong>no affiliation</strong> with the developers, creators, or publishers of any apps, extensions, or resources listed on our website.
-          </p>
-          <p className="text-[var(--text-secondary)] mb-4">
-            <strong>Limitation of Liability:</strong> Miyomi provides this directory on an "as-is" and "as-available" basis. We do not warrant that external links, extensions, or applications indexed here are safe, secure, or compatible with your device. We expressly disclaim all liability for any technical disruptions, system errors, data loss, or other adverse effects arising from your interaction with third-party tools.
-          </p>
-          <p className="text-[var(--text-secondary)]">
-            <strong>Help us keep the community safe:</strong> If you notice any suspicious or compromised listings, please use the Feedback button to report them for immediate investigation.
-          </p>
-        </section>
-
-        {/* Third Party Links */}
-        <section className="bg-[var(--bg-surface)] p-8 rounded-2xl border border-[var(--divider)]">
-          <h2 className="text-2xl font-semibold mb-4 text-[var(--text-primary)]">Third-Party Links</h2>
-          <p className="text-[var(--text-secondary)]">
-            Miyomi.app acts as a directory and contains links to third-party applications, extensions, and websites. We have no control over and assume no responsibility for the content, privacy policies, or practices of any third-party sites or services. We encourage you to read their respective privacy policies.
-          </p>
-        </section>
-
-        {/* Changes */}
-        <section className="bg-[var(--bg-surface)] p-8 rounded-2xl border border-[var(--divider)]">
-          <h2 className="text-2xl font-semibold mb-4 text-[var(--text-primary)]">Changes to This Privacy Policy</h2>
-          <p className="text-[var(--text-secondary)] mb-4">
-            We may update our Privacy Policy from time to time. Any changes will be posted on this page with an updated revision date.
-          </p>
-        </section>
-
-        {/* Contact Us */}
-        <section className="bg-[var(--bg-surface)] p-8 rounded-2xl border border-[var(--divider)]">
-          <h2 className="text-2xl font-semibold mb-4 text-[var(--text-primary)]">Contact Us</h2>
-          <p className="text-[var(--text-secondary)]">
-            If you have any questions about this Privacy Policy or wish to request the removal of your data, please contact us via our GitHub repository or use our feedback forms available on the site.
+          <p className="text-[var(--text-secondary)] text-sm">
+            Want your submission data removed? Reach out via our GitHub repository or use the feedback forms on the site. We may update this policy occasionally — the date at the top always reflects the latest version.
           </p>
         </section>
 
