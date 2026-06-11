@@ -21,6 +21,7 @@ import { SearchPage } from "./pages/SearchPage";
 import { DonatePage } from "./pages/DonatePage";
 import { SubmitPage } from "./pages/SubmitPage";
 import { ChristmasSnow } from './components/ChristmasSnow';
+import { Preloader } from './components/Preloader';
 import { AdminLoginPage } from './pages/admin/AdminLoginPage';
 import { UnauthorizedPage } from './pages/UnauthorizedPage';
 import { PrivacyPolicyPage } from './pages/PrivacyPolicyPage';
@@ -270,11 +271,14 @@ export default function App() {
 
     document.documentElement.classList.remove("light", "dark");
     document.documentElement.classList.add(initialTheme);
-    setMounted(true);
+    // Minimum 2 seconds delay to show the preloader animation
+    setTimeout(() => {
+      setMounted(true);
+    }, 2000);
   }, []);
 
   if (!mounted) {
-    return null;
+    return <Preloader fullScreen />;
   }
 
   return (
