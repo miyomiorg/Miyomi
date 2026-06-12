@@ -137,12 +137,10 @@ export function Navbar({
   // ];
 
   const socialLinks = [
-    // { icon: <Facebook className="w-5 h-5" />, label: 'Facebook', link: 'https://www.facebook.com/iitachiyomi' },
-    { icon: <DiscordIcon className="w-5 h-5" />, label: 'Discord', link: 'https://discord.gg/hfYtH9hrRm', color: '#5865F2' },
-    // { icon: <TelegramIcon className="w-5 h-5" />, label: 'Telegram', link: 'https://t.me/iitachiyomi', color: '#1877F2' },
-    // { icon: <Youtube className="w-5 h-5" />, label: 'YouTube', link: 'https://www.youtube.com/@iitachiyomi' },
-    // { icon: <Instagram className="w-5 h-5" />, label: 'Instagram', link: 'https://www.instagram.com/iitachiyomi/' },
-    { icon: <Github className="w-5 h-5" />, label: 'GitHub', link: 'https://github.com/tas33n/miyomi' },
+    { icon: <DiscordIcon className="w-5 h-5" />, label: 'Discord', link: 'https://discord.gg/hfYtH9hrRm', color: '#5865F2', showDesktop: true, showMobile: true },
+    { icon: <Github className="w-5 h-5" />, label: 'GitHub', link: 'https://github.com/tas33n/miyomi', showDesktop: true, showMobile: true },
+    { icon: <TelegramIcon className="w-5 h-5" />, label: 'Telegram', link: 'https://t.me/iitachiyomi', color: '#1877F2', showDesktop: false, showMobile: true },
+    { icon: <Youtube className="w-5 h-5" />, label: 'YouTube', link: 'https://www.youtube.com/@iitachiyomi', color: '#FF0000', showDesktop: false, showMobile: true },
   ];
 
   const handleClick = (path: string) => {
@@ -348,7 +346,7 @@ export function Navbar({
 
             {/* Social Links */}
             <div className="flex items-center gap-0.5">
-              {socialLinks.map((social, index) => (
+              {socialLinks.filter(social => social.showDesktop).map((social, index) => (
                 <a
                   key={index}
                   href={social.link}
@@ -484,7 +482,7 @@ export function Navbar({
               Join Our Community
             </h4>
             <div className="flex flex-wrap gap-2">
-              {socialLinks.map((social, index) => (
+              {socialLinks.filter(social => social.showMobile).map((social, index) => (
                 <a
                   key={index}
                   href={social.link}
