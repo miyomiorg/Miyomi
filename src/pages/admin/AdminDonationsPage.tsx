@@ -25,7 +25,7 @@ interface PaymentMethodItem {
   type?: 'link' | 'details'; details?: PaymentMethodDetails;
 }
 interface TransparencyItem { label: string; value: string; }
-interface DisplaySettings { showDonationAmounts: boolean; transparencyLastUpdated: string; }
+interface DisplaySettings { showDonationAmounts: boolean; showGoal: boolean; transparencyLastUpdated: string; }
 interface CurrencyItem { code: string; name: string; symbol: string; rate: number; isPrimary: boolean; }
 
 const todayStr = () => new Date().toISOString().split('T')[0];
@@ -33,7 +33,7 @@ const emptyDonor = { donor_name: '', amount: 0, currency: 'USD', message: '', pa
 
 /* ═══════════════════════════════════════════════ */
 export function AdminDonationsPage() {
-  const [tab, setTab] = useState<'donators' | 'goal' | 'methods' | 'transparency' | 'display' | 'currencies'>('donators');
+  const [tab, setTab] = useState<'donators' | 'goal' | 'methods' | 'transparency' | 'where_funds' | 'display' | 'currencies'>('donators');
 
   // ── donators state ──
   const [donations, setDonations] = useState<DonationRow[]>([]);
@@ -49,7 +49,8 @@ export function AdminDonationsPage() {
   const [goal, setGoal] = useState<GoalSettings>({ title: '', description: '', targetAmount: 25, currentAmount: 0, currency: 'USD' });
   const [methods, setMethods] = useState<PaymentMethodItem[]>([]);
   const [transparency, setTransparency] = useState<TransparencyItem[]>([]);
-  const [display, setDisplay] = useState<DisplaySettings>({ showDonationAmounts: true, transparencyLastUpdated: '' });
+  const [whereFundsGo, setWhereFundsGo] = useState<TransparencyItem[]>([]);
+  const [display, setDisplay] = useState<DisplaySettings>({ showDonationAmounts: true, showGoal: false, transparencyLastUpdated: '' });
   const [loadingS, setLoadingS] = useState(true);
   const [savingS, setSavingS] = useState(false);
   const [autoCalcGoal, setAutoCalcGoal] = useState(false);
@@ -70,6 +71,11 @@ export function AdminDonationsPage() {
   const [editTransIdx, setEditTransIdx] = useState<number | null>(null);
   const [transForm, setTransForm] = useState<TransparencyItem>({ label: '', value: '' });
 
+  // where funds go editor
+  const [fundModalOpen, setFundModalOpen] = useState(false);
+  const [editFundIdx, setEditFundIdx] = useState<number | null>(null);
+  const [fundForm, setFundForm] = useState<TransparencyItem>({ label: '', value: '' });
+
   useEffect(() => { fetchDonations(); fetchSettings(); }, []);
 
   /* ─── data fetchers ─── */
@@ -87,7 +93,8 @@ export function AdminDonationsPage() {
         if (s.key === 'goal' && v) { setGoal(v); setAutoCalcGoal(!!v.autoCalc); }
         if (s.key === 'payment_methods' && Array.isArray(v)) setMethods(v);
         if (s.key === 'transparency' && Array.isArray(v)) setTransparency(v);
-        if (s.key === 'display' && v) setDisplay(v);
+        if (s.key === 'where_funds_go' && Array.isArray(v)) setWhereFundsGo(v);
+        if (s.key === 'display' && v) setDisplay({ showDonationAmounts: v.showDonationAmounts ?? true, showGoal: v.showGoal ?? false, transparencyLastUpdated: v.transparencyLastUpdated ?? '' });
         if (s.key === 'currencies' && Array.isArray(v)) setCurrencies(v);
       }
     }
@@ -174,6 +181,17 @@ export function AdminDonationsPage() {
   }
   function removeTrans(idx: number) { const updated = transparency.filter((_, i) => i !== idx); setTransparency(updated); saveSetting('transparency', updated); }
 
+  /* ─── where funds go helpers ─── */
+  function openFundCreate() { setFundForm({ label: '', value: '' }); setEditFundIdx(null); setFundModalOpen(true); }
+  function openFundEdit(idx: number) { setFundForm({ ...whereFundsGo[idx] }); setEditFundIdx(idx); setFundModalOpen(true); }
+  function saveFund() {
+    const updated = [...whereFundsGo];
+    if (editFundIdx !== null) { updated[editFundIdx] = fundForm; } else { updated.push(fundForm); }
+    setWhereFundsGo(updated); setFundModalOpen(false); saveSetting('where_funds_go', updated);
+  }
+  function removeFund(idx: number) { const updated = whereFundsGo.filter((_, i) => i !== idx); setWhereFundsGo(updated); saveSetting('where_funds_go', updated); }
+
+
   /* ─── tab styles ─── */
   const tabCls = (t: string) => `px-4 py-2 text-sm font-medium rounded-lg transition-colors ${tab === t ? 'bg-[var(--brand)]/10 text-[var(--brand)]' : 'text-[var(--text-secondary)] hover:bg-[var(--bg-elev-1)]'}`;
 
@@ -196,6 +214,7 @@ export function AdminDonationsPage() {
         <button className={tabCls('goal')} onClick={() => setTab('goal')}><DollarSign className="w-4 h-4 inline mr-1.5" />Goal</button>
         <button className={tabCls('methods')} onClick={() => setTab('methods')}><CreditCard className="w-4 h-4 inline mr-1.5" />Payment Methods</button>
         <button className={tabCls('transparency')} onClick={() => setTab('transparency')}><Eye className="w-4 h-4 inline mr-1.5" />Transparency</button>
+        <button className={tabCls('where_funds')} onClick={() => setTab('where_funds')}><Heart className="w-4 h-4 inline mr-1.5" />Where Funds Go</button>
         <button className={tabCls('display')} onClick={() => setTab('display')}><Settings className="w-4 h-4 inline mr-1.5" />Display</button>
         <button className={tabCls('currencies')} onClick={() => setTab('currencies')}><Coins className="w-4 h-4 inline mr-1.5" />Currencies</button>
       </div>
@@ -479,6 +498,40 @@ export function AdminDonationsPage() {
         </div>
       )}
 
+      {/* ════════ WHERE FUNDS GO TAB ════════ */}
+      {tab === 'where_funds' && (
+        <div className="rounded-xl border p-6" style={{ background: 'var(--bg-surface)', borderColor: 'var(--divider)' }}>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="font-semibold" style={{ color: 'var(--text-primary)' }}>Where Funds Go Items</h2>
+            <AdminButton onClick={openFundCreate}><Plus className="w-4 h-4" /> Add</AdminButton>
+          </div>
+          {whereFundsGo.length === 0 ? (
+            <EmptyState icon={Eye} title="No items" description="Add where funds go items" />
+          ) : (
+            <div className="space-y-2">
+              {whereFundsGo.map((t, i) => (
+                <div key={i} className="rounded-xl border p-3 flex items-center gap-3" style={{ background: 'var(--bg-page)', borderColor: 'var(--divider)' }}>
+                  <div className="flex-1"><span className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{t.label}</span></div>
+                  <span className="text-sm" style={{ color: 'var(--text-secondary)' }}>{t.value}</span>
+                  <button onClick={() => openFundEdit(i)} className="p-1.5 rounded-lg" style={{ color: 'var(--text-secondary)' }}><Pencil className="w-4 h-4" /></button>
+                  <button onClick={() => removeFund(i)} className="p-1.5 rounded-lg" style={{ color: 'var(--text-secondary)' }}><Trash2 className="w-4 h-4" /></button>
+                </div>
+              ))}
+            </div>
+          )}
+          <AdminModal open={fundModalOpen} onClose={() => setFundModalOpen(false)} title={editFundIdx !== null ? 'Edit Item' : 'Add Item'}>
+            <div className="space-y-4">
+              <AdminFormField label="Label" required><AdminInput value={fundForm.label} onChange={e => setFundForm(f => ({ ...f, label: e.target.value }))} placeholder="Platform infrastructure" /></AdminFormField>
+              <AdminFormField label="Value" required><AdminInput value={fundForm.value} onChange={e => setFundForm(f => ({ ...f, value: e.target.value }))} placeholder="~100%" /></AdminFormField>
+              <div className="flex justify-end gap-2 pt-2">
+                <AdminButton variant="secondary" onClick={() => setFundModalOpen(false)}>Cancel</AdminButton>
+                <AdminButton onClick={saveFund} disabled={!fundForm.label || !fundForm.value}>Save</AdminButton>
+              </div>
+            </div>
+          </AdminModal>
+        </div>
+      )}
+
       {/* ════════ DISPLAY TAB ════════ */}
       {tab === 'display' && (
         <div className="rounded-xl border p-6" style={{ background: 'var(--bg-surface)', borderColor: 'var(--divider)' }}>
@@ -488,7 +541,10 @@ export function AdminDonationsPage() {
               <input type="checkbox" checked={display.showDonationAmounts} onChange={e => setDisplay(d => ({ ...d, showDonationAmounts: e.target.checked }))} className="rounded" />
               Show donation amounts on public page
             </label>
-            <AdminFormField label="Transparency Last Updated"><AdminInput value={display.transparencyLastUpdated} onChange={e => setDisplay(d => ({ ...d, transparencyLastUpdated: e.target.value }))} placeholder="May 2026" /></AdminFormField>
+            <label className="flex items-center gap-2 text-sm cursor-pointer" style={{ color: 'var(--text-primary)' }}>
+              <input type="checkbox" checked={display.showGoal} onChange={e => setDisplay(d => ({ ...d, showGoal: e.target.checked }))} className="rounded" />
+              Show donation goal progress bar on public page
+            </label>
             <div className="flex justify-end pt-2">
               <AdminButton onClick={() => saveSetting('display', display)} disabled={savingS}>{savingS ? 'Saving…' : 'Save Display Settings'}</AdminButton>
             </div>

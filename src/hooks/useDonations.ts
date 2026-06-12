@@ -15,12 +15,19 @@ export interface Donator {
   usdAmount?: number;
 }
 
+export interface FundAllocationItem {
+  label: string;
+  value: string;
+}
+
 interface UseDonationsReturn {
   donators: Donator[];
   goal: DonationGoal;
   paymentMethods: PaymentMethod[];
   transparencyItems: TransparencyItem[];
+  whereFundsGoItems: FundAllocationItem[];
   showDonationAmounts: boolean;
+  showGoal: boolean;
   transparencyLastUpdated: string;
   loading: boolean;
 }
@@ -38,7 +45,9 @@ export function useDonations(): UseDonationsReturn {
     goal: DEFAULT_GOAL,
     paymentMethods: [],
     transparencyItems: [],
+    whereFundsGoItems: [],
     showDonationAmounts: true,
+    showGoal: false,
     transparencyLastUpdated: '',
     loading: true,
   });
@@ -51,8 +60,10 @@ export function useDonations(): UseDonationsReturn {
       let goal: DonationGoal = DEFAULT_GOAL;
       let methods: PaymentMethod[] = [];
       let transparency: TransparencyItem[] = [];
+      let whereFundsGo: FundAllocationItem[] = [];
       let currencies: { code: string; rate: number }[] = [];
       let showAmounts = true;
+      let showGoal = false;
       let lastUpdated = '';
 
       let jsonFallbackUsed = false;
@@ -69,8 +80,10 @@ export function useDonations(): UseDonationsReturn {
             if (s.key === 'goal' && val) goal = val;
             if (s.key === 'payment_methods' && Array.isArray(val)) methods = val;
             if (s.key === 'transparency' && Array.isArray(val)) transparency = val;
+            if (s.key === 'where_funds_go' && Array.isArray(val)) whereFundsGo = val;
             if (s.key === 'display' && val) {
               showAmounts = val.showDonationAmounts ?? true;
+              showGoal = val.showGoal ?? false;
               lastUpdated = val.transparencyLastUpdated ?? '';
             }
             if (s.key === 'currencies' && Array.isArray(val)) currencies = val;
@@ -133,8 +146,10 @@ export function useDonations(): UseDonationsReturn {
               if (json.goal) goal = json.goal;
               if (json.paymentMethods) methods = json.paymentMethods;
               if (json.transparencyItems) transparency = json.transparencyItems;
+              if (json.whereFundsGoItems) whereFundsGo = json.whereFundsGoItems;
               if (json.display) {
                 showAmounts = json.display.showDonationAmounts ?? true;
+                showGoal = json.display.showGoal ?? false;
                 lastUpdated = json.display.transparencyLastUpdated ?? '';
               }
             }
@@ -154,7 +169,9 @@ export function useDonations(): UseDonationsReturn {
           goal,
           paymentMethods: methods,
           transparencyItems: transparency,
+          whereFundsGoItems: whereFundsGo,
           showDonationAmounts: showAmounts,
+          showGoal,
           transparencyLastUpdated: lastUpdated,
           loading: false,
         });

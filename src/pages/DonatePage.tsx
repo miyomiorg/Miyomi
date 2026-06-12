@@ -35,41 +35,43 @@ import { type PaymentMethod } from '@/integrations/supabase/types';
 
 /* ───── brand colors per payment provider ───── */
 const BRAND_COLORS: Record<string, { bg: string; accent: string; text: string }> = {
-  bkash:      { bg: '#E2136E', accent: '#C70D5A', text: '#fff' },
-  nagad:      { bg: '#F6921E', accent: '#E07D0D', text: '#fff' },
-  rocket:     { bg: '#8B2F8B', accent: '#722778', text: '#fff' },
-  upay:       { bg: '#00A651', accent: '#008C44', text: '#fff' },
-  upi:        { bg: '#5F259F', accent: '#4A1D7D', text: '#fff' },
-  paytm:      { bg: '#00BAF2', accent: '#0098C8', text: '#fff' },
-  gcash:      { bg: '#007DFE', accent: '#0065CC', text: '#fff' },
-  maya:       { bg: '#2BC44D', accent: '#22A33E', text: '#fff' },
-  grabpay:    { bg: '#00B14F', accent: '#008D3F', text: '#fff' },
-  dana:       { bg: '#118EEA', accent: '#0D73BF', text: '#fff' },
-  gopay:      { bg: '#00AED6', accent: '#008EB0', text: '#fff' },
-  paypal:     { bg: '#003087', accent: '#002266', text: '#fff' },
-  bitcoin:    { bg: '#F7931A', accent: '#D97F15', text: '#fff' },
-  ethereum:   { bg: '#627EEA', accent: '#4A65CC', text: '#fff' },
-  usdt:       { bg: '#26A17B', accent: '#1E8264', text: '#fff' },
-  wise:       { bg: '#9FE870', accent: '#7CC755', text: '#1A1A2E' },
-  bank:       { bg: '#1A1A2E', accent: '#111122', text: '#fff' },
-  contact:    { bg: '#6C5CE7', accent: '#5A4BD1', text: '#fff' },
-  razorpay:   { bg: '#0B6CBB', accent: '#085699', text: '#fff' },
+  bkash: { bg: '#E2136E', accent: '#C70D5A', text: '#fff' },
+  nagad: { bg: '#F6921E', accent: '#E07D0D', text: '#fff' },
+  rocket: { bg: '#8B2F8B', accent: '#722778', text: '#fff' },
+  upay: { bg: '#00A651', accent: '#008C44', text: '#fff' },
+  upi: { bg: '#5F259F', accent: '#4A1D7D', text: '#fff' },
+  paytm: { bg: '#00BAF2', accent: '#0098C8', text: '#fff' },
+  gcash: { bg: '#007DFE', accent: '#0065CC', text: '#fff' },
+  maya: { bg: '#2BC44D', accent: '#22A33E', text: '#fff' },
+  grabpay: { bg: '#00B14F', accent: '#008D3F', text: '#fff' },
+  dana: { bg: '#118EEA', accent: '#0D73BF', text: '#fff' },
+  gopay: { bg: '#00AED6', accent: '#008EB0', text: '#fff' },
+  paypal: { bg: '#003087', accent: '#002266', text: '#fff' },
+  bitcoin: { bg: '#F7931A', accent: '#D97F15', text: '#fff' },
+  ethereum: { bg: '#627EEA', accent: '#4A65CC', text: '#fff' },
+  usdt: { bg: '#26A17B', accent: '#1E8264', text: '#fff' },
+  wise: { bg: '#9FE870', accent: '#7CC755', text: '#1A1A2E' },
+  bank: { bg: '#1A1A2E', accent: '#111122', text: '#fff' },
+  contact: { bg: '#6C5CE7', accent: '#5A4BD1', text: '#fff' },
+  razorpay: { bg: '#0B6CBB', accent: '#085699', text: '#fff' },
 };
 
 /* ───── helper: pick icon by hint ───── */
 function PaymentIcon({ hint }: { hint: PaymentMethod['iconHint'] }) {
   const cls = 'w-5 h-5';
+  
+  // Custom logos for popular methods
+  if (hint === 'paypal') return <img src="https://upload.wikimedia.org/wikipedia/commons/b/b7/PayPal_Logo_Icon_2014.svg" className="w-5 h-5 object-contain" alt="PayPal" />;
+  if (hint === 'bitcoin' || hint === 'crypto') return <img src="https://upload.wikimedia.org/wikipedia/commons/4/46/Bitcoin.svg" className="w-5 h-5 object-contain" alt="Bitcoin" />;
+  if (hint === 'usdt') return <img src="https://cryptologos.cc/logos/tether-usdt-logo.svg" className="w-5 h-5 object-contain" alt="USDT" />;
+  if (hint === 'gcash') return (
+    <div className="w-5 h-5 overflow-hidden flex items-center justify-start shrink-0">
+      <img src="https://upload.wikimedia.org/wikipedia/commons/5/52/GCash_logo.svg" className="h-5 max-w-none" alt="GCash" />
+    </div>
+  );
+  if (hint === 'kofi' || hint === 'buymeacoffee') return <img src="https://storage.ko-fi.com/cdn/brandasset/v2/kofi_symbol.png" className="w-5 h-5 object-contain" alt="Ko-fi" />;
+
   switch (hint) {
-    case 'paypal':
-      return <CreditCard className={cls} />;
-    case 'gcash':
-      return <Smartphone className={cls} />;
-    case 'crypto':
-      return <Bitcoin className={cls} />;
-    case 'kofi':
-      return <Coffee className={cls} />;
-    case 'buymeacoffee':
-      return <Coffee className={cls} />;
     case 'patreon':
       return <Star className={cls} />;
     case 'stripe':
@@ -224,7 +226,7 @@ function PaymentDetailModal({ method, onClose }: { method: PaymentMethod | null;
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          className="fixed inset-0 z-[100] flex items-center justify-center p-4 pt-20 md:pt-24 pb-6"
           onClick={onClose}
         >
           {/* Backdrop */}
@@ -237,12 +239,12 @@ function PaymentDetailModal({ method, onClose }: { method: PaymentMethod | null;
             exit={{ opacity: 0, scale: 0.92, y: 20 }}
             transition={{ type: 'spring', damping: 25, stiffness: 350 }}
             onClick={(e) => e.stopPropagation()}
-            className="relative w-full max-w-md rounded-2xl overflow-hidden border border-[var(--divider)]"
+            className="relative w-full max-w-md rounded-2xl overflow-hidden border border-[var(--divider)] flex flex-col max-h-full"
             style={{ background: 'var(--bg-surface)' }}
           >
             {/* Branded Header */}
             <div
-              className="relative px-6 py-5 flex items-center gap-4"
+              className="relative px-6 py-5 flex items-center gap-4 flex-shrink-0"
               style={{
                 background: brand
                   ? `linear-gradient(135deg, ${brand.bg}, ${brand.accent})`
@@ -269,7 +271,7 @@ function PaymentDetailModal({ method, onClose }: { method: PaymentMethod | null;
             </div>
 
             {/* Content */}
-            <div className="p-6 space-y-3">
+            <div className="p-6 space-y-3 overflow-y-auto min-h-0">
               {details?.instructions && (
                 <p className="text-sm text-[var(--text-secondary)] mb-4 leading-relaxed">
                   {details.instructions}
@@ -337,7 +339,9 @@ export function DonatePage() {
     goal: donationGoal,
     paymentMethods,
     transparencyItems,
+    whereFundsGoItems,
     showDonationAmounts,
+    showGoal,
     transparencyLastUpdated,
     loading,
   } = useDonations();
@@ -347,12 +351,36 @@ export function DonatePage() {
     ? Math.min((donationGoal.currentAmount / donationGoal.targetAmount) * 100, 100)
     : 0;
 
-  const enabledMethods = paymentMethods.filter((m) => m.enabled);
+  const enabledMethods = paymentMethods.filter(m => m.enabled).sort((a, b) => {
+    const isContactA = a.iconHint === 'contact' || a.label.toLowerCase().includes('contact');
+    const isContactB = b.iconHint === 'contact' || b.label.toLowerCase().includes('contact');
+    if (isContactA && !isContactB) return 1;
+    if (!isContactA && isContactB) return -1;
+    return 0;
+  });
+
+  const annualCostTotal = transparencyItems.reduce((acc, item) => {
+    const num = parseFloat(item.value.replace(/[^0-9.]/g, ''));
+    if (isNaN(num)) return acc;
+    if (item.value.toLowerCase().includes('mo')) {
+      return acc + (num * 12);
+    }
+    return acc + num;
+  }, 0);
+
+  const displayWhereFundsGo = whereFundsGoItems;
+  const hasWhereFundsGo = displayWhereFundsGo.length > 0;
+
+  const sortedDonators = [...donators].sort((a, b) => {
+    const amountA = a.usdAmount ?? a.amount;
+    const amountB = b.usdAmount ?? b.amount;
+    return amountB - amountA;
+  });
 
   return (
-    <div className="max-w-4xl mx-auto px-4 md:px-6 py-6 md:py-12">
+    <div className="max-w-7xl mx-auto px-4 md:px-6 py-6 md:py-12 space-y-6">
       {/* ── HERO ── */}
-      <section className="mb-10 md:mb-14 text-center">
+      <section className="mb-10 text-center">
         <Chip>Support Miyomi</Chip>
 
         <motion.h1
@@ -378,95 +406,189 @@ export function DonatePage() {
           transition={{ duration: 0.45, delay: 0.1 }}
           className="text-[var(--text-secondary)] font-['Inter',sans-serif] max-w-2xl mx-auto text-[15.5px] leading-7"
         >
-          Miyomi is a free, community-driven library for apps, extensions,
-          repositories, guides, and tutorials. As the platform keeps growing,
-          infrastructure and hosting costs are becoming harder to sustain on
-          free-tier services alone.
+          Miyomi is a free, community-driven library for apps, extensions, repositories, guides, and tutorials.
+          <br className="hidden md:block" />Your support helps keep the project independent and accessible to everyone.
         </motion.p>
       </section>
 
-      {/* ── GOAL PROGRESS ── */}
-      <motion.section
-        initial={{ opacity: 0, y: 12 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4, delay: 0.15 }}
-        className="mb-8"
-      >
-        <Card>
-          <div className="flex items-center gap-2 mb-4">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--chip-bg)] text-[var(--brand)]">
-              <Sparkles className="w-5 h-5" />
+      {/* ── GOAL PROGRESS (Conditional) ── */}
+      {showGoal && (
+        <motion.section
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, delay: 0.15 }}
+        >
+          <Card>
+            <div className="flex items-center gap-2 mb-4">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--chip-bg)] text-[var(--brand)]">
+                <Sparkles className="w-5 h-5" />
+              </div>
+              <div>
+                <h2 className="font-['Poppins',sans-serif] text-[var(--text-primary)] text-lg font-semibold">
+                  {donationGoal.title}
+                </h2>
+                <p className="text-[var(--text-secondary)] text-xs">
+                  {donationGoal.description}
+                </p>
+              </div>
             </div>
-            <div>
-              <h2 className="font-['Poppins',sans-serif] text-[var(--text-primary)] text-lg font-semibold">
-                {donationGoal.title}
-              </h2>
-              <p className="text-[var(--text-secondary)] text-xs">
-                {donationGoal.description}
-              </p>
+
+            {/* Progress bar */}
+            <div className="relative w-full h-5 bg-[var(--chip-bg)] rounded-full overflow-hidden">
+              <motion.div
+                className="absolute inset-y-0 left-0 rounded-full bg-gradient-to-r from-[var(--brand)] to-[var(--chart-3)]"
+                initial={{ width: 0 }}
+                animate={{ width: `${progressPercent}%` }}
+                transition={{ duration: 1.2, ease: 'easeOut', delay: 0.4 }}
+              />
+              <motion.div
+                className="absolute inset-y-0 left-0 rounded-full"
+                style={{
+                  width: `${progressPercent}%`,
+                  background:
+                    'linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.2) 50%, transparent 100%)',
+                  backgroundSize: '200% 100%',
+                }}
+                animate={{ backgroundPosition: ['200% 0', '-200% 0'] }}
+                transition={{ duration: 2, repeat: Infinity, ease: 'linear', delay: 1.5 }}
+              />
             </div>
-          </div>
 
-          {/* Progress bar */}
-          <div className="relative w-full h-5 bg-[var(--chip-bg)] rounded-full overflow-hidden">
-            <motion.div
-              className="absolute inset-y-0 left-0 rounded-full bg-gradient-to-r from-[var(--brand)] to-[var(--chart-3)]"
-              initial={{ width: 0 }}
-              animate={{ width: `${progressPercent}%` }}
-              transition={{ duration: 1.2, ease: 'easeOut', delay: 0.4 }}
-            />
-            {/* Shimmer effect */}
-            <motion.div
-              className="absolute inset-y-0 left-0 rounded-full"
-              style={{
-                width: `${progressPercent}%`,
-                background:
-                  'linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.2) 50%, transparent 100%)',
-                backgroundSize: '200% 100%',
-              }}
-              animate={{ backgroundPosition: ['200% 0', '-200% 0'] }}
-              transition={{ duration: 2, repeat: Infinity, ease: 'linear', delay: 1.5 }}
-            />
-          </div>
+            <div className="flex items-center justify-between mt-3 text-sm">
+              <span className="text-[var(--text-secondary)] font-['Inter',sans-serif]">
+                <span className="text-[var(--brand)] font-semibold">
+                  ${donationGoal.currentAmount}
+                </span>{' '}
+                raised of ${donationGoal.targetAmount}
+              </span>
+              <span className="text-[var(--text-secondary)] text-xs font-medium px-2 py-0.5 bg-[var(--chip-bg)] rounded-full">
+                {progressPercent.toFixed(0)}%
+              </span>
+            </div>
+          </Card>
+        </motion.section>
+      )}
 
-          <div className="flex items-center justify-between mt-3 text-sm">
-            <span className="text-[var(--text-secondary)] font-['Inter',sans-serif]">
-              <span className="text-[var(--brand)] font-semibold">
-                ${donationGoal.currentAmount}
-              </span>{' '}
-              raised of ${donationGoal.targetAmount}
-            </span>
-            <span className="text-[var(--text-secondary)] text-xs font-medium px-2 py-0.5 bg-[var(--chip-bg)] rounded-full">
-              {progressPercent.toFixed(0)}%
-            </span>
-          </div>
-        </Card>
-      </motion.section>
-
-      {/* ── PAYMENT METHODS ── */}
+      {/* ── TRANSPARENCY ── */}
       <motion.section
         initial={{ opacity: 0, y: 12 }}
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true }}
         transition={{ duration: 0.4 }}
-        className="mb-8"
+      >
+        <Card>
+          <div className="flex items-center gap-2 mb-1">
+            <Info className="w-5 h-5 text-[var(--brand)]" />
+            <h2 className="font-['Poppins',sans-serif] text-[var(--text-primary)] text-lg font-semibold">
+              Transparency
+            </h2>
+          </div>
+          <p className="text-[var(--text-secondary)] text-sm mb-6">
+            Clear, simple, and open. Here's how Miyomi is funded and maintained.
+          </p>
+
+          {/* Grid for desktop, stack for mobile */}
+          <div className={`grid grid-cols-1 md:grid-cols-2 ${hasWhereFundsGo ? 'lg:grid-cols-5' : 'lg:grid-cols-3'} gap-4 md:gap-6 mb-6`}>
+            
+            {/* Box 1: Annual Cost */}
+            <div className="lg:col-span-1 p-4 rounded-xl border border-[var(--divider)] bg-[var(--bg-page)] md:text-center flex flex-row md:flex-col items-center md:justify-center justify-between">
+              <div className="text-[var(--text-secondary)] text-sm md:text-xs font-semibold md:uppercase tracking-wider mb-0 md:mb-2 flex items-center gap-2 md:justify-center">
+                <Clock className="w-4 h-4 md:w-3.5 md:h-3.5" />
+                Annual Cost
+              </div>
+              <div className="text-right md:text-center">
+                <div className="text-lg md:text-3xl font-bold text-[var(--brand)] md:mb-1">
+                  ~${Math.round(annualCostTotal)} <span className="text-sm text-[var(--text-secondary)] font-normal">/ year</span>
+                </div>
+                <p className="hidden md:block text-xs text-[var(--text-secondary)]">Estimated total to run Miyomi</p>
+                <p className="hidden md:block text-[10px] text-[var(--text-secondary)] opacity-60 mt-1">All costs are in USD.</p>
+              </div>
+            </div>
+
+            {/* Box 2: Cost Breakdown */}
+            <div className="lg:col-span-2 p-4 rounded-xl border border-[var(--divider)] bg-[var(--bg-page)] min-w-0">
+              <div className="text-[var(--text-secondary)] text-sm md:text-xs font-semibold md:uppercase tracking-wider mb-4 flex items-center gap-2">
+                <Server className="w-4 h-4 md:w-3.5 md:h-3.5" />
+                Cost Breakdown
+              </div>
+              <div className="space-y-3 md:space-y-2">
+                {transparencyItems.map((item, i) => (
+                  <div key={i} className="flex items-center text-sm w-full min-w-0">
+                    <span className="text-[var(--text-secondary)] truncate flex-shrink min-w-0">{item.label}</span>
+                    <span className="flex-1 mx-2 border-b border-dotted border-[var(--text-secondary)] opacity-30 mt-1 min-w-[10px]" />
+                    <span className="text-[var(--text-primary)] font-medium whitespace-nowrap flex-shrink-0">{item.value}</span>
+                  </div>
+                ))}
+                <div className="pt-2 mt-2 border-t border-[var(--divider)] flex items-center w-full text-sm font-semibold min-w-0">
+                  <span className="text-[var(--text-primary)] truncate flex-shrink min-w-0">Total (USD / year)</span>
+                  <span className="flex-1 mx-2 border-b border-dotted border-[var(--text-secondary)] opacity-30 mt-1 min-w-[10px]" />
+                  <span className="text-[var(--brand)] whitespace-nowrap flex-shrink-0">~${Math.round(annualCostTotal)}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Box 3: Where Funds Go */}
+            {hasWhereFundsGo && (
+              <div className="lg:col-span-2 p-4 rounded-xl border border-[var(--divider)] bg-[var(--bg-page)] flex flex-col justify-between min-w-0">
+                <div>
+                  <div className="text-[var(--text-secondary)] text-sm md:text-xs font-semibold md:uppercase tracking-wider mb-4 flex items-center gap-2">
+                    <Heart className="w-4 h-4 md:w-3.5 md:h-3.5" />
+                    Where Funds Go
+                  </div>
+                  <ul className="space-y-3 md:space-y-2 mb-3">
+                    {displayWhereFundsGo.map((item, i) => (
+                      <li key={i} className="flex items-center text-sm w-full min-w-0">
+                        <span className="text-[var(--text-secondary)] flex items-center gap-2 truncate flex-shrink min-w-0">
+                          <span className="w-1 h-1 rounded-full bg-pink-400 shrink-0" />
+                          <span className="truncate">{item.label}</span>
+                        </span>
+                        <span className="flex-1 mx-2 border-b border-dotted border-[var(--text-secondary)] opacity-30 mt-1 min-w-[10px]" />
+                        <span className="text-[var(--text-primary)] font-medium text-xs whitespace-nowrap flex-shrink-0">{item.value}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+                <div className="pt-3 border-t border-[var(--divider)] hidden md:block">
+                  <p className="text-xs text-[var(--text-secondary)]">No salaries. No profit.<br />100% goes toward keeping Miyomi online.</p>
+                </div>
+              </div>
+            )}
+
+          </div>
+
+          {/* Info box */}
+          <div className="p-4 rounded-xl bg-[var(--brand)]/5 border border-[var(--brand)]/20 flex items-start gap-3">
+            <Info className="w-5 h-5 text-[var(--brand)] flex-shrink-0 mt-0.5" />
+            <p className="text-sm text-[var(--text-secondary)] leading-relaxed">
+              <span className="font-semibold text-[var(--text-primary)]">Why transparency matters:</span> Your contributions help cover real costs so Miyomi can remain free, open, and independent. We believe in open source—and open books.
+            </p>
+          </div>
+        </Card>
+      </motion.section>
+
+      {/* ── SUPPORT MIYOMI ── */}
+      <motion.section
+        initial={{ opacity: 0, y: 12 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true }}
+        transition={{ duration: 0.4 }}
       >
         <Card>
           <div className="flex items-center gap-2 mb-2">
-            <Gift className="w-5 h-5 text-[var(--brand)]" />
+            <Heart className="w-5 h-5 text-pink-500" />
             <h2 className="font-['Poppins',sans-serif] text-[var(--text-primary)] text-lg font-semibold">
-              Support Miyomi
+              Support method
             </h2>
           </div>
-          <p className="text-[var(--text-secondary)] text-sm mb-5">
-            Donations are completely optional and help us maintain hosting,
-            bandwidth, storage, and future improvements.
+          <p className="text-[var(--text-secondary)] text-sm mb-6">
+            Optional support. No paywalls, no premium access—ever.
           </p>
 
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4">
             {enabledMethods.map((method, i) => {
               const isLink = method.type === 'link' && method.url && method.url !== '#';
               const brandColor = BRAND_COLORS[method.iconHint];
+              const isLongText = method.label.length > 14;
 
               return (
                 <motion.button
@@ -484,86 +606,31 @@ export function DonatePage() {
                   transition={{ duration: 0.3, delay: i * 0.06 }}
                   whileHover={{ y: -3, scale: 1.03 }}
                   whileTap={{ scale: 0.97 }}
-                  className="group relative flex flex-col items-center gap-2 p-4 rounded-xl border border-[var(--divider)] bg-[var(--bg-page)] hover:shadow-lg transition-all text-center cursor-pointer"
+                  className={`group relative flex flex-col md:flex-row items-center gap-3 p-3 md:p-4 rounded-xl border border-[var(--divider)] bg-[var(--bg-page)] hover:shadow-lg transition-all text-center md:text-left cursor-pointer ${isLongText ? 'col-span-2 sm:col-span-1' : 'col-span-1'}`}
                   style={{ borderColor: brandColor ? `${brandColor.bg}20` : undefined }}
                 >
-                  {/* Gradient hover glow */}
                   <div
                     className="absolute inset-0 rounded-xl opacity-0 group-hover:opacity-[0.08] transition-opacity"
                     style={{ background: brandColor ? `linear-gradient(135deg, ${brandColor.bg}, ${brandColor.accent})` : 'var(--brand)' }}
                   />
                   <div
-                    className="relative z-10 w-10 h-10 flex items-center justify-center rounded-lg group-hover:scale-110 transition-transform"
+                    className="relative z-10 w-10 h-10 flex items-center justify-center rounded-lg group-hover:scale-110 transition-transform shrink-0"
                     style={{ background: brandColor ? `${brandColor.bg}15` : 'var(--chip-bg)', color: brandColor?.bg || 'var(--brand)' }}
                   >
                     <PaymentIcon hint={method.iconHint} />
                   </div>
-                  <div className="relative z-10">
-                    <span className="block text-[var(--text-primary)] text-sm font-semibold font-['Poppins',sans-serif]">
+                  <div className="relative z-10 flex-1 min-w-0 w-full">
+                    <span className="block text-[var(--text-primary)] text-sm font-semibold font-['Poppins',sans-serif] truncate">
                       {method.label}
                     </span>
-                    <span className="block text-[var(--text-secondary)] text-[10px] mt-0.5 leading-tight">
+                    <span className="block text-[var(--text-secondary)] text-[10px] md:text-xs mt-0.5 leading-tight truncate">
                       {method.description}
                     </span>
                   </div>
-                  {isLink
-                    ? <ExternalLink className="absolute top-2 right-2 w-3 h-3 text-[var(--text-secondary)] opacity-0 group-hover:opacity-60 transition-opacity" />
-                    : <Info className="absolute top-2 right-2 w-3 h-3 text-[var(--text-secondary)] opacity-0 group-hover:opacity-60 transition-opacity" />
-                  }
                 </motion.button>
               );
             })}
           </div>
-
-          <p className="text-[var(--text-secondary)] text-xs mt-5 flex items-center gap-1.5">
-            <Heart className="w-3.5 h-3.5 text-[var(--brand)]" />
-            No paywalls. No premium access. Miyomi will remain free for everyone.
-          </p>
-        </Card>
-      </motion.section>
-
-      {/* ── TRANSPARENCY ── */}
-      <motion.section
-        initial={{ opacity: 0, y: 12 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        viewport={{ once: true }}
-        transition={{ duration: 0.4 }}
-        className="mb-8"
-      >
-        <Card>
-          <div className="flex items-center gap-2 mb-4">
-            <Clock className="w-5 h-5 text-[var(--brand)]" />
-            <h2 className="font-['Poppins',sans-serif] text-[var(--text-primary)] text-lg font-semibold">
-              Transparency
-            </h2>
-          </div>
-
-          <div className="space-y-0">
-            {transparencyItems.map((item, i) => (
-              <div
-                key={i}
-                className={`flex items-center justify-between py-3 ${
-                  i < transparencyItems.length - 1
-                    ? 'border-b border-[var(--divider)]'
-                    : ''
-                }`}
-              >
-                <div className="flex items-center gap-2.5">
-                  <TransparencyIcon label={item.label} />
-                  <span className="text-[var(--text-primary)] text-sm font-['Inter',sans-serif]">
-                    {item.label}
-                  </span>
-                </div>
-                <span className="text-[var(--text-secondary)] text-sm font-medium">
-                  {item.value}
-                </span>
-              </div>
-            ))}
-          </div>
-
-          <p className="text-[var(--text-secondary)] text-xs mt-4 opacity-60">
-            Last updated: {transparencyLastUpdated}
-          </p>
         </Card>
       </motion.section>
 
@@ -573,41 +640,42 @@ export function DonatePage() {
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true }}
         transition={{ duration: 0.4 }}
-        className="mb-8"
       >
         <Card>
-          <div className="flex items-center gap-2 mb-1">
-            <Users className="w-5 h-5 text-[var(--brand)]" />
-            <h2 className="font-['Poppins',sans-serif] text-[var(--text-primary)] text-lg font-semibold">
-              Our Supporters
-            </h2>
+          <div className="mb-4">
+            <div className="flex items-center gap-2 mb-1">
+              <Users className="w-5 h-5 text-[var(--brand)]" />
+              <h2 className="font-['Poppins',sans-serif] text-[var(--text-primary)] text-lg font-semibold">
+                Recent Supporters
+              </h2>
+            </div>
+            <p className="text-[var(--text-secondary)] text-sm">
+              Thanks to everyone who supports Miyomi.
+            </p>
           </div>
-          <p className="text-[var(--text-secondary)] text-sm mb-5">
-            Thank you to everyone who has contributed to keeping Miyomi alive.
-          </p>
 
           {loading ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {[...Array(4)].map((_, i) => (
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+              {[...Array(8)].map((_, i) => (
                 <div
                   key={i}
-                  className="h-20 rounded-xl bg-[var(--chip-bg)] animate-pulse"
+                  className="h-[100px] rounded-xl bg-[var(--chip-bg)] animate-pulse"
                 />
               ))}
             </div>
           ) : donators.length === 0 ? (
-            <div className="text-center py-10">
-              <Heart className="w-10 h-10 text-[var(--text-secondary)] opacity-30 mx-auto mb-3" />
+            <div className="text-center py-6 border border-[var(--divider)] rounded-xl">
+              <Heart className="w-8 h-8 text-[var(--text-secondary)] opacity-30 mx-auto mb-2" />
               <p className="text-[var(--text-secondary)] text-sm">
-                Be the first to support Miyomi!
+                Be the first!
               </p>
             </div>
           ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
-                {donators.map((donator, i) => (
-                  <DonatorCard key={`${donator.name}-${i}`} donator={donator} index={i} showDonationAmounts={showDonationAmounts} />
-                ))}
-              </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+              {sortedDonators.map((donator, i) => (
+                <DonatorCard key={i} donator={donator} index={i} showDonationAmounts={showDonationAmounts} />
+              ))}
+            </div>
           )}
         </Card>
       </motion.section>
@@ -618,26 +686,29 @@ export function DonatePage() {
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true }}
         transition={{ duration: 0.4 }}
-        className="mb-14"
       >
-        <Card className="text-center bg-gradient-to-br from-[var(--bg-surface)] to-[var(--chip-bg)]/30">
-          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-[var(--brand)] to-[var(--chart-3)] shadow-lg">
-            <MessageCircle className="w-7 h-7 text-white" />
-          </div>
-          <h2 className="font-['Poppins',sans-serif] text-[var(--text-primary)] text-xl font-semibold mb-2">
-            Message From The Team
-          </h2>
-          <p className="text-[var(--text-secondary)] font-['Inter',sans-serif] max-w-xl mx-auto text-[15px] leading-7">
-            What started as a small project became a growing platform used by
-            thousands of people discovering apps, repositories, and tutorials.
-            Thank you for supporting Miyomi and helping us keep the project alive.
-          </p>
-          <div className="mt-4 flex items-center justify-center gap-1 text-[var(--brand)] text-sm font-medium">
-            <Heart className="w-4 h-4 fill-current" />
-            <span>The Miyomi Team</span>
+        <Card className="bg-[var(--bg-surface)]">
+          <div className="flex items-center gap-5">
+            <div className="flex h-16 w-16 flex-shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-[#cbe5fb] to-[#9db8f7] overflow-hidden">
+              <img src="/polic.png" alt="Miyomi" className="w-14 h-14 object-contain mt-2" />
+            </div>
+            <div>
+              <h2 className="font-['Poppins',sans-serif] text-[var(--text-primary)] text-base font-semibold mb-1">
+                From The Team
+              </h2>
+              <p className="text-[var(--text-secondary)] font-['Inter',sans-serif] text-sm leading-relaxed mb-2">
+                Miyomi started as a small project and grew thanks to an amazing community.<br className="hidden md:block" />
+                Your support—big or small—helps keep Miyomi alive.
+              </p>
+              <div className="flex items-center gap-1 text-[var(--brand)] text-sm font-semibold">
+                <Heart className="w-3.5 h-3.5 fill-current" />
+                <span>Thank you!</span>
+              </div>
+            </div>
           </div>
         </Card>
       </motion.section>
+
       {/* ── PAYMENT DETAIL MODAL ── */}
       <PaymentDetailModal method={selectedMethod} onClose={() => setSelectedMethod(null)} />
     </div>
