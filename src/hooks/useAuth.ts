@@ -16,7 +16,9 @@ export function useAuth() {
 
   useEffect(() => {
     supabase.auth.getSession().then(async ({ data: { session: restored } }) => {
-      if (!REMEMBER_SESSION && restored && !sessionStorage.getItem(SESSION_ACTIVE_KEY)) {
+      const isOAuthCallback = localStorage.getItem('auth_start') === 'true';
+
+      if (!REMEMBER_SESSION && restored && !sessionStorage.getItem(SESSION_ACTIVE_KEY) && !isOAuthCallback) {
         await supabase.auth.signOut();
         setSession(null);
         setUser(null);
