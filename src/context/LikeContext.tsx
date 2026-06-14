@@ -1,6 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
-import { getDeviceFingerprint, getUserAgentHash } from '../utils/deviceFingerprint';
-import { collectDeviceInfo } from '../utils/deviceInfo';
+import { getDeviceFingerprint } from '../utils/deviceFingerprint';
 import { voteStorage, type VoteRegistry } from '../utils/voteStorage';
 
 export interface LikeData {
@@ -97,9 +96,6 @@ export function LikeProvider({ children }: { children: React.ReactNode }) {
                     fingerprintRef.current = fingerprint;
                 }
 
-                const uaHash = await getUserAgentHash();
-                const deviceInfo = collectDeviceInfo();
-
                 const res = await fetch(
                     `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/like`,
                     {
@@ -112,9 +108,6 @@ export function LikeProvider({ children }: { children: React.ReactNode }) {
                             itemId,
                             itemType,
                             fingerprint: fingerprintRef.current,
-                            fingerprintMethod: 'canvas+hardware',
-                            userAgentHash: uaHash,
-                            deviceInfo,
                         }),
                     }
                 );
