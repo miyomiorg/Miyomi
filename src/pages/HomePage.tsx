@@ -168,10 +168,11 @@ export function HomePage({ onNavigate }: HomePageProps) {
 
             {/* Autocomplete Suggestions Box */}
             {isSearchFocused && searchQuery.trim().length > 0 && (
-              <div
-                className="absolute top-full left-0 right-0 mt-2 glass rounded-2xl z-50 animate-fade-in font-['Inter',sans-serif]"
-              >
-                <div className="max-h-60 overflow-y-auto py-2">
+              <div className="absolute top-full left-0 right-0 mt-2 z-50">
+                <div
+                  className="bg-[var(--bg-surface)]/70 backdrop-blur-md border border-[var(--divider)] rounded-2xl font-['Inter',sans-serif] overflow-hidden w-full shadow-lg"
+                >
+                  <div className="max-h-60 overflow-y-auto py-2">
                   {searchResults.length === 0 ? (
                     <div className="px-4 py-3 text-xs text-[var(--text-secondary)] text-center">
                       No matches found
@@ -221,6 +222,7 @@ export function HomePage({ onNavigate }: HomePageProps) {
                       )}
                     </>
                   )}
+                </div>
                 </div>
               </div>
             )}
