@@ -145,15 +145,18 @@ export function HomePage({ onNavigate }: HomePageProps) {
               <input
                 id="hero-search-input"
                 type="text"
+                readOnly
                 placeholder="Search apps, extensions, guides..."
                 value={searchQuery}
-                onChange={(e) => {
-                  setSearchQuery(e.target.value);
-                  setIsSearchFocused(true);
+                onClick={(e) => {
+                  e.currentTarget.blur();
+                  window.dispatchEvent(new Event('open-search-modal'));
                 }}
-                onKeyDown={handleSearchKeyDown}
-                onFocus={() => setIsSearchFocused(true)}
-                className="flex-1 bg-transparent outline-none text-[var(--text-primary)] placeholder:text-[var(--text-secondary)] text-sm font-['Inter',sans-serif]"
+                onFocus={(e) => {
+                  e.currentTarget.blur();
+                  window.dispatchEvent(new Event('open-search-modal'));
+                }}
+                className="flex-1 bg-transparent outline-none text-[var(--text-primary)] placeholder:text-[var(--text-secondary)] text-sm font-['Inter',sans-serif] cursor-pointer"
               />
               {searchQuery && (
                 <button
@@ -166,7 +169,7 @@ export function HomePage({ onNavigate }: HomePageProps) {
               )}
             </div>
 
-            {/* Autocomplete Suggestions Box */}
+            {/* Autocomplete Suggestions Box (Temporarily Disabled)
             {isSearchFocused && searchQuery.trim().length > 0 && (
               <div className="absolute top-full left-0 right-0 mt-2 z-50">
                 <div
@@ -226,6 +229,7 @@ export function HomePage({ onNavigate }: HomePageProps) {
                 </div>
               </div>
             )}
+            */}
           </div>
 
           {/* Social Buttons - Centered Icon Only flex-row */}

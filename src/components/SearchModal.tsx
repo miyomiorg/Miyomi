@@ -95,13 +95,13 @@ export function SearchModal({ isOpen, onClose }: SearchModalProps) {
           />
 
           {/* Modal */}
-          <div className="fixed inset-0 z-[9999] flex items-start justify-center pt-[15vh] px-4 pointer-events-none">
+          <div className="fixed inset-0 z-[9999] flex items-start justify-center pt-4 sm:pt-12 md:pt-16 px-4 pointer-events-none">
             <motion.div
               initial={{ opacity: 0, scale: 0.95, y: -20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: -20 }}
               transition={{ duration: 0.2 }}
-              className="w-full max-w-2xl bg-[var(--bg-surface)]/80 backdrop-blur-lg rounded-2xl shadow-[0_8px_32px_rgba(0,0,0,0.1)] border border-[var(--divider)]/50 pointer-events-auto flex flex-col max-h-[70vh]"
+              className="w-full max-w-2xl bg-[var(--bg-surface)]/80 backdrop-blur-lg rounded-2xl shadow-[0_8px_32px_rgba(0,0,0,0.1)] border border-[var(--divider)]/50 pointer-events-auto flex flex-col max-h-[85dvh]"
             >
               {/* Header */}
               <div className="flex items-center justify-between p-4 border-b border-[var(--divider)] flex-shrink-0">

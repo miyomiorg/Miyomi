@@ -67,9 +67,16 @@ export function Navbar({
       setScrolled(window.scrollY > 20);
     };
 
+    const handleOpenSearchModal = () => setSearchModalOpen(true);
+
     handleScroll();
     window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
+    window.addEventListener('open-search-modal', handleOpenSearchModal);
+    
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+      window.removeEventListener('open-search-modal', handleOpenSearchModal);
+    };
   }, []);
 
   // Keyboard shortcut for search
