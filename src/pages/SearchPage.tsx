@@ -24,10 +24,11 @@ export function SearchPage({ onNavigate }: SearchPageProps) {
   const [activeFilter, setActiveFilter] = useState<SearchResultType | 'all'>('all');
 
   const [view, setView] = useState<'grid' | 'list'>(() => {
-    if (typeof window === 'undefined') return 'list';
-    const v = searchParams.get('view');
+    if (typeof window === 'undefined') return 'grid';
+    const params = new URLSearchParams(window.location.search);
+    const v = params.get('view');
     if (v === 'grid' || v === 'list') return v;
-    return (localStorage.getItem('miyomi_view_mode') as 'grid' | 'list') || 'list';
+    return (localStorage.getItem('miyomi_view_mode') as 'grid' | 'list') || 'grid';
   });
 
   useEffect(() => {
