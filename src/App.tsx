@@ -277,14 +277,11 @@ export default function App() {
     }, 2000);
   }, []);
 
-  if (!mounted) {
-    return <Preloader fullScreen />;
-  }
-
   return (
     <ThemeProvider>
       <BrowserRouter>
         <LikeProvider>
+          {!mounted && <Preloader topBar />}
           <AppContent />
         </LikeProvider>
       </BrowserRouter>

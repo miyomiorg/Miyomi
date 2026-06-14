@@ -2,19 +2,20 @@ import React, { useMemo } from 'react';
 
 interface PreloaderProps {
   fullScreen?: boolean;
+  topBar?: boolean;
 }
 
 // --- SPRITE CONFIGURATION ---
 const SPRITE_CONFIG = {
-  url: '/mascot-sprite-4.png',
+  url: '/mascot-run.png',
   width: 500, // Total width of the sprite sheet in pixels
   height: 500, // Total height of the sprite sheet in pixels
   cols: 4,
   rows: 3,
-  fps: 6, // frames per second
+  fps: 12, // frames per second
 };
 
-export function Preloader({ fullScreen = false }: PreloaderProps) {
+export function Preloader({ fullScreen = false, topBar = false }: PreloaderProps) {
 
   // Dynamically generate the keyframes for a 2D sprite grid
   const styleStr = useMemo(() => {
@@ -71,6 +72,45 @@ export function Preloader({ fullScreen = false }: PreloaderProps) {
       </div>
     </div>
   );
+
+  if (topBar) {
+    return (
+      <div className="fixed top-0 left-0 right-0 z-[9999] h-1 pointer-events-none">
+        <style>{styleStr}</style>
+        <style>
+          {`
+            @keyframes load-progress {
+              0% { width: 0%; }
+              50% { width: 70%; }
+              90% { width: 95%; }
+              100% { width: 100%; }
+            }
+            @keyframes run-across {
+              0% { left: 0%; transform: translateX(0); }
+              50% { left: 70%; transform: translateX(-50%); }
+              90% { left: 95%; transform: translateX(-100%); }
+              100% { left: 100%; transform: translateX(-100%); }
+            }
+          `}
+        </style>
+        {/* Progress Bar Line */}
+        <div
+          className="absolute top-0 left-0 h-full bg-[var(--brand)] shadow-[0_0_10px_var(--brand)]"
+          style={{ animation: 'load-progress 2s cubic-bezier(0.4, 0, 0.2, 1) forwards' }}
+        />
+        {/* Running Sprite container sitting on the bar */}
+        <div
+          className="absolute top-1"
+          style={{ animation: 'run-across 2s cubic-bezier(0.4, 0, 0.2, 1) forwards' }}
+        >
+          <div
+            className="w-6 md:w-8 h-auto grid-sprite-anim drop-shadow-md"
+            aria-label="Loading animation"
+          />
+        </div>
+      </div>
+    );
+  }
 
   if (fullScreen) {
     return (
