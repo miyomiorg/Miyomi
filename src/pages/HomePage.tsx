@@ -290,7 +290,7 @@ export function HomePage({ onNavigate }: HomePageProps) {
             {/* Software Card */}
             <div
               onClick={() => onNavigate?.('/software')}
-              className="relative overflow-hidden bg-[var(--bg-page)] border border-[var(--divider)]/50 rounded-2xl p-4 flex items-center gap-4 hover:border-blue-500/50 transition-colors cursor-pointer group shadow-sm"
+              className="relative overflow-hidden bg-[var(--bg-page)] border border-[var(--divider)]/50 rounded-2xl p-4 flex items-center gap-4 hover:border-blue-500/50 hover:scale-[1.02] hover:-translate-y-0.5 hover:shadow-md transition-all duration-300 cursor-pointer group shadow-sm"
             >
               {/* Background Count */}
               <div className="hidden md:block absolute right-12 top-1/2 -translate-y-1/2 text-6xl font-extrabold bg-gradient-to-l from-[var(--text-primary)] to-transparent bg-clip-text text-transparent opacity-5 dark:opacity-10 select-none pointer-events-none transition-transform duration-300 group-hover:scale-110 z-0">
@@ -310,7 +310,7 @@ export function HomePage({ onNavigate }: HomePageProps) {
             {/* Extensions Card */}
             <div
               onClick={() => onNavigate?.('/extensions')}
-              className="relative overflow-hidden bg-[var(--bg-page)] border border-[var(--divider)]/50 rounded-2xl p-4 flex items-center gap-4 hover:border-purple-500/50 transition-colors cursor-pointer group shadow-sm"
+              className="relative overflow-hidden bg-[var(--bg-page)] border border-[var(--divider)]/50 rounded-2xl p-4 flex items-center gap-4 hover:border-purple-500/50 hover:scale-[1.02] hover:-translate-y-0.5 hover:shadow-md transition-all duration-300 cursor-pointer group shadow-sm"
             >
               {/* Background Count */}
               <div className="hidden md:block absolute right-12 top-1/2 -translate-y-1/2 text-6xl font-extrabold bg-gradient-to-l from-[var(--text-primary)] to-transparent bg-clip-text text-transparent opacity-5 dark:opacity-10 select-none pointer-events-none transition-transform duration-300 group-hover:scale-110 z-0">
@@ -330,7 +330,7 @@ export function HomePage({ onNavigate }: HomePageProps) {
             {/* Guides Card */}
             <div
               onClick={() => onNavigate?.('/guides')}
-              className="relative overflow-hidden bg-[var(--bg-page)] border border-[var(--divider)]/50 rounded-2xl p-4 flex items-center gap-4 hover:border-orange-500/50 transition-colors cursor-pointer group shadow-sm"
+              className="relative overflow-hidden bg-[var(--bg-page)] border border-[var(--divider)]/50 rounded-2xl p-4 flex items-center gap-4 hover:border-orange-500/50 hover:scale-[1.02] hover:-translate-y-0.5 hover:shadow-md transition-all duration-300 cursor-pointer group shadow-sm"
             >
               {/* Background Count */}
               <div className="hidden md:block absolute right-12 top-1/2 -translate-y-1/2 text-6xl font-extrabold bg-gradient-to-l from-[var(--text-primary)] to-transparent bg-clip-text text-transparent opacity-5 dark:opacity-10 select-none pointer-events-none transition-transform duration-300 group-hover:scale-110 z-0">
