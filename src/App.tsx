@@ -41,6 +41,7 @@ import { AdminDonationsPage } from './pages/admin/AdminDonationsPage';
 import { AdminThemesPage } from './pages/admin/AdminThemesPage';
 import { AdminSettingsPage } from './pages/admin/AdminSettingsPage';
 import { AdminLogsPage } from './pages/admin/AdminLogsPage';
+import { AdminBotLogsPage } from './pages/admin/AdminBotLogsPage';
 import { AdminSessionsPage } from './pages/admin/AdminSessionsPage';
 import { AdminUsersPage } from './pages/admin/AdminUsersPage';
 import { AdminEditSuggestionsPage } from './pages/admin/AdminEditSuggestionsPage';
@@ -161,6 +162,7 @@ function AppContent() {
             <Route path="themes" element={<AdminThemesPage />} />
             <Route path="settings" element={<AdminSettingsPage />} />
             <Route path="logs" element={<AdminLogsPage />} />
+            <Route path="bot-logs" element={<AdminBotLogsPage />} />
             <Route path="sessions" element={<AdminSessionsPage />} />
             <Route path="admins" element={<ProtectedRoute requireSuperAdmin><AdminUsersPage /></ProtectedRoute>} />
           </Route>
