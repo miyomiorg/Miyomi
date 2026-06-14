@@ -75,6 +75,7 @@ export function SubmitPage() {
   const [submitting, setSubmitting] = useState(false);
   const [turnstileToken, setTurnstileToken] = useState(import.meta.env.VITE_DISABLE_TURNSTILE === 'true' ? 'dummy-token' : '');
   const [nameError, setNameError] = useState<{ message: string; url?: string } | null>(null);
+  const [formMode, setFormMode] = useState<'basic' | 'advanced'>('basic');
 
   useEffect(() => {
     async function loadEditData() {
@@ -469,11 +470,32 @@ export function SubmitPage() {
           />
         </div>
 
-        <div className="flex items-center gap-4 mb-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-2">
           <h1 className="text-2xl font-bold text-[var(--text-primary)]">
             {urlMode === 'edit' ? `Suggest Edit for ${type === 'app' ? 'App' : 'Extension'}` : `Submit ${type === 'app' ? 'App' : 'Extension'}`}
           </h1>
+          
+          <div className="flex bg-[var(--bg-surface)] border border-[var(--divider)] rounded-full p-1 self-start sm:self-auto">
+            <button
+              onClick={() => setFormMode('basic')}
+              className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${formMode === 'basic' ? 'bg-[var(--text-primary)] text-[var(--bg-surface)] shadow-sm' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
+            >
+              Basic
+            </button>
+            <button
+              onClick={() => setFormMode('advanced')}
+              className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${formMode === 'advanced' ? 'bg-[var(--text-primary)] text-[var(--bg-surface)] shadow-sm' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
+            >
+              Advanced
+            </button>
+          </div>
         </div>
+        
+        <p className="text-sm text-[var(--text-secondary)] mb-6">
+          {formMode === 'basic' 
+            ? 'Basic mode shows only the essential fields needed for a quick submission.' 
+            : 'Advanced mode allows you to provide detailed metadata, compatibility info, and custom appearance settings.'}
+        </p>
 
         {urlMode === 'edit' && (
           <div className="mb-6 p-4 rounded-xl border border-[var(--divider)] bg-[var(--brand)]/10 text-[var(--text-primary)] flex items-start gap-3">
@@ -517,6 +539,7 @@ export function SubmitPage() {
                 errors={errors}
                 setErrors={setErrors}
                 isAdmin={false}
+                isBasicMode={formMode === 'basic'}
               />
             ) : (
               <SharedExtensionForm
@@ -525,10 +548,12 @@ export function SubmitPage() {
                 errors={errors}
                 setErrors={setErrors}
                 isAdmin={false}
+                isBasicMode={formMode === 'basic'}
               />
             )}
 
-            <div className="mt-8 mx-auto space-y-6">
+            <div className={`mt-8 ${formMode === 'basic' ? 'max-w-3xl mx-auto' : 'grid grid-cols-1 lg:grid-cols-3 gap-8 text-left'}`}>
+              <div className={`${formMode === 'basic' ? 'space-y-6' : 'lg:col-span-2 space-y-6'}`}>
               <div className="p-6 rounded-2xl border border-[var(--divider)] bg-[var(--bg-surface)] space-y-4">
                 <h3 className="text-lg font-semibold text-[var(--text-primary)] mb-4 flex items-center gap-2">
                   <MessageSquare className="w-5 h-5" /> Your Details
@@ -581,6 +606,7 @@ export function SubmitPage() {
                 </AdminButton>
               </div>
             </div>
+          </div>
           </>
         )}
       </div>
