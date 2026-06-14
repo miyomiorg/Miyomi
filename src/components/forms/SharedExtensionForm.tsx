@@ -250,6 +250,22 @@ export function SharedExtensionForm({ form, setForm, errors, setErrors, isAdmin 
                     <AdminFormField label="Short Description (Bio)">
                         <AdminTextarea className="h-20" value={form.short_description} onChange={e => setForm((f: any) => ({ ...f, short_description: e.target.value }))} placeholder="Brief summary displayed in header..." />
                     </AdminFormField>
+
+                    {isBasicMode && (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                            <AdminFormField label="Website URL">
+                                <AdminInput value={form.source_url} onChange={e => setForm((f: any) => ({ ...f, source_url: e.target.value }))} placeholder="https://..." />
+                            </AdminFormField>
+                            <AdminFormField label="Social / Community Links">
+                                <SocialUrlsInput
+                                    value={form.social_urls}
+                                    onChange={(urls) => setForm((f: any) => ({ ...f, social_urls: urls }))}
+                                    placeholder="https://discord.gg/... or https://t.me/..."
+                                    max={1}
+                                />
+                            </AdminFormField>
+                        </div>
+                    )}
                     {!isBasicMode && (
                         <AdminFormField label="Overview (Long Description)">
                             <AdminTextarea className="h-32" value={form.description} onChange={e => setForm((f: any) => ({ ...f, description: e.target.value }))} placeholder="Detailed description..." />
@@ -289,74 +305,72 @@ export function SharedExtensionForm({ form, setForm, errors, setErrors, isAdmin 
                     )}
                 </div>
 
-                <div className="p-6 rounded-2xl border border-[var(--divider)] bg-[var(--bg-surface)] space-y-4">
-                    {!isBasicMode && (
-                        <>
-                            <h3 className="text-lg font-semibold text-[var(--text-primary)] mb-4 flex items-center gap-2">
-                                <Layers className="w-5 h-5" /> Compatibility & Source
-                            </h3>
-                            
-                            <div className="space-y-1">
-                                <Label className="mb-1">Compatibility Groups</Label>
-                                <div className="text-xs text-[var(--text-secondary)] mb-2">
-                                    Select group tags to auto-link compatible apps. Apps in the same group will automatically support this extension.
-                                </div>
-                                <AdminSmartSelect
-                                    value={form._selectedGroupNames || []}
-                                    onChange={(selectedNames: string[]) => {
-                                        setForm((f: any) => ({ ...f, _selectedGroupNames: selectedNames }));
-                                        // Store group IDs for save logic
-                                        const selectedIds = compatGroups
-                                            .filter((g: any) => selectedNames.includes(g.name))
-                                            .map((g: any) => g.id);
-                                        setForm((f: any) => ({ ...f, _selectedGroupIds: selectedIds }));
-                                    }}
-                                    options={compatGroups.map((g: any) => g.name)}
-                                    placeholder="Select compatibility groups..."
-                                    renderOption={(option: string) => {
-                                        const group = compatGroups.find((g: any) => g.name === option);
-                                        return (
-                                            <span className="flex items-center gap-2">
-                                                <span
-                                                    className="w-2.5 h-2.5 rounded-full flex-shrink-0"
-                                                    style={{ background: group?.color || '#6366F1' }}
-                                                />
-                                                {option}
-                                            </span>
-                                        );
-                                    }}
-                                />
+                {!isBasicMode && (
+                    <div className="p-6 rounded-2xl border border-[var(--divider)] bg-[var(--bg-surface)] space-y-4">
+                        <h3 className="text-lg font-semibold text-[var(--text-primary)] mb-4 flex items-center gap-2">
+                            <Layers className="w-5 h-5" /> Compatibility & Source
+                        </h3>
+                        
+                        <div className="space-y-1">
+                            <Label className="mb-1">Compatibility Groups</Label>
+                            <div className="text-xs text-[var(--text-secondary)] mb-2">
+                                Select group tags to auto-link compatible apps. Apps in the same group will automatically support this extension.
                             </div>
-
-                            <div className="space-y-1 pt-2 border-t border-[var(--divider)]">
-                                <Label className="mb-1">Compatible Apps (Individual)</Label>
-                                <div className="text-xs text-[var(--text-secondary)] mb-2">
-                                    Manually select apps. Auto-selects forks if parent is chosen. These merge with group-derived apps.
-                                </div>
-                                <AdminSmartSelect
-                                    value={form.compatible_with}
-                                    onChange={handleCompatibleChange}
-                                    options={appOptions}
-                                    placeholder="Select apps..."
-                                />
-                            </div>
-                        </>
-                    )}
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-                        <AdminFormField label="Website URL">
-                            <AdminInput value={form.source_url} onChange={e => setForm((f: any) => ({ ...f, source_url: e.target.value }))} placeholder="https://..." />
-                        </AdminFormField>
-                        <AdminFormField label="Social / Community Links">
-                            <SocialUrlsInput
-                                value={form.social_urls}
-                                onChange={(urls) => setForm((f: any) => ({ ...f, social_urls: urls }))}
-                                placeholder="https://discord.gg/... or https://t.me/..."
-                                max={5}
+                            <AdminSmartSelect
+                                value={form._selectedGroupNames || []}
+                                onChange={(selectedNames: string[]) => {
+                                    setForm((f: any) => ({ ...f, _selectedGroupNames: selectedNames }));
+                                    // Store group IDs for save logic
+                                    const selectedIds = compatGroups
+                                        .filter((g: any) => selectedNames.includes(g.name))
+                                        .map((g: any) => g.id);
+                                    setForm((f: any) => ({ ...f, _selectedGroupIds: selectedIds }));
+                                }}
+                                options={compatGroups.map((g: any) => g.name)}
+                                placeholder="Select compatibility groups..."
+                                renderOption={(option: string) => {
+                                    const group = compatGroups.find((g: any) => g.name === option);
+                                    return (
+                                        <span className="flex items-center gap-2">
+                                            <span
+                                                className="w-2.5 h-2.5 rounded-full flex-shrink-0"
+                                                style={{ background: group?.color || '#6366F1' }}
+                                            />
+                                            {option}
+                                        </span>
+                                    );
+                                }}
                             />
-                        </AdminFormField>
+                        </div>
+
+                        <div className="space-y-1 pt-2 border-t border-[var(--divider)]">
+                            <Label className="mb-1">Compatible Apps (Individual)</Label>
+                            <div className="text-xs text-[var(--text-secondary)] mb-2">
+                                Manually select apps. Auto-selects forks if parent is chosen. These merge with group-derived apps.
+                            </div>
+                            <AdminSmartSelect
+                                value={form.compatible_with}
+                                onChange={handleCompatibleChange}
+                                options={appOptions}
+                                placeholder="Select apps..."
+                            />
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                            <AdminFormField label="Website URL">
+                                <AdminInput value={form.source_url} onChange={e => setForm((f: any) => ({ ...f, source_url: e.target.value }))} placeholder="https://..." />
+                            </AdminFormField>
+                            <AdminFormField label="Social / Community Links">
+                                <SocialUrlsInput
+                                    value={form.social_urls}
+                                    onChange={(urls) => setForm((f: any) => ({ ...f, social_urls: urls }))}
+                                    placeholder="https://discord.gg/... or https://t.me/..."
+                                    max={5}
+                                />
+                            </AdminFormField>
+                        </div>
                     </div>
-                </div>
+                )}
 
                 {!isBasicMode && (
                     <div className="p-6 rounded-2xl border border-[var(--divider)] bg-[var(--bg-surface)] space-y-4">

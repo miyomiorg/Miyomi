@@ -213,7 +213,7 @@ export function SharedAppForm({ form, setForm, errors, setErrors, isAdmin = true
 
                 <div className="p-6 rounded-2xl border border-[var(--divider)] bg-[var(--bg-surface)] space-y-4">
                     <h3 className="text-lg font-semibold text-[var(--text-primary)] mb-4">Basic Information</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className={`grid grid-cols-1 ${!isBasicMode ? 'md:grid-cols-2' : ''} gap-4`}>
                         <AdminFormField label="App Name" required>
                             {errors.name && <div className="text-red-500 text-xs font-semibold mb-1 animate-pulse">⚠️ {errors.name}</div>}
                             <AdminInput
@@ -226,9 +226,11 @@ export function SharedAppForm({ form, setForm, errors, setErrors, isAdmin = true
                                 className={errors.name ? 'border-red-500 shadow-[0_0_0_1px_rgba(239,68,68,0.5)]' : ''}
                             />
                         </AdminFormField>
-                        <AdminFormField label="App Author">
-                            <AdminInput value={form.author} onChange={e => setForm((f: any) => ({ ...f, author: e.target.value }))} placeholder="Author Name" />
-                        </AdminFormField>
+                        {!isBasicMode && (
+                            <AdminFormField label="App Author">
+                                <AdminInput value={form.author} onChange={e => setForm((f: any) => ({ ...f, author: e.target.value }))} placeholder="Author Name" />
+                            </AdminFormField>
+                        )}
                     </div>
                     {isAdmin && (
                         <AdminFormField label="Slug (URL identifier)" required>
@@ -248,6 +250,22 @@ export function SharedAppForm({ form, setForm, errors, setErrors, isAdmin = true
                     <AdminFormField label="Short Description (Bio)">
                         <AdminTextarea className="h-20" value={form.short_description} onChange={e => setForm((f: any) => ({ ...f, short_description: e.target.value }))} placeholder="Brief summary displayed in header..." />
                     </AdminFormField>
+
+                    {isBasicMode && (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                            <AdminFormField label="Download URL">
+                                <AdminInput value={form.download_url} onChange={e => setForm((f: any) => ({ ...f, download_url: e.target.value }))} placeholder="https://..." />
+                            </AdminFormField>
+                            <AdminFormField label="Social / Community Links">
+                                <SocialUrlsInput
+                                    value={form.social_urls}
+                                    onChange={(urls) => setForm((f: any) => ({ ...f, social_urls: urls }))}
+                                    placeholder="https://discord.gg/... or https://t.me/..."
+                                    max={1}
+                                />
+                            </AdminFormField>
+                        </div>
+                    )}
                     {!isBasicMode && (
                         <AdminFormField label="Overview (Long Description)">
                             <AdminTextarea className="h-32" value={form.description} onChange={e => setForm((f: any) => ({ ...f, description: e.target.value }))} placeholder="Detailed description of the app..." />
@@ -296,34 +314,36 @@ export function SharedAppForm({ form, setForm, errors, setErrors, isAdmin = true
                     )}
                 </div>
 
-                <div className="p-6 rounded-2xl border border-[var(--divider)] bg-[var(--bg-surface)] space-y-4">
-                    <h3 className="text-lg font-semibold text-[var(--text-primary)] mb-4">URLs & Resources</h3>
-                    <AdminFormField label="Website URL">
-                        {errors.website_url && <div className="text-red-500 text-xs font-semibold mb-1 animate-pulse">⚠️ {errors.website_url}</div>}
-                        <AdminInput
-                            value={form.website_url}
-                            onChange={e => {
-                                setForm((f: any) => ({ ...f, website_url: e.target.value }));
-                                if (errors.website_url) setErrors((prev: any) => ({ ...prev, website_url: '' }));
-                            }}
-                            placeholder="https://myapp.com"
-                            className={errors.website_url ? 'border-red-500 shadow-[0_0_0_1px_rgba(239,68,68,0.5)]' : ''}
-                        />
-                    </AdminFormField>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <AdminFormField label="Social / Community Links">
-                            <SocialUrlsInput
-                                value={form.social_urls}
-                                onChange={(urls) => setForm((f: any) => ({ ...f, social_urls: urls }))}
-                                placeholder="https://discord.gg/... or https://t.me/..."
-                                max={5}
+                {!isBasicMode && (
+                    <div className="p-6 rounded-2xl border border-[var(--divider)] bg-[var(--bg-surface)] space-y-4">
+                        <h3 className="text-lg font-semibold text-[var(--text-primary)] mb-4">URLs & Resources</h3>
+                        <AdminFormField label="Website URL">
+                            {errors.website_url && <div className="text-red-500 text-xs font-semibold mb-1 animate-pulse">⚠️ {errors.website_url}</div>}
+                            <AdminInput
+                                value={form.website_url}
+                                onChange={e => {
+                                    setForm((f: any) => ({ ...f, website_url: e.target.value }));
+                                    if (errors.website_url) setErrors((prev: any) => ({ ...prev, website_url: '' }));
+                                }}
+                                placeholder="https://myapp.com"
+                                className={errors.website_url ? 'border-red-500 shadow-[0_0_0_1px_rgba(239,68,68,0.5)]' : ''}
                             />
                         </AdminFormField>
-                        <AdminFormField label="Download URL">
-                            <AdminInput value={form.download_url} onChange={e => setForm((f: any) => ({ ...f, download_url: e.target.value }))} placeholder="https://..." />
-                        </AdminFormField>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <AdminFormField label="Social / Community Links">
+                                <SocialUrlsInput
+                                    value={form.social_urls}
+                                    onChange={(urls) => setForm((f: any) => ({ ...f, social_urls: urls }))}
+                                    placeholder="https://discord.gg/... or https://t.me/..."
+                                    max={5}
+                                />
+                            </AdminFormField>
+                            <AdminFormField label="Download URL">
+                                <AdminInput value={form.download_url} onChange={e => setForm((f: any) => ({ ...f, download_url: e.target.value }))} placeholder="https://..." />
+                            </AdminFormField>
+                        </div>
                     </div>
-                </div>
+                )}
 
                 {isAdmin && (
                     <div className="p-6 rounded-2xl border border-[var(--divider)] bg-[var(--bg-surface)] space-y-4">
