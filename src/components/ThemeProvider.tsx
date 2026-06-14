@@ -50,9 +50,20 @@ export function ThemeProvider({ children }: PropsWithChildren) {
     setTheme(activeTheme);
 
     const root = document.documentElement;
+    root.classList.add('theme-transitioning');
+    
+    // Force a reflow to ensure the transition class is applied before theme change
+    void root.offsetHeight;
+    
     root.classList.remove('light', 'dark');
     root.classList.add(activeTheme);
     localStorage.setItem('miyomi-theme-mode', themeMode);
+    
+    const timeout = setTimeout(() => {
+      root.classList.remove('theme-transitioning');
+    }, 300);
+    
+    return () => clearTimeout(timeout);
   }, [themeMode, mounted]);
 
   // Listen to system theme changes if mode is 'auto'
@@ -64,8 +75,17 @@ export function ThemeProvider({ children }: PropsWithChildren) {
       const activeTheme = mediaQuery.matches ? 'dark' : 'light';
       setTheme(activeTheme);
       const root = document.documentElement;
+      root.classList.add('theme-transitioning');
+      
+      // Force a reflow
+      void root.offsetHeight;
+      
       root.classList.remove('light', 'dark');
       root.classList.add(activeTheme);
+      
+      setTimeout(() => {
+        root.classList.remove('theme-transitioning');
+      }, 300);
     };
 
     if (mediaQuery.addEventListener) {

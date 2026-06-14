@@ -189,6 +189,20 @@ html {
   }
 }
 
+/* Global smooth transition when switching themes */
+.theme-transitioning * {
+  transition-property: background-color, border-color, color, fill, stroke, box-shadow !important;
+  transition-timing-function: ease-in-out !important;
+  transition-duration: 200ms !important;
+}
+
+/* Make it perfectly instant on mobile devices */
+@media (max-width: 768px) {
+  .theme-transitioning * {
+    transition-duration: 0ms !important;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 0.01ms !important;
