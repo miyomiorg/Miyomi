@@ -1,0 +1,36 @@
+{
+  "version": 1,
+  "include": [
+    "/",
+    "/software",
+    "/software/*",
+    "/extensions",
+    "/extensions/*",
+    "/guides",
+    "/guides/*",
+    "/blog",
+    "/blog/*",
+    "/faq",
+    "/about",
+    "/donate",
+    "/submit",
+    "/privacy",
+    "/sitemap.xml"
+  ],
+  "exclude": [
+    "/assets/*",
+    "/favicon*",
+    "/*.png",
+    "/*.jpg",
+    "/*.jpeg",
+    "/*.webp",
+    "/*.gif",
+    "/*.svg",
+    "/*.ico",
+    "/*.css",
+    "/*.js",
+    "/*.map",
+    "/robots.txt",
+    "/admin/*"
+  ]
+}

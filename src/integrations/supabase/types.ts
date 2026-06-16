@@ -174,6 +174,9 @@ export type Database = {
           name: string
           platforms: string[] | null
           repo_url: string | null
+          seo_title: string | null
+          seo_description: string | null
+          og_image_url: string | null
           short_description: string | null
           slug: string | null
           status: string
@@ -208,6 +211,9 @@ export type Database = {
           name: string
           platforms?: string[] | null
           repo_url?: string | null
+          seo_title?: string | null
+          seo_description?: string | null
+          og_image_url?: string | null
           short_description?: string | null
           slug?: string | null
           status?: string
@@ -242,6 +248,9 @@ export type Database = {
           name?: string
           platforms?: string[] | null
           repo_url?: string | null
+          seo_title?: string | null
+          seo_description?: string | null
+          og_image_url?: string | null
           short_description?: string | null
           slug?: string | null
           status?: string
@@ -281,6 +290,9 @@ export type Database = {
           platforms: string[] | null
           region: string | null
           repo_url: string | null
+          seo_title: string | null
+          seo_description: string | null
+          og_image_url: string | null
           short_description: string | null
           slug: string | null
           source_url: string | null
@@ -316,6 +328,9 @@ export type Database = {
           platforms?: string[] | null
           region?: string | null
           repo_url?: string | null
+          seo_title?: string | null
+          seo_description?: string | null
+          og_image_url?: string | null
           short_description?: string | null
           slug?: string | null
           source_url?: string | null
@@ -351,6 +366,9 @@ export type Database = {
           platforms?: string[] | null
           region?: string | null
           repo_url?: string | null
+          seo_title?: string | null
+          seo_description?: string | null
+          og_image_url?: string | null
           short_description?: string | null
           slug?: string | null
           source_url?: string | null
@@ -419,6 +437,9 @@ export type Database = {
           related_apps: string[] | null
           related_extensions: string[] | null
           slug: string | null
+          seo_title: string | null
+          seo_description: string | null
+          og_image_url: string | null
           status: string
           tags: string[] | null
           template_version: string | null
@@ -441,6 +462,9 @@ export type Database = {
           related_apps?: string[] | null
           related_extensions?: string[] | null
           slug?: string | null
+          seo_title?: string | null
+          seo_description?: string | null
+          og_image_url?: string | null
           status?: string
           tags?: string[] | null
           template_version?: string | null
@@ -463,6 +487,9 @@ export type Database = {
           related_apps?: string[] | null
           related_extensions?: string[] | null
           slug?: string | null
+          seo_title?: string | null
+          seo_description?: string | null
+          og_image_url?: string | null
           status?: string
           tags?: string[] | null
           template_version?: string | null
