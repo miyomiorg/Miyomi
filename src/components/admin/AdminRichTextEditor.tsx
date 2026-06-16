@@ -121,7 +121,10 @@ type EditorMode = 'visual' | 'html' | 'preview';
 const detectAdvancedHtml = (v: string) =>
     !!v && ((v.includes('<div') && v.includes('style=')) || v.includes('grid-template') || v.includes('var(--'));
 
+const ALLOWED_URI_REGEXP = /^(?:(?:(?:f|ht)tps?|mailto|tel|callto|sms|cid|xmpp|mihon|tachiyomi|aniyomi|tachi|cloudstream):|[^a-z]|[a-z+.\-]+(?:[^a-z+.\-:]|$))/i;
+
 const SANITIZE_CFG = {
+    ALLOWED_URI_REGEXP,
     ADD_TAGS: ['iframe', 'style', 'div', 'details', 'summary', 'video', 'source', 'table', 'thead', 'tbody', 'tr', 'th', 'td'],
     ADD_ATTR: ['allow', 'allowfullscreen', 'frameborder', 'scrolling', 'style', 'class', 'target', 'open', 'controls', 'autoplay',
         'data-callout', 'data-callout-type', 'data-container', 'colspan', 'rowspan', 'src', 'width', 'height', 'title'],

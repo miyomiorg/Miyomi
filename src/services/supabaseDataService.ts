@@ -72,7 +72,7 @@ function toGuideData(row: Tables<'guides'>): GuideData {
     id: row.id,
     title: row.title,
     slug: row.slug || row.id,
-    content: row.content || '',
+    content: row.content || row.content_html || '',
     category: row.category || 'Uncategorized',
     description: row.description || '',
     author: row.author || '',

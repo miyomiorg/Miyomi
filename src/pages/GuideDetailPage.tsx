@@ -12,8 +12,6 @@ import { toast } from 'sonner';
 // Allow deep links
 const ALLOWED_URI_REGEXP = /^(?:(?:(?:f|ht)tps?|mailto|tel|callto|sms|cid|xmpp|mihon|tachiyomi|aniyomi|tachi|cloudstream):|[^a-z]|[a-z+.\-]+(?:[^a-z+.\-:]|$))/i;
 
-DOMPurify.setConfig({ ALLOWED_URI_REGEXP });
-
 let headingCount = 0;
 
 DOMPurify.addHook('uponSanitizeElement', (node, data) => {
@@ -276,10 +274,11 @@ export function GuideDetailPage({ slug: propSlug, onNavigate }: GuideDetailPageP
               className="guide-content prose prose-invert max-w-none prose-headings:font-['Poppins',sans-serif] prose-headings:scroll-mt-24 prose-h2:text-2xl sm:prose-h2:text-3xl prose-h3:text-xl sm:prose-h3:text-2xl prose-h2:mt-6 prose-h2:mb-4 prose-p:font-['Inter',sans-serif] prose-a:text-[var(--brand)] prose-img:rounded-xl prose-img:shadow-lg prose-headings:text-[var(--text-primary)] prose-strong:text-[var(--text-primary)] prose-code:text-[var(--brand)] prose-code:bg-[var(--chip-bg)] prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded-md prose-code:text-xs prose-pre:bg-[var(--bg-elev-1)] prose-pre:border prose-pre:border-[var(--divider)] prose-pre:rounded-xl prose-blockquote:border-l-[var(--brand)] prose-blockquote:bg-[var(--chip-bg)] prose-blockquote:rounded-r-lg prose-blockquote:py-1 prose-blockquote:px-4 prose-hr:border-[var(--divider)] [&>*:first-child]:mt-0"
               dangerouslySetInnerHTML={{
                 __html: DOMPurify.sanitize(
-                  guide.content_html || guide.content || '',
+                  guide.content || '',
                   {
                     ADD_TAGS: ['iframe', 'style', 'div', 'details', 'summary'],
                     ADD_ATTR: ['allow', 'allowfullscreen', 'frameborder', 'scrolling', 'style', 'class', 'id', 'target', 'open', 'data-callout', 'data-callout-type', 'data-container', 'src', 'width', 'height', 'title'],
+                    ALLOWED_URI_REGEXP,
                   }
                 )
               }}

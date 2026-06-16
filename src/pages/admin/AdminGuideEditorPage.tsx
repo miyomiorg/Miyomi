@@ -22,7 +22,7 @@ import {
 const emptyGuide = {
     title: '', description: '', content: '', author: '', category: '',
     slug: '', status: 'draft', tags: [] as string[],
-    content_html: '', content_mode: 'html', readTime: '', metadata: {} as Record<string, any>
+    content_mode: 'html', readTime: '', metadata: {} as Record<string, any>
 };
 
 export function AdminGuideEditorPage() {
@@ -113,13 +113,12 @@ Guidelines:
                 setForm({
                     title: data.title,
                     description: data.description || '',
-                    content: data.content || '',
+                    content: data.content_html || data.content || '',
                     author: data.author || '',
                     category: data.category || '',
                     slug: data.slug || '',
                     status: data.status,
                     tags: data.tags || [],
-                    content_html: data.content_html || data.content || '',
                     content_mode: data.content_mode || 'html',
                     readTime: (data.metadata as any)?.readTime || '',
                     metadata: (data.metadata as any) || {},
@@ -162,14 +161,13 @@ Guidelines:
             slug: finalSlug,
             status: form.status,
             tags: form.tags.length ? form.tags : null,
-            content_html: form.content_html || null,
             content_mode: form.content_mode,
             author_name: form.author || null,
             published_at: form.status === 'published' ? new Date().toISOString() : null,
             updated_at: new Date().toISOString(),
             metadata: {
                 ...form.metadata,
-                readTime: form.readTime || calculateReadTime(form.content_html || form.content || '')
+                readTime: form.readTime || calculateReadTime(form.content || '')
             }
         };
 
@@ -278,8 +276,8 @@ Guidelines:
                     </div>
 
                     <AdminRichTextEditor
-                        value={form.content_html}
-                        onChange={content_html => setForm(f => ({ ...f, content_html }))}
+                        value={form.content}
+                        onChange={content => setForm(f => ({ ...f, content }))}
                         placeholder="Start writing your guide..."
                     />
                 </div>
@@ -333,11 +331,11 @@ Guidelines:
                                 <AdminInput
                                     value={form.readTime}
                                     onChange={e => setForm(f => ({ ...f, readTime: e.target.value }))}
-                                    placeholder={`Auto: ${calculateReadTime(form.content_html || form.content || '')}`}
+                                    placeholder={`Auto: ${calculateReadTime(form.content || '')}`}
                                 />
                                 <button
                                     type="button"
-                                    onClick={() => setForm(f => ({ ...f, readTime: calculateReadTime(f.content_html || f.content || '') }))}
+                                    onClick={() => setForm(f => ({ ...f, readTime: calculateReadTime(f.content || '') }))}
                                     className="px-3 py-2 bg-[var(--bg-elev-1)] hover:bg-[var(--chip-bg)] text-[var(--brand)] text-sm font-semibold rounded-lg transition-colors border border-[var(--divider)]"
                                 >
                                     Auto
