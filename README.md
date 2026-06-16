@@ -1,116 +1,67 @@
-# <img src="https://raw.githubusercontent.com/tas33n/Miyomi/main/public/icons/icon-192.png" width="35px"> Miyomi v3.0 
+<div align="center">
+  
+<img width="250" alt="Miyo-Chan" src="https://github.com/user-attachments/assets/6dff8f21-3554-4382-a77b-db8f46cd0da7" />
 
-A modern, community-run website for discovering **manga**, **anime**, and **light novel** apps, extensions, guides, and other resources — curated from open-source communities to make them easier to find for everyone.
+# [Miyomi](https://miyomi.pages.dev/)
 
-> Miyomi is an **independent, fan-run** information hub.  
-> We do **not** host content. We only index publicly available links and resources.
+[![Live Site](https://img.shields.io/badge/Live-Miyomi.app-blue)](https://miyomi.app/)
+[![License](https://img.shields.io/github/license/tas33n/Miyomi)](/LICENSE)
+[![Stars](https://img.shields.io/github/stars/tas33n%2FMiyomi)](https://github.com/tas33n/Miyomi/stargazers)
 
-🌐 **Live:** *(update with your deployed URL)*
+[![Discord](https://img.shields.io/discord/1239848981836595281?logo=Discord&logoColor=white&label=%20&color=5865F2)](https://discord.gg/hfYtH9hrRm)
+[![Telegram](https://img.shields.io/badge/Telegram-2CA5E0?logo=telegram&logoColor=white)](https://t.me/iitachiyomi)
 
-Kindly consider giving the repository a ⭐ star. It helps the community keep improving Miyomi.  
-You can also contribute by submitting new apps/extensions/resources or helping us keep information up-to-date.
+Community-maintained directory of manga, anime, and light novel apps, extensions, and more.
 
----
+[Disclaimer](#disclaimer) • [Contributing](#contributing)
 
-## 📖 About
+</div>
 
-Miyomi helps fellow weebs easily discover and access:
-
-- 📱 **Apps** — Android, iOS, and Desktop apps for reading manga, watching anime, and reading light novels  
-- 🧩 **Extensions** — curated extension repositories for popular apps (Aniyomi, Mihon, Tachiyomi forks, etc.)
-- 📚 **Guides** — step-by-step tutorials for installation, configuration, and troubleshooting
-- 🌐 **Resources** — useful sites, communities, and FAQs for the otaku community
-
----
-
-## 🌟 Why Miyomi (Benefits for the Community)
-
-### ✅ Easier discovery for everyone
-Instead of scattered posts across different platforms, Miyomi keeps apps/extensions/resources organized in one searchable place.
-
-### 🔎 Better structure (tags, types, platforms)
-Entries can include metadata like supported platforms, content types (Manga/Anime/Light Novel), tags, links, and compatibility.
-
-### 🧑‍🤝‍🧑 Community-curated
-The directory is powered by community contributions. If something is missing or outdated, you can help fix it.
-
-### 🛡️ Safer updates (review/moderation)
-v3 supports a moderation workflow so updates can be reviewed before being published (reduces spam and broken links).
+> [!NOTE]
+> Miyomi is in public preview. The directory's features, UI, and structure are actively changing based on community feedback.
 
 ---
 
-## 🤝 Contributing (Community)
+## Overview
+Finding the right app or extension when they're scattered across different platforms is a pain. Miyomi pulls them into one searchable place.
+- **Software**: Mobile and desktop apps for reading manga and light novels or watching anime
+- **Extensions**: Plugins, add-ons, and sources compatible with popular apps like Tachiyomi, Aniyomi, Dantotsu, their variants and more
+- **Guides**: Community-written setup and usage guides *(work in progress — contributions welcome)*
+- Other Resources like FAQs, links to their socials, etc.
 
-You don’t need to be a developer to contribute.
+The directory grows almost entirely through community input. If you spot something missing, outdated, or broken, please submit a request.
 
-### Option 1: Submit via the Website (Recommended)
-Use the **Contribute** page on the website to submit:
-- a new **App**
-- a new **Extension**
-- a fix or update to an existing entry (broken links, wrong tags, new version, etc.)
+## Contributing
+### Submit an entry or report an issue
+If you find a broken link, an outdated reference, or want to submit a new entry:
+- Use the [Contribute page](https://miyomi.app/contribute) on the website.
+- Or open a [GitHub issue](https://github.com/tas33n/Miyomi/issues) with all relevant details.
 
-Submissions go through review before appearing publicly.
+### Development
+Looking to contribute to the codebase, improve the UI, or work on the project's infrastructure? See [DEVELOPERS.md](https://github.com/tas33n/Miyomi/blob/main/DEVELOPERS.md).
 
-### Option 2: Open a GitHub Issue
-Create an issue with:
-- App/Extension name
-- Short description
-- Platform(s)
-- Links (GitHub, website, download, repo, etc.)
-- Why it should be listed / what should be changed
+## Disclaimer
+Submissions are manually reviewed before going live, but **Miyomi cannot guarantee the long-term safety, stability, or legality of any third-party software**. Installing software from the internet carries inherent risk — always download from verified sources.
 
-👉 Issues: https://github.com/tas33n/miyomi/issues
+Miyomi operates strictly as a directory:
+- We do not host, distribute, or modify any copyrighted content
+- We are not affiliated with any third-party developers or companies referenced here
+- All external links are for informational purposes only; users are responsible for verifying legality and safety in their region
 
-### Option 3: Contribute Code / UI / Docs
-If you want to help as a developer, see:
+_If something indexed here infringes copyright or should not be listed, please [let us know](https://github.com/tas33n/Miyomi/issues)._
 
-📌 **[DEVELOPERS.md](./DEVELOPERS.md)**
+## License
+This project is licensed under the [Apache License 2.0](https://github.com/tas33n/Miyomi/blob/main/LICENSE).
 
----
 
-## 🧭 Community Guidelines (Quick)
+## Support the Project 💖
 
-To keep the directory helpful and safe:
+If you find the directory useful, consider contributing to help cover ongoing hosting and operational expenses.
 
-- Don’t submit malware, suspicious links, or misleading information
-- Tag NSFW content clearly (if applicable)
-- Prefer open-source projects when possible
-- Avoid duplicate listings
-- Moderators may edit or reject entries to maintain quality
+<div align="center">
 
----
+[![PayPal](https://img.shields.io/badge/PayPal-003087?logo=paypal&logoColor=fff)](https://www.paypal.com/paypalme/sarlotte01)
+[![Ko-fi](https://img.shields.io/badge/Ko--fi-F16061?logo=ko-fi&logoColor=white)](https://ko-fi.com/miyomi)
+[![More Options](https://img.shields.io/badge/Other_Methods-EA4AAA?logo=github-sponsors&logoColor=white&style=flat-square)](https://miyomi.app/donate)
 
-## 📜 License
-
-Apache 2.0 — see [LICENSE](./LICENSE)
-
----
-
-## ⚠️ Important Disclaimers
-
-- Miyomi is an **independent, fan-run** information hub
-- We are **not affiliated** with any third-party developers or companies
-- All external links are provided for **informational/educational purposes only**
-- We do **not** host, distribute, or modify copyrighted content
-- Users are responsible for verifying legality and safety of third-party services in their region
-
-### Key Legal Points
-- **Non-Affiliation**: Not connected to any third-party projects we reference
-- **Educational Purpose**: All content is informational
-- **User Responsibility**: Users verify legality/safety of third-party services
-- **Content Moderation**: We reserve the right to remove inappropriate content
-- **Liability Limitation**: Not responsible for third-party services
-
----
-
-## 🙏 Acknowledgment
-
-- **Inspired by:** [Wotaku](https://github.com/wotakumoe/Wotaku) — a great otaku resource index  
-- Thanks to all open-source developers and community maintainers for building and sharing these tools!
-
----
-
-**Made with ❤️ for the otaku community**
-
-*Found a bug or want to suggest something? Open an issue or contribute!*  
-https://github.com/tas33n/miyomi/issues
+</div>
