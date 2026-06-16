@@ -17,6 +17,7 @@ const navItems = [
   { path: '/admin/guides', label: 'Guides', icon: BookOpen },
   { path: '/admin/faqs', label: 'FAQs', icon: HelpCircle },
   { path: '/admin/submissions', label: 'Submissions', icon: Inbox },
+  { path: '/admin/guide-submissions', label: 'Guide Subs', icon: BookOpen },
   { path: '/admin/edit-suggestions', label: 'Edits', icon: PenTool },
   { path: '/admin/reports', label: 'Reports', icon: Flag },
   { path: '/admin/feedbacks', label: 'Feedbacks', icon: MessageSquare },

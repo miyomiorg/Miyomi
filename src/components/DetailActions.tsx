@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { useNavigate } from 'react-router-dom';
 
 interface DetailActionsProps {
-  targetType: 'app' | 'extensions';
+  targetType: 'app' | 'extensions' | 'guide';
   targetId: string;
   targetName: string;
   onReportClick: () => void;
@@ -16,13 +16,21 @@ export function DetailActions({ targetType, targetId, targetName, onReportClick,
   const navigate = useNavigate();
 
   const handleEditClick = () => {
-    const routeType = targetType === 'app' ? 'software' : 'extensions';
-    navigate(`/contribute?type=${routeType}&mode=edit&id=${targetId}&step=form`);
+    if (targetType === 'guide') {
+      navigate(`/submit-guide?editId=${targetId}`);
+    } else {
+      const routeType = targetType === 'app' ? 'software' : 'extensions';
+      navigate(`/contribute?type=${routeType}&mode=edit&id=${targetId}&step=form`);
+    }
     setDropdownOpen(false);
   };
 
   const handleAddNewClick = () => {
-    navigate(`/contribute?step=select`);
+    if (targetType === 'guide') {
+      navigate(`/submit-guide`);
+    } else {
+      navigate(`/contribute?step=select`);
+    }
     setDropdownOpen(false);
   };
 

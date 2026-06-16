@@ -10,7 +10,7 @@ import { collectDeviceInfo } from '@/utils/deviceInfo';
 interface ReportModalProps {
   isOpen: boolean;
   onClose: () => void;
-  targetType: 'app' | 'extension' | 'page' | 'other';
+  targetType: 'app' | 'extension' | 'guide' | 'page' | 'other';
   targetId?: string;
   targetName?: string;
   pageUrl?: string;

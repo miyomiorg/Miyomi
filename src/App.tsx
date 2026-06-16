@@ -20,6 +20,7 @@ import { NotFoundPage } from "./pages/NotFoundPage";
 import { SearchPage } from "./pages/SearchPage";
 import { DonatePage } from "./pages/DonatePage";
 import { SubmitPage } from "./pages/SubmitPage";
+import { SubmitGuidePage } from "./pages/SubmitGuidePage";
 import { AdminLoginPage } from './pages/admin/AdminLoginPage';
 import { UnauthorizedPage } from './pages/UnauthorizedPage';
 import { PrivacyPolicyPage } from './pages/PrivacyPolicyPage';
@@ -33,6 +34,7 @@ import { AdminGuideEditorPage } from './pages/admin/AdminGuideEditorPage';
 import { AdminFAQsPage } from './pages/admin/AdminFAQsPage';
 import { AdminFAQEditorPage } from './pages/admin/AdminFAQEditorPage';
 import { AdminSubmissionsPage } from './pages/admin/AdminSubmissionsPage';
+import { AdminGuideSubmissionsPage } from './pages/admin/AdminGuideSubmissionsPage';
 import { AdminLikesPage } from './pages/admin/AdminLikesPage';
 import { AdminNoticesPage } from './pages/admin/AdminNoticesPage';
 import { AdminDonationsPage } from './pages/admin/AdminDonationsPage';
@@ -148,6 +150,7 @@ function AppContent() {
             <Route path="faqs/new" element={<AdminFAQEditorPage />} />
             <Route path="faqs/:id/edit" element={<AdminFAQEditorPage />} />
             <Route path="submissions" element={<AdminSubmissionsPage />} />
+            <Route path="guide-submissions" element={<AdminGuideSubmissionsPage />} />
             <Route path="submissions/:id" element={<AdminReviewPage mode="submission" />} />
             <Route path="edit-suggestions" element={<AdminEditSuggestionsPage />} />
             <Route path="edit-suggestions/:id" element={<AdminReviewPage mode="edit-suggestion" />} />
@@ -238,6 +241,7 @@ function AppContent() {
           <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
           <Route path="/contribute" element={<SubmitPage />} />
           <Route path="/donate" element={<DonatePage />} />
+          <Route path="/submit-guide" element={<SubmitGuidePage onNavigate={handleNavigate} />} />
 
           {/* Fallback for unknown routes */}
           <Route path="/unauthorized" element={<UnauthorizedPage />} />
