@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { AdminRichTextEditor } from '@/components/admin/AdminRichTextEditor';
 import { AdminInput, AdminButton, AdminSelect, AdminTextarea, AdminFormField, Label } from '@/components/admin/AdminFormElements';
-import { ArrowLeft, Save, AlertCircle, ChevronsUpDown, Check, PlusCircle, X } from 'lucide-react';
+import { ArrowLeft, Save, AlertCircle, ChevronsUpDown, Check, PlusCircle, X, HelpCircle, Copy, ChevronDown, ChevronUp } from 'lucide-react';
 import { toast } from 'sonner';
 import {
     Command,
@@ -22,7 +22,7 @@ import {
 const emptyGuide = {
     title: '', description: '', content: '', author: '', category: '',
     slug: '', status: 'draft', tags: [] as string[],
-    content_format: 'markdown' as 'html' | 'markdown',
+    content_html: '', content_mode: 'html', readTime: '', metadata: {} as Record<string, any>
 };
 
 export function AdminGuideEditorPage() {
@@ -37,6 +37,7 @@ export function AdminGuideEditorPage() {
     const [categoryOpen, setCategoryOpen] = useState(false);
     const [categoryInput, setCategoryInput] = useState('');
     const [tagInput, setTagInput] = useState('');
+    const [showGuidelines, setShowGuidelines] = useState(false);
 
     function generateSlug(text: string): string {
         return text
@@ -62,6 +63,29 @@ export function AdminGuideEditorPage() {
         } else {
             setSlugError('');
         }
+    }
+
+    function calculateReadTime(html: string) {
+        if (!html) return '1 min read';
+        const text = html.replace(/<[^>]*>?/gm, '');
+        const words = text.split(/\s+/).filter(w => w.length > 0).length;
+        const minutes = Math.ceil(words / 200) || 1;
+        return `${minutes} min read`;
+    }
+
+    const llmContextString = `You are writing an HTML guide for Miyomi.
+Guidelines:
+1. ONLY output valid HTML. Do not use Markdown.
+2. The platform automatically wraps your output in a \`.guide-content\` container which handles basic typography (H1-H4, p, a, ul, ol, li, img).
+3. Allowed tags: p, h1, h2, h3, h4, ul, ol, li, strong, em, u, a, img, iframe, table, thead, tbody, tr, th, td, div, span, details, summary.
+4. You can use standard Tailwind utility classes or inline CSS styles (e.g., style="color: red;") if necessary, but standard HTML elements are already styled decently.
+5. For callouts, use: <div data-callout="true" data-callout-type="info">...</div> (types: info, warning, tip, danger).
+6. For custom boxes, use: <div data-container="card">...</div> (variants: card, highlight, steps).
+7. To deep link into the app, you can use schemes like \`tachiyomi://\`, \`mihon://\`, \`cloudstream://\`.`;
+
+    function copyLLMContext() {
+        navigator.clipboard.writeText(llmContextString);
+        toast.success('LLM Context copied to clipboard!');
     }
 
     useEffect(() => {
@@ -95,7 +119,10 @@ export function AdminGuideEditorPage() {
                     slug: data.slug || '',
                     status: data.status,
                     tags: data.tags || [],
-                    content_format: (data as any).content_format || 'html',
+                    content_html: data.content_html || data.content || '',
+                    content_mode: data.content_mode || 'html',
+                    readTime: (data.metadata as any)?.readTime || '',
+                    metadata: (data.metadata as any) || {},
                 });
             } catch (error) {
                 console.error(error);
@@ -135,8 +162,15 @@ export function AdminGuideEditorPage() {
             slug: finalSlug,
             status: form.status,
             tags: form.tags.length ? form.tags : null,
-            content_format: form.content_format,
+            content_html: form.content_html || null,
+            content_mode: form.content_mode,
+            author_name: form.author || null,
+            published_at: form.status === 'published' ? new Date().toISOString() : null,
             updated_at: new Date().toISOString(),
+            metadata: {
+                ...form.metadata,
+                readTime: form.readTime || calculateReadTime(form.content_html || form.content || '')
+            }
         };
 
         try {
@@ -202,11 +236,50 @@ export function AdminGuideEditorPage() {
                         style={{ color: 'var(--text-primary)' }}
                     />
 
+                    {/* Writer Guidelines */}
+                    <div className="border rounded-xl bg-[var(--bg-elev-1)] overflow-hidden" style={{ borderColor: 'var(--divider)' }}>
+                        <button
+                            onClick={() => setShowGuidelines(!showGuidelines)}
+                            className="w-full flex items-center justify-between px-4 py-3 text-sm font-semibold text-[var(--text-primary)] hover:bg-[var(--chip-bg)] transition-colors"
+                        >
+                            <span className="flex items-center gap-2">
+                                <HelpCircle className="w-4 h-4 text-[var(--brand)]" />
+                                Writer Guidelines & LLM Context
+                            </span>
+                            {showGuidelines ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                        </button>
+                        
+                        {showGuidelines && (
+                            <div className="p-4 border-t text-sm space-y-4" style={{ borderColor: 'var(--divider)', color: 'var(--text-secondary)' }}>
+                                <div className="space-y-2">
+                                    <h4 className="font-semibold text-[var(--text-primary)]">How to write guides:</h4>
+                                    <ul className="list-disc pl-5 space-y-1">
+                                        <li><strong>HTML Only:</strong> Do not write in Markdown. Use the Visual or HTML editor.</li>
+                                        <li><strong>Styling:</strong> Basic tags (<code>p</code>, <code>h1</code>, <code>a</code>) are automatically styled. You can use inline CSS (<code>style="..."</code>) or Tailwind classes if needed.</li>
+                                        <li><strong>Callouts:</strong> Use the editor toolbar to insert Info/Warning/Tip boxes.</li>
+                                        <li><strong>Iframes:</strong> Only YouTube, Google Drive, Facebook, X, Instagram, TikTok, Vimeo, and Reddit are allowed.</li>
+                                        <li><strong>Deep Links:</strong> Standard schemes like <code>mihon://</code> or <code>tachiyomi://</code> will work safely.</li>
+                                    </ul>
+                                </div>
+                                <div className="bg-[var(--bg-surface)] border rounded-lg p-4 space-y-2" style={{ borderColor: 'var(--divider)' }}>
+                                    <div className="flex items-center justify-between">
+                                        <h4 className="font-semibold text-[var(--text-primary)]">LLM Prompt Context</h4>
+                                        <button onClick={copyLLMContext} className="flex items-center gap-1.5 px-2 py-1 bg-[var(--brand)] text-white text-xs rounded hover:bg-[var(--brand-strong)] transition-colors">
+                                            <Copy className="w-3 h-3" /> Copy Prompt
+                                        </button>
+                                    </div>
+                                    <p className="text-xs">Paste this context into ChatGPT or Claude to have it generate perfectly formatted HTML guides for Miyomi.</p>
+                                    <pre className="text-[10px] p-3 rounded bg-[var(--bg-elev-1)] overflow-x-auto border" style={{ borderColor: 'var(--divider)', color: 'var(--text-secondary)' }}>
+                                        {llmContextString}
+                                    </pre>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+
                     <AdminRichTextEditor
-                        value={form.content}
-                        onChange={content => setForm(f => ({ ...f, content }))}
-                        format={form.content_format}
-                        onFormatChange={content_format => setForm(f => ({ ...f, content_format }))}
+                        value={form.content_html}
+                        onChange={content_html => setForm(f => ({ ...f, content_html }))}
                         placeholder="Start writing your guide..."
                     />
                 </div>
@@ -253,6 +326,23 @@ export function AdminGuideEditorPage() {
                                     Will auto-generate: <span className="font-mono text-[var(--brand)]">{generateSlug(form.title)}</span>
                                 </div>
                             )}
+                        </AdminFormField>
+
+                        <AdminFormField label="Read Time">
+                            <div className="flex gap-2">
+                                <AdminInput
+                                    value={form.readTime}
+                                    onChange={e => setForm(f => ({ ...f, readTime: e.target.value }))}
+                                    placeholder={`Auto: ${calculateReadTime(form.content_html || form.content || '')}`}
+                                />
+                                <button
+                                    type="button"
+                                    onClick={() => setForm(f => ({ ...f, readTime: calculateReadTime(f.content_html || f.content || '') }))}
+                                    className="px-3 py-2 bg-[var(--bg-elev-1)] hover:bg-[var(--chip-bg)] text-[var(--brand)] text-sm font-semibold rounded-lg transition-colors border border-[var(--divider)]"
+                                >
+                                    Auto
+                                </button>
+                            </div>
                         </AdminFormField>
 
                         <AdminFormField label="Category">

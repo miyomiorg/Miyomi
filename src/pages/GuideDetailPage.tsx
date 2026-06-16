@@ -1,15 +1,35 @@
 import { ArrowLeft, BookOpen, Clock, Tag } from 'lucide-react';
 import { motion } from 'motion/react';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useParams } from 'react-router-dom';
 import { dataService } from '../services/dataService';
-import type { GuideData } from '../types/data';
 import DOMPurify from 'dompurify';
-import { marked } from 'marked';
-import { DevBanner } from '../components/DevBanner';
 import { BackButton } from '../components/BackButton';
 
-marked.setOptions({ breaks: true, gfm: true });
+// Allow deep links
+const ALLOWED_URI_REGEXP = /^(?:(?:(?:f|ht)tps?|mailto|tel|callto|sms|cid|xmpp|mihon|tachiyomi|aniyomi|tachi|cloudstream):|[^a-z]|[a-z+.\-]+(?:[^a-z+.\-:]|$))/i;
+
+DOMPurify.setConfig({ ALLOWED_URI_REGEXP });
+
+DOMPurify.addHook('uponSanitizeElement', (node, data) => {
+    if (data.tagName === 'iframe') {
+        const el = node as Element;
+        const src = el.getAttribute('src') || '';
+        const allowedDomains = [
+            'youtube.com', 'youtube-nocookie.com', 'drive.google.com',
+            'facebook.com', 'twitter.com', 'x.com', 'instagram.com',
+            'tiktok.com', 'vimeo.com', 'reddit.com'
+        ];
+        try {
+            const url = new URL(src);
+            if (!allowedDomains.some(domain => url.hostname.endsWith(domain))) {
+                node.parentNode?.removeChild(node);
+            }
+        } catch {
+            node.parentNode?.removeChild(node);
+        }
+    }
+});
 
 interface GuideDetailPageProps {
   slug?: string;
@@ -19,7 +39,7 @@ interface GuideDetailPageProps {
 export function GuideDetailPage({ slug: propSlug, onNavigate }: GuideDetailPageProps) {
   const params = useParams<{ slug: string }>();
   const slug = propSlug || params.slug;
-  const [guide, setGuide] = useState<GuideData | null>(null);
+  const [guide, setGuide] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -99,8 +119,31 @@ export function GuideDetailPage({ slug: propSlug, onNavigate }: GuideDetailPageP
           {guide.title}
         </h1>
 
+        {/* Author / Metadata */}
+        {(guide.author_name || guide.author || guide.published_at) && (
+          <div className="flex flex-wrap items-center gap-3 mb-6 font-['Inter',sans-serif] text-sm">
+            {(guide.author_name || guide.author) && (
+              <div className="flex items-center gap-2">
+                <span className="text-[var(--text-secondary)]">Written by</span>
+                <span className="font-semibold text-[var(--brand)]">
+                  {guide.author_name || guide.author}
+                </span>
+              </div>
+            )}
+            {((guide.author_name || guide.author) && guide.published_at) && (
+              <span className="text-[var(--text-secondary)] opacity-50">·</span>
+            )}
+            {guide.published_at && (
+              <span className="text-[var(--text-secondary)] flex items-center gap-1.5">
+                <Clock className="w-3.5 h-3.5" />
+                Updated {new Date(guide.published_at).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}
+              </span>
+            )}
+          </div>
+        )}
+
         <div className="flex flex-wrap gap-2">
-          {guide.tags.map((tag) => (
+          {guide.tags.map((tag: string) => (
             <span
               key={tag}
               className="inline-flex items-center gap-1.5 rounded-lg bg-[var(--chip-bg)] px-2.5 py-1 font-['Inter',sans-serif] text-[var(--text-secondary)] px-2"
@@ -119,15 +162,13 @@ export function GuideDetailPage({ slug: propSlug, onNavigate }: GuideDetailPageP
         style={{ boxShadow: '0 6px 20px 0 rgba(0,0,0,0.08)' }}
       >
         <div
-          className="prose prose-invert max-w-none prose-headings:font-['Poppins',sans-serif] prose-p:font-['Inter',sans-serif] prose-a:text-[var(--brand)] prose-img:rounded-xl prose-img:shadow-lg prose-headings:text-[var(--text-primary)] prose-p:text-[var(--text-secondary)] prose-strong:text-[var(--text-primary)] prose-code:text-[var(--brand)] prose-code:bg-[var(--chip-bg)] prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded-md prose-code:text-xs prose-pre:bg-[var(--bg-elev-1)] prose-pre:border prose-pre:border-[var(--divider)] prose-pre:rounded-xl prose-blockquote:border-l-[var(--brand)] prose-blockquote:bg-[var(--chip-bg)] prose-blockquote:rounded-r-lg prose-blockquote:py-1 prose-blockquote:px-4 prose-hr:border-[var(--divider)]"
+          className="guide-content prose prose-invert max-w-none prose-headings:font-['Poppins',sans-serif] prose-p:font-['Inter',sans-serif] prose-a:text-[var(--brand)] prose-img:rounded-xl prose-img:shadow-lg prose-headings:text-[var(--text-primary)] prose-strong:text-[var(--text-primary)] prose-code:text-[var(--brand)] prose-code:bg-[var(--chip-bg)] prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded-md prose-code:text-xs prose-pre:bg-[var(--bg-elev-1)] prose-pre:border prose-pre:border-[var(--divider)] prose-pre:rounded-xl prose-blockquote:border-l-[var(--brand)] prose-blockquote:bg-[var(--chip-bg)] prose-blockquote:rounded-r-lg prose-blockquote:py-1 prose-blockquote:px-4 prose-hr:border-[var(--divider)]"
           dangerouslySetInnerHTML={{
             __html: DOMPurify.sanitize(
-              (guide as any).content_format === 'markdown'
-                ? (marked.parse(guide.content) as string)
-                : guide.content,
+              guide.content_html || guide.content || '',
               {
                 ADD_TAGS: ['iframe', 'style', 'div', 'details', 'summary'],
-                ADD_ATTR: ['allow', 'allowfullscreen', 'frameborder', 'scrolling', 'style', 'class', 'target', 'open'],
+                ADD_ATTR: ['allow', 'allowfullscreen', 'frameborder', 'scrolling', 'style', 'class', 'target', 'open', 'data-callout', 'data-callout-type', 'data-container'],
               }
             )
           }}

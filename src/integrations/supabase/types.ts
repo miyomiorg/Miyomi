@@ -405,48 +405,67 @@ export type Database = {
       guides: {
         Row: {
           author: string | null
+          author_name: string | null
+          author_avatar_url: string | null
           category: string | null
           content: string | null
+          content_html: string | null
+          content_mode: string | null
           created_at: string
           description: string | null
           id: string
           metadata: Json | null
+          published_at: string | null
           related_apps: string[] | null
           related_extensions: string[] | null
           slug: string | null
           status: string
           tags: string[] | null
+          template_version: string | null
           title: string
           updated_at: string
         }
         Insert: {
           author?: string | null
+          author_name?: string | null
+          author_avatar_url?: string | null
           category?: string | null
           content?: string | null
+          content_html?: string | null
+          content_mode?: string | null
           created_at?: string
           description?: string | null
           id?: string
           metadata?: Json | null
+          published_at?: string | null
           related_apps?: string[] | null
           related_extensions?: string[] | null
           slug?: string | null
           status?: string
           tags?: string[] | null
+          template_version?: string | null
           title: string
           updated_at?: string
         }
         Update: {
           author?: string | null
+          author_name?: string | null
+          author_avatar_url?: string | null
           category?: string | null
           content?: string | null
+          content_html?: string | null
+          content_mode?: string | null
           created_at?: string
           description?: string | null
           id?: string
+          metadata?: Json | null
+          published_at?: string | null
           related_apps?: string[] | null
           related_extensions?: string[] | null
           slug?: string | null
           status?: string
           tags?: string[] | null
+          template_version?: string | null
           title?: string
           updated_at?: string
         }

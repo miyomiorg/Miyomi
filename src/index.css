@@ -402,3 +402,97 @@ html {
 .text-shadow-sm {
   text-shadow: var(--text-shadow);
 }
+
+/* ─── Guide CSS Classes ─── */
+.guide-content {
+  color: var(--text-primary);
+  font-family: 'Inter', sans-serif;
+  line-height: 1.6;
+}
+
+.guide-content p {
+  color: var(--text-primary);
+  margin-bottom: 1.2em;
+}
+
+.guide-content h1,
+.guide-content h2,
+.guide-content h3,
+.guide-content h4 {
+  color: var(--text-primary);
+  font-family: 'Poppins', sans-serif;
+  font-weight: 600;
+  margin-top: 1.5em;
+  margin-bottom: 0.5em;
+}
+
+.guide-content a {
+  color: var(--brand);
+  text-decoration: none;
+}
+
+.guide-content a:hover {
+  text-decoration: underline;
+}
+
+.guide-content img {
+  border-radius: 12px;
+  max-width: 100%;
+  height: auto;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+.guide-content table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 1.5em;
+}
+
+.guide-content th,
+.guide-content td {
+  border: 1px solid var(--divider);
+  padding: 0.75rem;
+  text-align: left;
+}
+
+.guide-content th {
+  background-color: var(--bg-elev-1);
+  font-weight: 600;
+}
+
+.guide-content iframe {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border-radius: 12px;
+  margin: 1.5em 0;
+  border: none;
+}
+
+.guide-content [data-callout] {
+  margin: 1.5em 0;
+  font-size: 0.95em;
+}
+
+.guide-content [data-container="card"] {
+  background: var(--bg-elev-1);
+  border: 1px solid var(--divider);
+  border-radius: 12px;
+  padding: 24px;
+  margin: 16px 0;
+}
+
+.guide-content [data-container="highlight"] {
+  background: linear-gradient(135deg, rgba(99,102,241,0.05), rgba(168,85,247,0.05));
+  border: 1px solid rgba(99,102,241,0.1);
+  border-radius: 12px;
+  padding: 24px;
+  margin: 16px 0;
+}
+
+.guide-content [data-container="steps"] {
+  background: var(--bg-elev-1);
+  border-left: 3px solid var(--brand);
+  border-radius: 0 8px 8px 0;
+  padding: 20px 24px;
+  margin: 16px 0;
+}

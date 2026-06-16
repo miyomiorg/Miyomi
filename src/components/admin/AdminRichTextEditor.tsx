@@ -15,7 +15,6 @@ import { TableRow } from '@tiptap/extension-table-row';
 import { TableHeader } from '@tiptap/extension-table-header';
 import { TableCell } from '@tiptap/extension-table-cell';
 import { Placeholder } from '@tiptap/extension-placeholder';
-import { marked } from 'marked';
 import {
     Bold, Italic, Underline as UnderlineIcon, Strikethrough,
     AlignLeft, AlignCenter, AlignRight,
@@ -113,15 +112,11 @@ const StyledContainer = Node.create({
 interface AdminRichTextEditorProps {
     value: string;
     onChange: (content: string) => void;
-    format?: 'html' | 'markdown';
-    onFormatChange?: (format: 'html' | 'markdown') => void;
     className?: string;
     placeholder?: string;
 }
 
-type EditorMode = 'visual' | 'html' | 'markdown' | 'preview' | 'split';
-
-marked.setOptions({ breaks: true, gfm: true });
+type EditorMode = 'visual' | 'html' | 'preview';
 
 const detectAdvancedHtml = (v: string) =>
     !!v && ((v.includes('<div') && v.includes('style=')) || v.includes('grid-template') || v.includes('var(--'));
@@ -197,8 +192,8 @@ const EditorTextarea = React.forwardRef<HTMLTextAreaElement, {
         onKeyDown={onKeyDown}
         className={`w-full p-5 font-mono text-sm leading-relaxed focus:outline-none resize-none ${cls}`}
         style={{ background: 'transparent', color: 'var(--text-primary)', caretColor: 'var(--brand)' }}
-        placeholder={mode === 'markdown' ? '# Start writing in Markdown...\n\nUse **bold**, *italic*, `code`, and more...' : 'Enter HTML here...'}
-        spellCheck={mode === 'markdown'}
+        placeholder={mode === 'html' ? 'Enter HTML here...' : 'Start writing...'}
+        spellCheck={false}
     />
 ));
 
@@ -342,46 +337,18 @@ const VisualToolbar = ({ editor, showCalloutMenu, setShowCalloutMenu, insertCall
     </div>
 );
 
-const MarkdownToolbar = ({ insertLineMd, insertMd }: any) => (
-    <div className="flex flex-wrap items-center gap-0.5 px-3 py-1.5 border-b" style={{ borderColor: 'var(--divider)' }}>
-        <Btn onClick={() => insertLineMd('# ')} title="Heading 1" icon={Heading1} />
-        <Btn onClick={() => insertLineMd('## ')} title="Heading 2" icon={Heading2} />
-        <Btn onClick={() => insertLineMd('### ')} title="Heading 3" icon={Heading3} />
-        <Sep />
-        <Btn onClick={() => insertMd('**', '**', 'bold')} title="Bold (Ctrl+B)" icon={Bold} />
-        <Btn onClick={() => insertMd('*', '*', 'italic')} title="Italic (Ctrl+I)" icon={Italic} />
-        <Btn onClick={() => insertMd('~~', '~~', 'strikethrough')} title="Strikethrough" icon={Strikethrough} />
-        <Btn onClick={() => insertMd('`', '`', 'code')} title="Inline Code" icon={Code} />
-        <Sep />
-        <Btn onClick={() => insertMd('[', '](url)', 'link text')} title="Link (Ctrl+K)" icon={LinkIcon} />
-        <Btn onClick={() => insertMd('![', '](image-url)', 'alt text')} title="Image" icon={ImageIcon} />
-        <Sep />
-        <Btn onClick={() => insertLineMd('- ')} title="Bullet List" icon={List} />
-        <Btn onClick={() => insertLineMd('1. ')} title="Numbered List" icon={ListOrdered} />
-        <Btn onClick={() => insertLineMd('> ')} title="Quote" icon={Quote} />
-        <Btn onClick={() => insertMd('\n---\n')} title="Horizontal Rule" icon={Minus} />
-        <Sep />
-        <Btn onClick={() => insertMd('\n```\n', '\n```\n', 'code block')} title="Code Block" icon={CodeXml} />
-        <Btn onClick={() => insertMd('\n| Header | Header |\n| --- | --- |\n| Cell | Cell |\n')} title="Table" icon={TableIcon} />
-        <Sep />
-        <Btn onClick={() => insertMd('\n> [!NOTE]\n> ', '\n', 'Info text')} title="Callout Note" icon={Info} />
-        <Btn onClick={() => insertMd('\n> [!WARNING]\n> ', '\n', 'Warning text')} title="Callout Warning" icon={AlertTriangle} />
-        <Btn onClick={() => insertMd('\n> [!TIP]\n> ', '\n', 'Tip text')} title="Callout Tip" icon={Lightbulb} />
-    </div>
-);
+
 
 /* ═══════════════════════════════════════════════════════
    COMPONENT
    ═══════════════════════════════════════════════════════ */
 
 export function AdminRichTextEditor({
-    value, onChange, format = 'html', onFormatChange, className = '', placeholder: ph,
+    value, onChange, className = '', placeholder: ph,
 }: AdminRichTextEditorProps) {
 
     const isAdvanced = useMemo(() => detectAdvancedHtml(value), []);
     const [mode, setMode] = useState<EditorMode>(() => {
-        if (format === 'markdown') return 'markdown';
-        if (isAdvanced) return 'split';
         return 'visual';
     });
     const [isFullscreen, setIsFullscreen] = useState(false);
@@ -427,7 +394,7 @@ export function AdminRichTextEditor({
             CalloutExtension,
             StyledContainer,
         ],
-        content: (isAdvanced || format === 'markdown') ? '' : value,
+        content: isAdvanced ? '' : value,
         onUpdate: ({ editor }) => {
             if (modeRef.current === 'visual') onChangeRef.current(editor.getHTML());
         },
@@ -436,15 +403,10 @@ export function AdminRichTextEditor({
         },
     });
 
-    /* ── Preview renderer ── */
     const previewHtml = useMemo(() => {
         const src = value || '';
-        if (format === 'markdown' || mode === 'markdown') {
-            try { return DOMPurify.sanitize(marked.parse(src) as string, SANITIZE_CFG); }
-            catch { return src; }
-        }
         return DOMPurify.sanitize(src, SANITIZE_CFG);
-    }, [value, format, mode]);
+    }, [value, mode]);
 
     /* ── Markdown helpers ── */
     const insertMd = useCallback((before: string, after = '', ph = '') => {
@@ -472,25 +434,17 @@ export function AdminRichTextEditor({
             onChange(value.substring(0, s) + '  ' + value.substring(end));
             requestAnimationFrame(() => { ta.selectionStart = ta.selectionEnd = s + 2; });
         }
-        if ((e.ctrlKey || e.metaKey) && mode === 'markdown') {
-            if (e.key === 'b') { e.preventDefault(); insertMd('**', '**', 'bold'); }
-            if (e.key === 'i') { e.preventDefault(); insertMd('*', '*', 'italic'); }
-            if (e.key === 'k') { e.preventDefault(); insertMd('[', '](url)', 'link text'); }
-        }
-    }, [value, onChange, mode, insertMd]);
+    }, [value, onChange, mode]);
 
-    /* ── Mode switching ── */
     const handleModeChange = useCallback((newMode: EditorMode) => {
         if (newMode === 'visual') {
-            if (detectAdvancedHtml(value) || format === 'markdown') {
+            if (detectAdvancedHtml(value)) {
                 if (!window.confirm('⚠️ Visual mode may simplify some advanced HTML.\n\nSwitch anyway?')) return;
             }
             editor?.commands.setContent(value || '');
         }
-        if (newMode === 'markdown' && format !== 'markdown') onFormatChange?.('markdown');
-        if (newMode === 'html' && format !== 'html') onFormatChange?.('html');
         setMode(newMode);
-    }, [value, format, editor, onFormatChange]);
+    }, [value, editor]);
 
     if (!editor) return null;
 
@@ -545,16 +499,14 @@ export function AdminRichTextEditor({
             {/* ── Top bar: mode tabs + fullscreen ── */}
             <div className="flex items-center justify-between gap-2 px-3 py-2 border-b flex-shrink-0" style={{ background: 'var(--bg-elev-1)', borderColor: 'var(--divider)' }}>
                 <div className="flex items-center gap-1.5">
-                    <ModeTab mode="markdown" currentMode={mode} onModeChange={handleModeChange} label="Markdown" icon={FileText} />
                     <ModeTab mode="html" currentMode={mode} onModeChange={handleModeChange} label="HTML" icon={FileCode} />
                     <ModeTab mode="visual" currentMode={mode} onModeChange={handleModeChange} label="Visual" icon={Palette} />
                     <Sep />
                     <ModeTab mode="preview" currentMode={mode} onModeChange={handleModeChange} label="Preview" icon={Eye} />
-                    <ModeTab mode="split" currentMode={mode} onModeChange={handleModeChange} label="Split" icon={Columns} />
                 </div>
                 <div className="flex items-center gap-2">
                     <span className="text-[10px] font-mono px-2 py-0.5 rounded-md" style={{ background: 'var(--chip-bg)', color: 'var(--text-secondary)' }}>
-                        {format.toUpperCase()}
+                        HTML
                     </span>
                     <button type="button" onClick={() => setIsFullscreen(f => !f)}
                         className="p-1.5 rounded-md text-[var(--text-secondary)] hover:bg-[var(--bg-elev-2)] hover:text-[var(--text-primary)] transition-colors"
@@ -579,7 +531,6 @@ export function AdminRichTextEditor({
                 showHighlightPicker={showHighlightPicker}
                 setShowHighlightPicker={setShowHighlightPicker}
             />}
-            {mode === 'markdown' && <MarkdownToolbar insertLineMd={insertLineMd} insertMd={insertMd} />}
 
             {/* ── Editor body ── */}
             {/* ── Editor body ── */}
@@ -587,18 +538,6 @@ export function AdminRichTextEditor({
                 {mode === 'visual' && (
                     <div className="flex-1 h-full overflow-y-auto" style={{ background: 'var(--bg-surface)' }}>
                         <EditorContent editor={editor} />
-                    </div>
-                )}
-                {mode === 'markdown' && (
-                    <div className="flex-1 h-full overflow-y-auto flex flex-col" style={{ background: 'var(--bg-elev-1)' }}>
-                        <EditorTextarea
-                            ref={textareaRef}
-                            value={value}
-                            onChange={(val) => onChange(val)}
-                            onKeyDown={handleTextareaKeyDown}
-                            mode={mode}
-                            className="flex-1 h-full min-h-[400px]"
-                        />
                     </div>
                 )}
                 {mode === 'html' && (
@@ -618,30 +557,12 @@ export function AdminRichTextEditor({
                         <PreviewPane previewHtml={previewHtml} />
                     </div>
                 )}
-                {mode === 'split' && (
-                    <div className="grid grid-cols-2 h-full divide-x" style={{ borderColor: 'var(--divider)' }}>
-                        <div className="overflow-y-auto flex flex-col h-full" style={{ background: 'var(--bg-elev-1)' }}>
-                            <EditorTextarea
-                                ref={textareaRef}
-                                value={value}
-                                onChange={(val) => onChange(val)}
-                                onKeyDown={handleTextareaKeyDown}
-                                mode={mode}
-                                className="flex-1 h-full min-h-[400px]"
-                            />
-                        </div>
-                        <div className="overflow-y-auto h-full" style={{ background: 'var(--bg-surface)' }}>
-                            <PreviewPane previewHtml={previewHtml} />
-                        </div>
-                    </div>
-                )}
             </div>
 
             {/* ── Status bar ── */}
             <div className="flex items-center justify-between px-4 py-1.5 text-[10px] border-t flex-shrink-0" style={{ background: 'var(--bg-elev-1)', borderColor: 'var(--divider)', color: 'var(--text-secondary)' }}>
                 <span>{value.length.toLocaleString()} chars</span>
                 <div className="flex items-center gap-3">
-                    {mode === 'markdown' && <span>Ctrl+B Bold · Ctrl+I Italic · Ctrl+K Link · Tab Indent</span>}
                     {mode === 'visual' && <span>Click toolbar buttons or use shortcuts</span>}
                     {isFullscreen && <span className="opacity-60">Esc to exit</span>}
                 </div>
