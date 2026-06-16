@@ -20,8 +20,6 @@ import { NotFoundPage } from "./pages/NotFoundPage";
 import { SearchPage } from "./pages/SearchPage";
 import { DonatePage } from "./pages/DonatePage";
 import { SubmitPage } from "./pages/SubmitPage";
-import { ChristmasSnow } from './components/ChristmasSnow';
-import { Preloader } from './components/Preloader';
 import { AdminLoginPage } from './pages/admin/AdminLoginPage';
 import { UnauthorizedPage } from './pages/UnauthorizedPage';
 import { PrivacyPolicyPage } from './pages/PrivacyPolicyPage';
@@ -260,8 +258,6 @@ function AppContent() {
 }
 
 export default function App() {
-  const [mounted, setMounted] = useState(false);
-
   useEffect(() => {
     const storedTheme = localStorage.getItem("theme");
     const systemTheme = window.matchMedia(
@@ -273,17 +269,12 @@ export default function App() {
 
     document.documentElement.classList.remove("light", "dark");
     document.documentElement.classList.add(initialTheme);
-    // Minimum 2 seconds delay to show the preloader animation
-    setTimeout(() => {
-      setMounted(true);
-    }, 2000);
   }, []);
 
   return (
     <ThemeProvider>
       <BrowserRouter>
         <LikeProvider>
-          {!mounted && <Preloader topBar />}
           <AppContent />
         </LikeProvider>
       </BrowserRouter>
