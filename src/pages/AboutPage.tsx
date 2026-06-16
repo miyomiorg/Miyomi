@@ -68,7 +68,7 @@ export function AboutPage() {
 
       {/* DISCLAIMER */}
       <section id="disclaimer" className="mb-12">
-        <blockquote className="border-l-4 border-amber-500/50 dark:border-amber-500/50 bg-[var(--bg-elev-1)]/50 pl-4 py-2 pr-4 rounded-r-xl my-4 text-[var(--text-secondary)]">
+        <blockquote className="border-l-4 border-amber-500/50 dark:border-amber-500/50 bg-[var(--bg-elev-1)]/50 pl-4 py-2 pr-4 rounded-xl my-4 text-[var(--text-secondary)]">
           <h3 className="font-semibold text-[var(--text-primary)] mb-2 text-base md:text-lg flex items-center gap-2">
             <AlertCircle className="w-4 h-4 md:w-5 md:h-5 text-amber-600 dark:text-amber-400 flex-shrink-0" />
             Disclaimer

@@ -68,9 +68,9 @@ export function AppListCard({
           name={name}
           logoUrl={logoUrl}
           iconColor={colorToUse}
-          className="w-14 h-14"
+          className="w-12 h-12"
           roundedClass="rounded-xl"
-          textClassName="text-lg"
+          textClassName="text-base"
         />
       </div>
 
@@ -105,14 +105,14 @@ export function AppListCard({
           {description}
         </p>
         {rating && (
-          <div className="flex items-center gap-3 mt-2">
+          <div className="flex items-center gap-1.5 mt-1">
             <StarRating rating={rating} size="sm" />
           </div>
         )}
       </div>
 
       {/* Right side: Action & Downloads */}
-      <div className="flex flex-col items-end justify-between self-stretch py-0.5 flex-shrink-0 pl-2 border-l border-[var(--divider)]/30 border-dashed ml-2">
+      <div className="flex flex-col items-end justify-center self-stretch flex-shrink-0 pl-3 border-l border-[var(--divider)]/30 border-dashed ml-2 gap-2">
         <LoveButton itemId={appId} fallbackCount={likes || 0} />
         {downloads ? (
           <div className="flex items-center gap-1 text-xs text-[var(--text-secondary)] font-medium font-sans">

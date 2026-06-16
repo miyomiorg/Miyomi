@@ -1,4 +1,4 @@
-import { Grid3x3, LayoutList } from 'lucide-react';
+import { LayoutGrid, LayoutList } from 'lucide-react';
 
 interface ViewToggleProps {
   view: 'grid' | 'list';
@@ -18,7 +18,7 @@ export function ViewToggle({ view, onViewChange }: ViewToggleProps) {
         aria-label="Grid view"
         aria-pressed={view === 'grid'}
       >
-        <Grid3x3 className="w-4 h-4" strokeWidth={2} />
+        <LayoutGrid className="w-4 h-4" strokeWidth={2} />
       </button>
       <div className="w-px h-4 bg-[var(--divider)]" />
       <button

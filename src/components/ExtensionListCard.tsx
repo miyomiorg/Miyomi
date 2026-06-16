@@ -40,9 +40,9 @@ export function ExtensionListCard({ extension, isHighlighted, onSelect }: Extens
           name={extension.name}
           logoUrl={extension.logoUrl}
           iconColor={accentColor}
-          className="w-14 h-14"
+          className="w-12 h-12"
           roundedClass="rounded-xl"
-          textClassName="text-lg"
+          textClassName="text-base"
         />
       </div>
 
@@ -69,7 +69,7 @@ export function ExtensionListCard({ extension, isHighlighted, onSelect }: Extens
       </div>
 
       {/* Action - Love Button */}
-      <div className="flex items-center gap-2 flex-shrink-0">
+      <div className="flex flex-col items-end justify-center self-stretch flex-shrink-0 pl-3 border-l border-[var(--divider)]/30 border-dashed ml-2 gap-2">
         <LoveButton itemId={extension.id} itemType="extension" fallbackCount={extension.likes || 0} />
       </div>
     </motion.div>
