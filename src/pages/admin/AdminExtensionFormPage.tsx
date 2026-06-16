@@ -125,7 +125,8 @@ export function AdminExtensionFormPage() {
                     download_count: extData.download_count || 0,
                     likes_count: extData.likes_count || 0,
                     install_urls: loadedInstallUrls,
-                    last_updated: extData.last_updated || ''
+                    last_updated: extData.last_updated || '',
+                    git_provider: meta?.git_provider || ''
                 });
             }
         } catch (err: any) {
@@ -188,7 +189,10 @@ export function AdminExtensionFormPage() {
                 icon_color: form.icon_color || null,
                 auto_url: firstAuto?.url || null,
                 manual_url: firstCopy?.url || null,
-                metadata: { install_urls: validInstallUrls },
+                metadata: { 
+                    install_urls: validInstallUrls,
+                    git_provider: form.git_provider || (form.repo_url ? detectGitProvider(form.repo_url).toLowerCase() : null)
+                },
                 social_urls: form.social_urls.filter((u: string) => u.trim()) || [],
                 discord_url: form.social_urls.filter((u: string) => u.trim())[0] || null,
                 tutorials: form.tutorials,

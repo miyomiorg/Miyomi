@@ -50,6 +50,7 @@ export function useApp(appId: string): { app: AppData | null; loading: boolean }
             shortDescription: data.short_description || data.metadata?.shortDescription || undefined,
             rating: data.metadata?.rating || undefined,
             devStatus: data.metadata?.dev_status || undefined,
+            gitProvider: data.metadata?.git_provider || undefined,
         };
     };
 

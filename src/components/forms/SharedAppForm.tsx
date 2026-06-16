@@ -24,7 +24,7 @@ const TAG_OPTIONS = ['Free', 'Paid', 'Open Source', 'Ad-free', 'NSFW', 'Reader',
 export function SharedAppForm({ form, setForm, errors, setErrors, isAdmin = true, isBasicMode = false }: { form: any, setForm: any, errors: any, setErrors: any, isAdmin?: boolean, isBasicMode?: boolean }) {
     const [fetchingGithub, setFetchingGithub] = useState(false);
     const [extractingColor, setExtractingColor] = useState(false);
-    const [repoProvider, setRepoProvider] = useState('github');
+    const repoProvider = form.git_provider || 'github';
     const [manuallySelectedProvider, setManuallySelectedProvider] = useState(false);
     const [guideOptions, setGuideOptions] = useState<string[]>([]);
     const [guidesData, setGuidesData] = useState<any[]>([]);
@@ -57,10 +57,10 @@ export function SharedAppForm({ form, setForm, errors, setErrors, isAdmin = true
     }, [form.icon_url]);
 
     useEffect(() => {
-        if (form.repo_url && !manuallySelectedProvider) {
-            setRepoProvider(detectGitProvider(form.repo_url).toLowerCase());
+        if (form.repo_url && !manuallySelectedProvider && !form.git_provider) {
+            setForm((f: any) => ({ ...f, git_provider: detectGitProvider(form.repo_url).toLowerCase() }));
         }
-    }, [form.repo_url, manuallySelectedProvider]);
+    }, [form.repo_url, manuallySelectedProvider, form.git_provider, setForm]);
 
     async function fetchGuides() {
         const { data } = await supabase.from('guides').select('title, slug').order('title');
@@ -166,7 +166,7 @@ export function SharedAppForm({ form, setForm, errors, setErrors, isAdmin = true
                                 <AdminSelect
                                     value={repoProvider}
                                     onChange={e => {
-                                        setRepoProvider(e.target.value);
+                                        setForm((f: any) => ({ ...f, git_provider: e.target.value }));
                                         setManuallySelectedProvider(true);
                                     }}
                                 >

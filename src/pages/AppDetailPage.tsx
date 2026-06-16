@@ -24,7 +24,7 @@ import { toast } from 'sonner';
 import { DiscordIcon } from '../components/DiscordIcon';
 import { detectPlatform, getPlatform } from '../utils/communityPlatforms';
 import { PlatformIcon } from '../components/admin/CommunityUrlInput';
-import { detectGitProvider, getProviderIcon } from '../utils/gitProviders';
+import { detectGitProvider, getProviderIcon, resolveGitProvider } from '../utils/gitProviders';
 
 type StatusStyle = {
   bg: string;
@@ -300,6 +300,8 @@ export function AppDetailPage({ appId, onNavigate }: AppDetailPageProps) {
   const hasDownload = Boolean(downloadUrl);
   const hasAnyActions = hasDownload || hasCommunityUrl || hasOfficialSite;
 
+  const resolvedGitProvider = React.useMemo(() => resolveGitProvider(app.gitProvider, app.githubUrl), [app.gitProvider, app.githubUrl]);
+
   const inlineActions = hasAnyActions ? (
     <div className="flex flex-wrap items-center justify-center gap-3">
       {hasGithub && (
@@ -308,10 +310,10 @@ export function AppDetailPage({ appId, onNavigate }: AppDetailPageProps) {
           target="_blank"
           rel="noopener noreferrer"
           className="p-3 bg-[var(--bg-elev-1)] border border-[var(--divider)] rounded-xl hover:bg-[var(--chip-bg)] hover:border-[var(--brand)] transition-all text-[var(--text-secondary)] hover:text-[var(--brand)]"
-          title={detectGitProvider(app.githubUrl) === 'Other' ? 'Repository' : detectGitProvider(app.githubUrl)}
+          title={resolvedGitProvider === 'Other' ? 'Repository' : resolvedGitProvider}
         >
           {(() => {
-            const ProviderIcon = getProviderIcon(detectGitProvider(app.githubUrl));
+            const ProviderIcon = getProviderIcon(resolvedGitProvider);
             return <ProviderIcon className="w-5 h-5" />;
           })()}
         </a>
@@ -519,9 +521,9 @@ export function AppDetailPage({ appId, onNavigate }: AppDetailPageProps) {
           {/* Desktop Actions - Right */}
           {showDesktopActions && (
             <div className="hidden lg:flex w-[280px] flex-col gap-3">
-              {(app.officialSite || app.githubUrl) && (
+              {hasDownload && (
                 <a
-                  href={app.officialSite || app.githubUrl}
+                  href={downloadUrl}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flex items-center justify-center gap-2 rounded-2xl bg-[var(--brand)] px-6 py-4 font-['Inter',sans-serif] text-white transition-all hover:bg-[var(--brand-strong)] hover:shadow-lg hover:shadow-cyan-500/20 mb-2"
@@ -541,13 +543,13 @@ export function AppDetailPage({ appId, onNavigate }: AppDetailPageProps) {
                 >
                   <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--chip-bg)] text-[var(--brand)] group-hover:scale-110 transition-transform">
                     {(() => {
-                      const ProviderIcon = getProviderIcon(detectGitProvider(app.githubUrl));
+                      const ProviderIcon = getProviderIcon(resolvedGitProvider);
                       return <ProviderIcon className="w-5 h-5" />;
                     })()}
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="font-['Inter',sans-serif] font-semibold text-[var(--text-primary)] text-sm">
-                      {detectGitProvider(app.githubUrl) === 'Other' ? 'Repository' : detectGitProvider(app.githubUrl)}
+                      {resolvedGitProvider === 'Other' ? 'Repository' : resolvedGitProvider}
                     </p>
                     <p className="font-['Inter',sans-serif] text-xs text-[var(--text-secondary)] truncate">
                       Project repository

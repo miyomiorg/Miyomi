@@ -108,16 +108,7 @@ export function AdminAppFormPage() {
         return () => clearTimeout(timer);
     }, [form.slug]);
 
-    useEffect(() => {
-        if (form.repo_url && !form.download_url) {
-            const match = form.repo_url.match(/github\.com\/([^\/]+)\/([^\/]+)/);
-            if (match) {
-                const [_, owner, repo] = match;
-                const cleanRepo = repo.replace(/\.git$/, '').split('#')[0].split('?')[0];
-                setForm(f => ({ ...f, download_url: `https://github.com/${owner}/${cleanRepo}/releases/latest` }));
-            }
-        }
-    }, [form.repo_url, form.download_url]);
+
 
     async function fetchApp(appId: string) {
         try {
@@ -159,7 +150,8 @@ export function AdminAppFormPage() {
                     likes_count: appData.likes_count || 0,
                     last_release_date: appData.last_release_date || '',
                     metadata: appData.metadata || {},
-                    dev_status: appData.metadata?.dev_status || 'active'
+                    dev_status: appData.metadata?.dev_status || 'active',
+                    git_provider: appData.metadata?.git_provider || ''
                 });
             }
         } catch (err: any) {
@@ -222,7 +214,8 @@ export function AdminAppFormPage() {
                 last_release_date: form.last_release_date || null,
                 metadata: {
                     ...form.metadata,
-                    dev_status: form.dev_status
+                    dev_status: form.dev_status,
+                    git_provider: form.git_provider || (form.repo_url ? detectGitProvider(form.repo_url).toLowerCase() : null)
                 }
             };
 

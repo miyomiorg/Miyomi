@@ -24,6 +24,7 @@ export interface AppData {
     description: string;
     version?: string;
     devStatus?: string;
+    gitProvider?: string;
     contentTypes: readonly ContentType[];
     platforms: readonly Platform[];
     accentColor?: string;
@@ -78,6 +79,7 @@ export interface ExtensionData {
     lastUpdated?: string;
     overview?: string;
     github?: string;
+    gitProvider?: string;
     website?: string;
     keywords?: readonly string[];
     tutorials?: readonly ExtensionTutorial[];

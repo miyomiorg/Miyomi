@@ -22,7 +22,7 @@ import { detectPlatform, getPlatform } from '../utils/communityPlatforms';
 
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious, type CarouselApi } from '../components/ui/carousel';
 import Autoplay from 'embla-carousel-autoplay';
-import { detectGitProvider, getProviderIcon } from '../utils/gitProviders';
+import { detectGitProvider, getProviderIcon, resolveGitProvider } from '../utils/gitProviders';
 
 interface ExtensionDetailPageProps {
   extensionId: string;
@@ -127,6 +127,8 @@ export function ExtensionDetailPage({ extensionId, onNavigate }: ExtensionDetail
     return date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
   };
 
+  const resolvedGitProvider = React.useMemo(() => resolveGitProvider(extension?.gitProvider, extension?.github), [extension?.gitProvider, extension?.github]);
+
   const renderActionButtons = (layout: 'inline' | 'stack') => {
     if (!extension) return null;
 
@@ -206,10 +208,10 @@ export function ExtensionDetailPage({ extensionId, onNavigate }: ExtensionDetail
                 target="_blank"
                 rel="noopener noreferrer"
                 className="p-3 bg-[var(--bg-elev-1)] border border-[var(--divider)] rounded-xl hover:bg-[var(--chip-bg)] hover:border-[var(--brand)] transition-all text-[var(--text-secondary)] hover:text-[var(--brand)]"
-                title={detectGitProvider(extension.github) === 'Other' ? 'Repository' : detectGitProvider(extension.github)}
+                title={resolvedGitProvider === 'Other' ? 'Repository' : resolvedGitProvider}
               >
                 {(() => {
-                  const ProviderIcon = getProviderIcon(detectGitProvider(extension.github));
+                  const ProviderIcon = getProviderIcon(resolvedGitProvider);
                   return <ProviderIcon className="w-5 h-5" />;
                 })()}
               </a>
@@ -259,9 +261,9 @@ export function ExtensionDetailPage({ extensionId, onNavigate }: ExtensionDetail
     const quickLinks = [
       extension.github && {
         href: extension.github,
-        label: detectGitProvider(extension.github) === 'Other' ? 'Repository' : detectGitProvider(extension.github),
+        label: resolvedGitProvider === 'Other' ? 'Repository' : resolvedGitProvider,
         description: 'Project repository',
-        Icon: getProviderIcon(detectGitProvider(extension.github)),
+        Icon: getProviderIcon(resolvedGitProvider),
       },
       extension.website && {
         href: extension.website,

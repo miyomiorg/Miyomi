@@ -28,6 +28,7 @@ export function useExtension(extensionId: string): { extension: ExtensionData | 
 
                 if (error) throw error;
                 if (data) {
+                    const meta = data.metadata as any;
                     setExtension({
                         id: data.id,
                         slug: data.slug || undefined,
@@ -45,11 +46,11 @@ export function useExtension(extensionId: string): { extension: ExtensionData | 
                         lastUpdated: data.last_updated || '',
                         overview: data.description || undefined,
                         github: data.repo_url,
+                        gitProvider: meta?.git_provider || undefined,
                         website: data.source_url || undefined,
                         keywords: data.tags || [],
                         tutorials: Array.isArray(data.tutorials) ? data.tutorials : [],
                         installUrls: (() => {
-                            const meta = data.metadata as any;
                             if (meta?.install_urls && Array.isArray(meta.install_urls) && meta.install_urls.length > 0) {
                                 return meta.install_urls;
                             }
