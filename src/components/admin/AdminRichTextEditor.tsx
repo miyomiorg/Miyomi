@@ -124,7 +124,7 @@ const detectAdvancedHtml = (v: string) =>
 const SANITIZE_CFG = {
     ADD_TAGS: ['iframe', 'style', 'div', 'details', 'summary', 'video', 'source', 'table', 'thead', 'tbody', 'tr', 'th', 'td'],
     ADD_ATTR: ['allow', 'allowfullscreen', 'frameborder', 'scrolling', 'style', 'class', 'target', 'open', 'controls', 'autoplay',
-        'data-callout', 'data-callout-type', 'data-container', 'colspan', 'rowspan'],
+        'data-callout', 'data-callout-type', 'data-container', 'colspan', 'rowspan', 'src', 'width', 'height', 'title'],
 };
 
 const PRESET_COLORS = [

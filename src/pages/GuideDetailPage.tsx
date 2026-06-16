@@ -25,14 +25,18 @@ DOMPurify.addHook('uponSanitizeElement', (node, data) => {
   }
   if (data.tagName === 'iframe') {
     const el = node as Element;
-    const src = el.getAttribute('src') || '';
+    const src = el.getAttribute('src');
+    if (!src) {
+      node.parentNode?.removeChild(node);
+      return;
+    }
     const allowedDomains = [
       'youtube.com', 'youtube-nocookie.com', 'drive.google.com',
       'facebook.com', 'twitter.com', 'x.com', 'instagram.com',
       'tiktok.com', 'vimeo.com', 'reddit.com'
     ];
     try {
-      const url = new URL(src);
+      const url = new URL(src, window.location.origin);
       if (!allowedDomains.some(domain => url.hostname.endsWith(domain))) {
         node.parentNode?.removeChild(node);
       }
@@ -97,7 +101,7 @@ export function GuideDetailPage({ slug: propSlug, onNavigate }: GuideDetailPageP
     // Use a short timeout to let dangerouslySetInnerHTML finish rendering
     const timer = setTimeout(() => {
       if (!contentRef.current) return;
-      const headings = Array.from(contentRef.current.querySelectorAll('h2, h3'));
+      const headings = Array.from(contentRef.current.querySelectorAll('h2, h3')) as HTMLElement[];
       const newToc = headings.map((el) => {
         // Ensure ID exists (in case DOMPurify missed it)
         if (!el.id) {
@@ -275,7 +279,7 @@ export function GuideDetailPage({ slug: propSlug, onNavigate }: GuideDetailPageP
                   guide.content_html || guide.content || '',
                   {
                     ADD_TAGS: ['iframe', 'style', 'div', 'details', 'summary'],
-                    ADD_ATTR: ['allow', 'allowfullscreen', 'frameborder', 'scrolling', 'style', 'class', 'id', 'target', 'open', 'data-callout', 'data-callout-type', 'data-container'],
+                    ADD_ATTR: ['allow', 'allowfullscreen', 'frameborder', 'scrolling', 'style', 'class', 'id', 'target', 'open', 'data-callout', 'data-callout-type', 'data-container', 'src', 'width', 'height', 'title'],
                   }
                 )
               }}
