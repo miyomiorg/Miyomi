@@ -26,8 +26,10 @@ export const onRequest: PagesFunction<Env> = async (context) => {
     return env.ASSETS.fetch(request);
   }
 
-  // Fetch index.html template from assets
-  const indexRequest = new Request(`${url.origin}/index.html`, request);
+  // Fetch index.html template from assets.
+  // We fetch the root '/' instead of '/index.html' because Cloudflare Pages' Clean URLs feature 
+  // automatically responds with a 308 redirect from '/index.html' -> '/', causing an infinite redirect loop.
+  const indexRequest = new Request(`${url.origin}/`, request);
   const indexResponse = await env.ASSETS.fetch(indexRequest);
 
   if (!indexResponse.ok) {
