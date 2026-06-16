@@ -105,7 +105,7 @@ export function ExtensionDetailPage({ extensionId, onNavigate }: ExtensionDetail
   }, [api]);
 
   const handleBackClick = () => {
-    if (location.state?.fromNavigation || window.history.length > 2) {
+    if (location.state?.fromNavigation || (window.history.state && window.history.state.idx > 0)) {
       navigate(-1);
     } else {
       if (onNavigate) {

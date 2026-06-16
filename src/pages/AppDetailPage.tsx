@@ -208,7 +208,7 @@ export function AppDetailPage({ appId, onNavigate }: AppDetailPageProps) {
 
 
   const handleBackClick = () => {
-    if (location.state?.fromNavigation || window.history.length > 2) {
+    if (location.state?.fromNavigation || (window.history.state && window.history.state.idx > 0)) {
       navigate(-1);
     } else {
       if (onNavigate) {
