@@ -1,122 +1,218 @@
+// scripts/generate-og-images.mjs
+// Build-time OG generator for Miyomi.
+
+import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import dotenv from 'dotenv';
 import { getSupabaseClient, fetchApps, fetchExtensions, fetchGuides } from './og/fetchOgData.mjs';
 import { renderCardTemplate } from './og/templates.mjs';
 import { renderToPng } from './og/renderOgImage.mjs';
 
+dotenv.config({ path: '.env.local' });
+dotenv.config();
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const DIST_DIR = path.resolve(__dirname, '../dist/og');
+const ROOT_DIR = path.resolve(__dirname, '..');
+const DIST_DIR = path.resolve(ROOT_DIR, 'dist', 'og');
+
+const SITE_URL = (process.env.SITE_URL || 'https://miyomi.app').replace(/\/$/, '');
+const PUBLIC_HOST = SITE_URL.replace(/^https?:\/\//, '');
+
+function toDataUri(filePath) {
+  if (!filePath || !fs.existsSync(filePath)) return null;
+  const ext = path.extname(filePath).toLowerCase();
+  const mime = ext === '.svg'
+    ? 'image/svg+xml'
+    : ext === '.jpg' || ext === '.jpeg'
+      ? 'image/jpeg'
+      : 'image/png';
+  const buffer = fs.readFileSync(filePath);
+  return `data:${mime};base64,${buffer.toString('base64')}`;
+}
+
+function pickExisting(paths) {
+  return paths.find((p) => fs.existsSync(p)) || null;
+}
+
+const logoPath = pickExisting([
+  path.resolve(ROOT_DIR, 'public/logo.png'),
+]);
+
+const mascotHugPath = pickExisting([
+  path.resolve(ROOT_DIR, 'public/hugme.png'),
+  path.resolve(ROOT_DIR, 'public/inaread.png'),
+]);
+
+const mascotPolicePath = pickExisting([
+  path.resolve(ROOT_DIR, 'public/polic.png'),
+]);
+
+const logoUrl = toDataUri(logoPath);
+const mascotHugUrl = toDataUri(mascotHugPath);
+const mascotPoliceUrl = toDataUri(mascotPolicePath) || mascotHugUrl;
+
+if (!logoUrl) {
+  console.warn(`⚠️ Miyomi logo not found at: ${path.resolve(ROOT_DIR, 'public/logo.png')}`);
+}
+if (!mascotHugUrl) {
+  console.warn(`⚠️ Mascot not found at: ${path.resolve(ROOT_DIR, 'public/hugme.png')}`);
+}
+
+function ensureDir(dir) {
+  fs.mkdirSync(dir, { recursive: true });
+}
+
+function stripHtml(value = '') {
+  return String(value || '').replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+}
+
+function summaryFromGuide(guide) {
+  const direct = guide.seo_description || guide.description;
+  if (direct) return stripHtml(direct);
+  return stripHtml(guide.content_html || guide.content || '').slice(0, 160);
+}
+
+function getSafeIconUrl(url) {
+  if (!url) return null;
+  let cleanUrl = url.trim();
+
+  if (cleanUrl.includes('googleusercontent.com') && cleanUrl.endsWith('-rw')) {
+    cleanUrl = cleanUrl.replace(/-rw$/, '');
+  }
+
+  if (cleanUrl.toLowerCase().endsWith('.webp') || cleanUrl.toLowerCase().endsWith('.avif')) {
+    return `https://wsrv.nl/?url=${encodeURIComponent(cleanUrl)}&output=png`;
+  }
+
+  return cleanUrl;
+}
+
+function normaliseRowBase(row, routePath, type) {
+  return {
+    logoUrl,
+    mascotUrl: type === 'Guide' ? mascotPoliceUrl : mascotHugUrl,
+    pageUrl: `${PUBLIC_HOST}${routePath}`,
+    accentColor: row.theme_color || row.accent_color || '#22a8ff',
+    secondaryColor: row.secondary_color || '#7c5cff',
+    iconUrl: getSafeIconUrl(row.icon_url),
+    downloadCount: row.download_count || row.downloads || 0,
+    likesCount: row.likes_count || row.like_count || row.likes || 0,
+    updatedAt: row.updated_at || row.created_at || null,
+    author: row.author_name || row.author || row.developer || row.maintainer || 'Community',
+    language: row.language || 'Multi',
+    category: row.category || 'General',
+  };
+}
+
+async function generateOne({ item, type, outputDir, routePath, data }) {
+  if (item.og_image_url) {
+    console.log(`⏩ Skipped ${type} ${item.slug}: custom og_image_url exists`);
+    return;
+  }
+
+  const outputPath = path.join(outputDir, `${item.slug}.png`);
+
+  let attempt = 0;
+  const maxAttempts = 2;
+
+  while (attempt < maxAttempts) {
+    try {
+      const satoriObj = renderCardTemplate(data, type);
+      await renderToPng(satoriObj, outputPath);
+      console.log(`✅ Generated ${type} OG: ${item.slug}`);
+      return;
+    } catch (e) {
+      attempt++;
+      console.warn(`⚠️ Attempt ${attempt} failed for ${type} ${item.slug}: ${e.message}`);
+
+      if (attempt < maxAttempts && data.iconUrl && !data.iconUrl.includes('wsrv.nl')) {
+        console.warn(`🔄 Retrying with image proxy for ${item.slug}...`);
+        data.iconUrl = `https://wsrv.nl/?url=${encodeURIComponent(data.iconUrl)}&output=png`;
+      } else if (attempt >= maxAttempts) {
+        console.warn(`⚠️ Using fallback logo for ${type} ${item.slug}`);
+        try {
+          const fallbackData = { ...data, iconUrl: data.logoUrl };
+          const satoriObj = renderCardTemplate(fallbackData, type);
+          await renderToPng(satoriObj, outputPath);
+          console.log(`✅ Generated ${type} OG with fallback icon: ${item.slug}`);
+        } catch (e2) {
+          console.error(`❌ Failed ${type} OG ${item.slug} completely: ${e2.message}`);
+        }
+      }
+    }
+  }
+}
 
 async function main() {
-  console.log('Starting OG image generation...');
+  console.log('Starting Miyomi OG image generation...');
+
+  ensureDir(path.join(DIST_DIR, 'apps'));
+  ensureDir(path.join(DIST_DIR, 'extensions'));
+  ensureDir(path.join(DIST_DIR, 'guides'));
+
   const supabase = getSupabaseClient();
 
   try {
     const [apps, extensions, guides] = await Promise.all([
       fetchApps(supabase),
       fetchExtensions(supabase),
-      fetchGuides(supabase)
+      fetchGuides(supabase),
     ]);
 
     console.log(`Fetched ${apps.length} apps, ${extensions.length} extensions, ${guides.length} guides.`);
 
-    // Generate App OG Images
     for (const app of apps) {
-      if (app.og_image_url) continue; // Skip if it already has a custom OG image defined
-      
-      const data = {
-        title: app.seo_title || app.name,
-        description: app.seo_description || app.short_description || app.description || '',
-        iconUrl: app.icon_url,
-        downloadCount: app.download_count,
-        likesCount: app.likes_count,
-        updatedAt: app.updated_at,
-        author: app.author
-      };
-
-      try {
-        let satoriObj = renderCardTemplate(data, 'App');
-        const outputPath = path.join(DIST_DIR, `apps/${app.slug}.png`);
-        await renderToPng(satoriObj, outputPath);
-        console.log(`✅ Generated OG for app: ${app.slug}`);
-      } catch (e) {
-        console.warn(`⚠️ Retrying without icon for app ${app.slug} due to error: ${e.message}`);
-        try {
-          data.iconUrl = null;
-          let satoriObj = renderCardTemplate(data, 'App');
-          const outputPath = path.join(DIST_DIR, `apps/${app.slug}.png`);
-          await renderToPng(satoriObj, outputPath);
-          console.log(`✅ Generated OG for app (no icon): ${app.slug}`);
-        } catch (e2) {
-          console.error(`❌ Failed OG for app ${app.slug}:`, e2.message);
-        }
-      }
+      const routePath = `/software/${app.slug}`;
+      await generateOne({
+        item: app,
+        type: 'App',
+        outputDir: path.join(DIST_DIR, 'apps'),
+        routePath,
+        data: {
+          ...normaliseRowBase(app, routePath, 'App'),
+          title: app.seo_title || app.name || 'Miyomi App',
+          description: app.seo_description || app.short_description || app.description || 'Discover this app on Miyomi.',
+        },
+      });
     }
 
-    // Generate Extension OG Images
     for (const ext of extensions) {
-      if (ext.og_image_url) continue;
-      
-      const data = {
-        title: ext.seo_title || ext.name,
-        description: ext.seo_description || ext.short_description || ext.description || '',
-        iconUrl: ext.icon_url,
-        downloadCount: ext.download_count,
-        likesCount: ext.likes_count,
-        updatedAt: ext.updated_at,
-        author: ext.author
-      };
-
-      try {
-        let satoriObj = renderCardTemplate(data, 'Extension');
-        const outputPath = path.join(DIST_DIR, `extensions/${ext.slug}.png`);
-        await renderToPng(satoriObj, outputPath);
-        console.log(`✅ Generated OG for extension: ${ext.slug}`);
-      } catch (e) {
-        console.warn(`⚠️ Retrying without icon for extension ${ext.slug} due to error: ${e.message}`);
-        try {
-          data.iconUrl = null;
-          let satoriObj = renderCardTemplate(data, 'Extension');
-          const outputPath = path.join(DIST_DIR, `extensions/${ext.slug}.png`);
-          await renderToPng(satoriObj, outputPath);
-          console.log(`✅ Generated OG for extension (no icon): ${ext.slug}`);
-        } catch (e2) {
-          console.error(`❌ Failed OG for extension ${ext.slug}:`, e2.message);
-        }
-      }
+      const routePath = `/extensions/${ext.slug}`;
+      await generateOne({
+        item: ext,
+        type: 'Extension',
+        outputDir: path.join(DIST_DIR, 'extensions'),
+        routePath,
+        data: {
+          ...normaliseRowBase(ext, routePath, 'Extension'),
+          title: ext.seo_title || ext.name || 'Miyomi Extension',
+          description: ext.seo_description || ext.short_description || ext.description || 'Discover this extension on Miyomi.',
+        },
+      });
     }
 
-    // Generate Guide OG Images
     for (const guide of guides) {
-      if (guide.og_image_url) continue;
-      
-      let summary = guide.seo_description || guide.description || '';
-      if (!summary && (guide.content_html || guide.content)) {
-        summary = (guide.content_html || guide.content || '').replace(/<[^>]*>?/gm, '').slice(0, 150) + '...';
-      }
-
-      const data = {
-        title: guide.seo_title || guide.title,
-        description: summary,
-        iconUrl: null, // guides typically don't have an icon_url directly
-        updatedAt: guide.updated_at,
-        author: guide.author_name || guide.author
-      };
-
-      try {
-        const satoriObj = renderCardTemplate(data, 'Guide');
-        const outputPath = path.join(DIST_DIR, `guides/${guide.slug}.png`);
-        await renderToPng(satoriObj, outputPath);
-        console.log(`✅ Generated OG for guide: ${guide.slug}`);
-      } catch (e) {
-        console.error(`❌ Failed OG for guide ${guide.slug}:`, e);
-      }
+      const routePath = `/guides/${guide.slug}`;
+      await generateOne({
+        item: guide,
+        type: 'Guide',
+        outputDir: path.join(DIST_DIR, 'guides'),
+        routePath,
+        data: {
+          ...normaliseRowBase(guide, routePath, 'Guide'),
+          iconUrl: null,
+          title: guide.seo_title || guide.title || 'Miyomi Guide',
+          description: summaryFromGuide(guide) || 'Read this guide on Miyomi.',
+          downloadCount: 0,
+        },
+      });
     }
 
-    console.log('🎉 OG image generation completed!');
+    console.log('🎉 OG image generation completed.');
   } catch (err) {
-    console.error('Failed fetching data for OG image generation:', err);
+    console.error('❌ Failed fetching data for OG image generation:', err);
     process.exit(1);
   }
 }

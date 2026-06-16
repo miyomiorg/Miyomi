@@ -46,7 +46,7 @@ export async function fetchApps(supabase) {
 export async function fetchExtensions(supabase) {
   const { data, error } = await supabase
     .from('extensions')
-    .select('slug, name, description, short_description, icon_url, seo_title, seo_description, og_image_url, updated_at, status, download_count, likes_count, author')
+    .select('slug, name, description, short_description, icon_url, seo_title, seo_description, og_image_url, updated_at, status, download_count, likes_count, author, language')
     .eq('status', 'approved');
 
   if (error) throw error;
@@ -56,7 +56,7 @@ export async function fetchExtensions(supabase) {
 export async function fetchGuides(supabase) {
   const { data, error } = await supabase
     .from('guides')
-    .select('slug, title, description, content, content_html, author, author_name, seo_title, seo_description, og_image_url, updated_at, status')
+    .select('slug, title, description, content, content_html, author, author_name, seo_title, seo_description, og_image_url, updated_at, status, category')
     .neq('status', 'draft');
 
   if (error) throw error;
