@@ -206,6 +206,8 @@ export function AppDetailPage({ appId, onNavigate }: AppDetailPageProps) {
     return null;
   }, [app]);
 
+  const resolvedGitProvider = React.useMemo(() => resolveGitProvider(app?.gitProvider, app?.githubUrl), [app?.gitProvider, app?.githubUrl]);
+
 
   const handleBackClick = () => {
     if (location.state?.fromNavigation || (window.history.state && window.history.state.idx > 0)) {
@@ -299,8 +301,6 @@ export function AppDetailPage({ appId, onNavigate }: AppDetailPageProps) {
   const downloadUrl = app.getApp || release?.url
   const hasDownload = Boolean(downloadUrl);
   const hasAnyActions = hasDownload || hasCommunityUrl || hasOfficialSite;
-
-  const resolvedGitProvider = React.useMemo(() => resolveGitProvider(app.gitProvider, app.githubUrl), [app.gitProvider, app.githubUrl]);
 
   const inlineActions = hasAnyActions ? (
     <div className="flex flex-wrap items-center justify-center gap-3">
