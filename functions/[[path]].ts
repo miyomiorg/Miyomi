@@ -176,6 +176,55 @@ export const onRequest: PagesFunction<Env> = async (context) => {
           seo.robots = 'noindex,follow';
         }
       }
+    } else if (parts[0] === 'blog') {
+      if (parts.length === 1) {
+        // /blog
+        seo.title = `Blog - ${SITE_NAME}`;
+        seo.description = `Announcements, updates, news, and community posts from ${SITE_NAME}.`;
+        seo.jsonLd = {
+          "@context": "https://schema.org",
+          "@type": "Blog",
+          "name": seo.title,
+          "url": seo.canonicalUrl,
+          "description": seo.description
+        };
+      } else if (parts.length === 2) {
+        // /blog/:slug
+        const slug = parts[1];
+        const { data } = await supabase
+          .from('blog_posts')
+          .select('title, excerpt, content, author_name, created_at, updated_at, seo_title, seo_description, og_image_url, thumbnail_url')
+          .eq('slug', slug)
+          .eq('status', 'published')
+          .maybeSingle();
+
+        if (data) {
+          const contentStr = data.excerpt || stripHtml(data.content || '');
+          const summary = truncate(contentStr, 150);
+
+          seo.title = data.seo_title || `${data.title} - ${SITE_NAME} Blog`;
+          seo.description = data.seo_description || summary || `Read ${data.title} on the ${SITE_NAME} Blog.`;
+          seo.ogImage = absoluteImageUrl(env, data.og_image_url || data.thumbnail_url || `/og/blog/${slug}.png`);
+          seo.ogType = 'article';
+          seo.jsonLd = {
+            "@context": "https://schema.org",
+            "@type": "BlogPosting",
+            "headline": data.title,
+            "description": seo.description,
+            "url": seo.canonicalUrl,
+            "author": {
+              "@type": "Person",
+              "name": data.author_name || "Miyomi Admin"
+            },
+            "datePublished": data.created_at,
+            "dateModified": data.updated_at
+          };
+        } else {
+          seo.status = 404;
+          seo.title = `Post Not Found - ${SITE_NAME}`;
+          seo.robots = 'noindex,follow';
+        }
+      }
     }
 
   } catch (error) {

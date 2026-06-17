@@ -5,7 +5,7 @@ import { ThemeToggle } from '@/components/ThemeToggle';
 import {
   LayoutDashboard, AppWindow, Puzzle, BookOpen, HelpCircle,
   Inbox, Heart, Bell, Palette, Settings, Users, LogOut, Menu, X, ScrollText, Shield, DollarSign,
-  PenTool, Flag, MessageSquare, Layers, Bot
+  PenTool, Flag, MessageSquare, Layers, Bot, FileText
 } from 'lucide-react';
 import { useState } from 'react';
 
@@ -15,6 +15,7 @@ const navItems = [
   { path: '/admin/extensions', label: 'Extensions', icon: Puzzle },
   { path: '/admin/compat-groups', label: 'Compat Groups', icon: Layers },
   { path: '/admin/guides', label: 'Guides', icon: BookOpen },
+  { path: '/admin/blog-posts', label: 'Blog Posts', icon: FileText },
   { path: '/admin/faqs', label: 'FAQs', icon: HelpCircle },
   { path: '/admin/submissions', label: 'Submissions', icon: Inbox },
   { path: '/admin/guide-submissions', label: 'Guide Subs', icon: BookOpen },

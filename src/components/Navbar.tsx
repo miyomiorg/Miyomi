@@ -130,6 +130,7 @@ export function Navbar({
   const pageDropdownItems = [
     { label: 'Software', path: '/software', className: 'xl:hidden' },
     { label: 'Extensions', path: '/extensions', className: 'xl:hidden' },
+    { label: 'Blog', path: '/blog' },
     { label: 'Guides', path: '/guides' },
     { label: 'FAQ', path: '/faq' },
     { label: 'About', path: '/about' },
@@ -423,6 +424,18 @@ export function Navbar({
           style={{ paddingBottom: 'calc(4rem + env(safe-area-inset-bottom) + 1.5rem)' }}
         >
           <div className="space-y-1">
+            {/* Blog Link */}
+            <button
+              onClick={() => handleClick('/blog')}
+              className={`w-full flex items-center gap-3 py-3 px-4 rounded-xl transition-all text-left ${isActive('/blog')
+                ? 'text-[var(--brand)] bg-[var(--chip-bg)] font-semibold'
+                : 'text-[var(--text-primary)] hover:bg-[var(--bg-elev-1)] hover:text-[var(--brand)]'
+                }`}
+            >
+              <FileText className="w-5 h-5 opacity-70" />
+              <span className="text-sm font-['Inter',sans-serif]">Blog</span>
+            </button>
+
             {/* FAQ Link */}
             <button
               onClick={() => handleClick('/faq')}

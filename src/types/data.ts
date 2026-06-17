@@ -161,3 +161,29 @@ export interface WebsiteData {
     color: string;
     keywords?: readonly string[];
 }
+
+export interface BlogPostData {
+    id: string;
+    title: string;
+    slug: string;
+    excerpt?: string;
+    content: string;
+    content_format: 'html' | 'markdown';
+    category: string;
+    tags: string[];
+    author_id?: string;
+    author_name?: string;
+    author_avatar_url?: string;
+    author_role?: string;
+    status: 'draft' | 'published' | 'archived';
+    is_pinned: boolean;
+    thumbnail_url?: string;
+    thumbnail_alt?: string;
+    seo_title?: string;
+    seo_description?: string;
+    og_image_url?: string;
+    views: number;
+    published_at?: string;
+    created_at: string;
+    updated_at: string;
+}

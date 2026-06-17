@@ -14,6 +14,8 @@ import { GuidesPage } from "./pages/GuidesPage";
 import { GuideDetailPage } from "./pages/GuideDetailPage";
 import { FAQPage } from "./pages/FAQPage";
 import { AboutPage } from "./pages/AboutPage";
+import { BlogPage } from "./pages/BlogPage";
+import { BlogDetailPage } from "./pages/BlogDetailPage";
 import { AppDetailPage } from "./pages/AppDetailPage";
 import { ExtensionDetailPage } from "./pages/ExtensionDetailPage";
 import { NotFoundPage } from "./pages/NotFoundPage";
@@ -33,6 +35,8 @@ import { AdminGuidesPage } from './pages/admin/AdminGuidesPage';
 import { AdminGuideEditorPage } from './pages/admin/AdminGuideEditorPage';
 import { AdminFAQsPage } from './pages/admin/AdminFAQsPage';
 import { AdminFAQEditorPage } from './pages/admin/AdminFAQEditorPage';
+import { AdminBlogPostsPage } from './pages/admin/AdminBlogPostsPage';
+import { AdminBlogPostEditorPage } from './pages/admin/AdminBlogPostEditorPage';
 import { AdminSubmissionsPage } from './pages/admin/AdminSubmissionsPage';
 import { AdminGuideSubmissionsPage } from './pages/admin/AdminGuideSubmissionsPage';
 import { AdminLikesPage } from './pages/admin/AdminLikesPage';
@@ -148,6 +152,9 @@ function AppContent() {
             <Route path="guides" element={<AdminGuidesPage />} />
             <Route path="guides/new" element={<AdminGuideEditorPage />} />
             <Route path="guides/:id/edit" element={<AdminGuideEditorPage />} />
+            <Route path="blog-posts" element={<AdminBlogPostsPage />} />
+            <Route path="blog-posts/new" element={<AdminBlogPostEditorPage />} />
+            <Route path="blog-posts/:id/edit" element={<AdminBlogPostEditorPage />} />
             <Route path="faqs" element={<AdminFAQsPage />} />
             <Route path="faqs/new" element={<AdminFAQEditorPage />} />
             <Route path="faqs/:id/edit" element={<AdminFAQEditorPage />} />
@@ -234,6 +241,8 @@ function AppContent() {
               />
             }
           />
+          <Route path="/blog" element={<BlogPage onNavigate={handleNavigate} />} />
+          <Route path="/blog/:slug" element={<BlogDetailPage onNavigate={handleNavigate} />} />
           <Route
             path="/search"
             element={<SearchPage onNavigate={handleNavigate} />}
