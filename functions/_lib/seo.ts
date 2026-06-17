@@ -15,7 +15,6 @@ export interface SeoData {
   ogType: 'website' | 'article';
   robots?: string;
   jsonLd?: Record<string, unknown>;
-  fallbackHtml?: string;
   status?: number;
 }
 
@@ -95,22 +94,10 @@ export function injectSeoIntoHtml(html: string, seo: SeoData): string {
   const metaTags = buildSeoTags(seo);
   let updatedHtml = html;
   
-  if (updatedHtml.includes('<!--SEO_META-->')) {
-    updatedHtml = updatedHtml.replace('<!--SEO_META-->', metaTags);
+  if (updatedHtml.includes('<!--SEO_START-->') && updatedHtml.includes('<!--SEO_END-->')) {
+    updatedHtml = updatedHtml.replace(/<!--SEO_START-->[\s\S]*<!--SEO_END-->/, metaTags);
   } else {
     updatedHtml = updatedHtml.replace('</head>', `\n    ${metaTags}\n  </head>`);
-  }
-
-  // Inject Fallback
-  if (seo.fallbackHtml) {
-    if (updatedHtml.includes('<!--SEO_FALLBACK-->')) {
-      updatedHtml = updatedHtml.replace('<!--SEO_FALLBACK-->', seo.fallbackHtml);
-    } else {
-      updatedHtml = updatedHtml.replace(
-        /<div id="root"><\/div>/,
-        `<div id="root">\n      ${seo.fallbackHtml}\n    </div>`
-      );
-    }
   }
 
   return updatedHtml;

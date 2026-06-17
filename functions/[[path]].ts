@@ -74,7 +74,6 @@ export const onRequest: PagesFunction<Env> = async (context) => {
           seo.title = data.seo_title || `${data.name} - ${SITE_NAME}`;
           seo.description = data.seo_description || data.short_description || data.description || `View ${data.name} on ${SITE_NAME}.`;
           seo.ogImage = absoluteImageUrl(env, data.og_image_url || `/og/apps/${slug}.png`);
-          seo.fallbackHtml = `<main><h1>${escapeHtml(data.name)}</h1><p>${escapeHtml(seo.description)}</p></main>`;
           seo.jsonLd = {
             "@context": "https://schema.org",
             "@type": "SoftwareApplication",
@@ -115,7 +114,6 @@ export const onRequest: PagesFunction<Env> = async (context) => {
           seo.title = data.seo_title || `${data.name} Extension - ${SITE_NAME}`;
           seo.description = data.seo_description || data.short_description || data.description || `View ${data.name} extension source on ${SITE_NAME}.`;
           seo.ogImage = absoluteImageUrl(env, data.og_image_url || `/og/extensions/${slug}.png`);
-          seo.fallbackHtml = `<main><h1>${escapeHtml(data.name)}</h1><p>${escapeHtml(seo.description)}</p></main>`;
           seo.jsonLd = {
             "@context": "https://schema.org",
             "@type": "SoftwareSourceCode",
@@ -159,7 +157,6 @@ export const onRequest: PagesFunction<Env> = async (context) => {
           seo.description = data.seo_description || data.description || summary || `Read ${data.title} on ${SITE_NAME} Guides.`;
           seo.ogImage = absoluteImageUrl(env, data.og_image_url || `/og/guides/${slug}.png`);
           seo.ogType = 'article';
-          seo.fallbackHtml = `<main><h1>${escapeHtml(data.title)}</h1><p>${escapeHtml(seo.description)}</p></main>`;
           seo.jsonLd = {
             "@context": "https://schema.org",
             "@type": "Article",
