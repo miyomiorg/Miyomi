@@ -68,16 +68,21 @@ export function buildSeoTags(seo: SeoData): string {
     `<meta name="robots" content="${escapeHtml(robots || 'index,follow,max-image-preview:large')}" />`,
     
     `<meta property="og:site_name" content="${escapeHtml(SITE_NAME)}" />`,
+    `<meta property="og:locale" content="en_US" />`,
     `<meta property="og:title" content="${escapedTitle}" />`,
     `<meta property="og:description" content="${escapedDesc}" />`,
     `<meta property="og:url" content="${escapedCanonical}" />`,
     `<meta property="og:type" content="${escapeHtml(ogType)}" />`,
     `<meta property="og:image" content="${escapedImg}" />`,
+    `<meta property="og:image:alt" content="${escapedTitle}" />`,
+    `<meta property="og:image:width" content="1200" />`,
+    `<meta property="og:image:height" content="630" />`,
     
     `<meta name="twitter:card" content="summary_large_image" />`,
     `<meta name="twitter:title" content="${escapedTitle}" />`,
     `<meta name="twitter:description" content="${escapedDesc}" />`,
-    `<meta name="twitter:image" content="${escapedImg}" />`
+    `<meta name="twitter:image" content="${escapedImg}" />`,
+    `<meta name="theme-color" content="#0f172a" />`
   ];
 
   if (seo.jsonLd) {
