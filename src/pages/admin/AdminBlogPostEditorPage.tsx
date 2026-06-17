@@ -3,8 +3,10 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { AdminRichTextEditor } from '@/components/admin/AdminRichTextEditor';
 import { AdminInput, AdminButton, AdminSelect, AdminTextarea, AdminFormField, Label, AdminToggle } from '@/components/admin/AdminFormElements';
-import { ArrowLeft, Save, AlertCircle, Trash2, Globe, FileText, Check } from 'lucide-react';
+import { ArrowLeft, Save, AlertCircle, Trash2, Globe, FileText, Check, Plus, Search, ChevronDown, ChevronUp } from 'lucide-react';
 import { toast } from 'sonner';
+
+const DEFAULT_CATEGORIES = ['Announcements', 'Updates', 'Community', 'Transparency', 'Devlog', 'News', 'Editorial', 'Guides', 'Apps', 'Extensions'];
 
 const emptyPost = {
     title: '', slug: '', excerpt: '', content: '', category: '', tags: [] as string[],
@@ -25,6 +27,8 @@ export function AdminBlogPostEditorPage() {
     const [slugTouched, setSlugTouched] = useState(!!routeId);
     const [slugError, setSlugError] = useState('');
     const [existingCategories, setExistingCategories] = useState<string[]>([]);
+    const [isCategoryOpen, setIsCategoryOpen] = useState(false);
+    const [categorySearch, setCategorySearch] = useState('');
     
     // Auto-save logic
     const autoSaveTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -48,8 +52,11 @@ export function AdminBlogPostEditorPage() {
         async function fetchCategories() {
             const { data } = await supabase.from('blog_posts').select('category');
             if (data) {
-                const unique = [...new Set(data.map(p => p.category).filter(Boolean))] as string[];
+                const fetched = data.map(p => p.category).filter(Boolean);
+                const unique = [...new Set([...DEFAULT_CATEGORIES, ...fetched])] as string[];
                 setExistingCategories(unique.sort());
+            } else {
+                setExistingCategories([...DEFAULT_CATEGORIES].sort());
             }
         }
         fetchCategories();
@@ -286,17 +293,54 @@ export function AdminBlogPostEditorPage() {
                         <h2 className="text-lg font-semibold text-[var(--text-primary)] mb-4">Settings</h2>
                         <div className="space-y-4">
                             <AdminFormField label="Category" required>
-                                <input 
-                                    type="text"
-                                    list="categories-list"
-                                    value={form.category}
-                                    onChange={(e) => setForm(prev => ({...prev, category: e.target.value}))}
-                                    placeholder="e.g. Updates, Community"
-                                    className="w-full bg-[var(--bg-elev-1)] border border-[var(--divider)] rounded-xl px-4 py-2.5 text-sm text-[var(--text-primary)] focus:outline-none focus:border-[var(--brand)] transition-colors"
-                                />
-                                <datalist id="categories-list">
-                                    {existingCategories.map(cat => <option key={cat} value={cat} />)}
-                                </datalist>
+                                <div className="relative">
+                                    <input 
+                                        type="text"
+                                        value={form.category}
+                                        onChange={(e) => {
+                                            setForm(prev => ({...prev, category: e.target.value}));
+                                            setIsCategoryOpen(true);
+                                        }}
+                                        onFocus={() => setIsCategoryOpen(true)}
+                                        onBlur={() => setTimeout(() => setIsCategoryOpen(false), 200)}
+                                        placeholder="Type or select a category..."
+                                        className="w-full bg-[var(--bg-elev-1)] border border-[var(--divider)] rounded-xl px-4 py-2.5 text-sm text-[var(--text-primary)] focus:outline-none focus:border-[var(--brand)] transition-colors"
+                                    />
+                                    {isCategoryOpen && (
+                                        <div className="absolute z-50 mt-1 w-full bg-[var(--bg-elev-2)] border border-[var(--divider)] rounded-xl shadow-lg max-h-60 overflow-y-auto">
+                                            {existingCategories
+                                                .filter(cat => cat.toLowerCase().includes((form.category || '').toLowerCase()))
+                                                .map(cat => (
+                                                <div 
+                                                    key={cat}
+                                                    onClick={() => {
+                                                        setForm(prev => ({...prev, category: cat}));
+                                                        setIsCategoryOpen(false);
+                                                    }}
+                                                    className="px-4 py-2 text-sm text-[var(--text-primary)] hover:bg-[var(--chip-bg)] cursor-pointer transition-colors"
+                                                >
+                                                    {cat}
+                                                </div>
+                                            ))}
+                                            {form.category && !existingCategories.some(c => c.toLowerCase() === form.category.toLowerCase()) && (
+                                                <div 
+                                                    onClick={() => {
+                                                        const newCat = form.category.trim();
+                                                        if (newCat) {
+                                                            setExistingCategories(prev => [...prev, newCat].sort());
+                                                            setForm(prev => ({...prev, category: newCat}));
+                                                        }
+                                                        setIsCategoryOpen(false);
+                                                    }}
+                                                    className="px-4 py-2 text-sm text-[var(--brand)] hover:bg-[var(--chip-bg)] cursor-pointer transition-colors border-t border-[var(--divider)] flex items-center gap-2"
+                                                >
+                                                    <Plus className="w-4 h-4" />
+                                                    Create "{form.category}"
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
                             </AdminFormField>
 
                             <div className="flex items-center justify-between p-3 border rounded-xl" style={{ borderColor: 'var(--divider)' }}>

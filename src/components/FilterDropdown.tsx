@@ -34,9 +34,11 @@ export function FilterDropdown({ label, value, options, onChange, placeholder, d
 
   return (
     <div className={`relative w-full min-w-0 ${className}`} ref={dropdownRef}>
-      <label className="block text-[var(--text-secondary)] font-['Inter',sans-serif] text-[10px] sm:text-xs mb-1 sm:mb-1.5" style={{ fontWeight: 500 }}>
-        {label}
-      </label>
+      {label && (
+        <label className="block text-[var(--text-secondary)] font-['Inter',sans-serif] text-[10px] sm:text-xs mb-1 sm:mb-1.5" style={{ fontWeight: 500 }}>
+          {label}
+        </label>
+      )}
       <button
         onClick={() => setIsOpen(!isOpen)}
         className="w-full flex items-center justify-between px-2 sm:px-4 py-2 sm:py-2.5 bg-[var(--bg-surface)] border border-[var(--divider)] rounded-lg sm:rounded-xl text-[var(--text-primary)] hover:border-[var(--brand)] transition-colors font-['Inter',sans-serif] text-xs sm:text-sm min-w-0"
