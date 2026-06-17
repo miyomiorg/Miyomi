@@ -118,14 +118,16 @@ function AppContent() {
 
   const handleNavigate = (path: string) => {
     const currentScrollY = window.scrollY;
-    navigate(path, {
-      state: {
-        previousScrollPosition: currentScrollY,
-        fromNavigation: true
-      }
+    React.startTransition(() => {
+      navigate(path, {
+        state: {
+          previousScrollPosition: currentScrollY,
+          fromNavigation: true
+        }
+      });
+      // Scroll to top for new pages  
+      window.scrollTo({ top: 0, behavior: 'instant' });
     });
-    // Scroll to top for new pages  
-    window.scrollTo({ top: 0, behavior: 'instant' });
   };
 
   // Admin routes get their own layout (no Navbar/Footer)

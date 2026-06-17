@@ -36,10 +36,6 @@ export function useDataCache<T>(
             const freshData = await fetcher();
 
             if (isMounted.current) {
-                // Only update if data changed (deep comparison via JSON stringify is simple but effective here)
-                // Or just update always to be safe?
-                // Let's update if different to trigger re-renders only when needed.
-                // Note: Comparing large objects might be costly, but usually worth it to avoid UI flicker.
                 const isChanged = JSON.stringify(freshData) !== JSON.stringify(data);
 
                 if (isChanged || !data) {
