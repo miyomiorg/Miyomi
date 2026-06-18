@@ -441,22 +441,25 @@ export function BlogPage({ onNavigate }: { onNavigate: (path: string) => void })
 
                     {/* Social Links */}
                     <div className="bg-[var(--bg-surface)] border border-[var(--divider)] rounded-2xl p-5">
-                        <div className="flex flex-col items-center pt-2">
-                            <p className="text-[var(--text-secondary)] text-sm mb-4 font-medium">Follow us on social networks</p>
-                            <div className="flex items-center gap-4">
-                                <a href="https://www.youtube.com/@iitachiyomi" target="_blank" rel="noopener noreferrer" className="w-11 h-11 rounded-full bg-[var(--bg-elev-1)] border border-[var(--divider)] flex items-center justify-center text-[var(--text-secondary)] hover:text-[#FF0000] hover:border-[#FF0000] hover:-translate-y-1 transition-all shadow-sm">
-                                    <Youtube className="w-5 h-5" />
-                                </a>
-                                <a href="https://discord.gg/hfYtH9hrRm" target="_blank" rel="noopener noreferrer" className="w-11 h-11 rounded-full bg-[var(--bg-elev-1)] border border-[var(--divider)] flex items-center justify-center text-[var(--text-secondary)] hover:text-[#5865F2] hover:border-[#5865F2] hover:-translate-y-1 transition-all shadow-sm">
-                                    <DiscordIcon className="w-5 h-5" />
-                                </a>
-                                <a href="https://t.me/iitachiyomi" target="_blank" rel="noopener noreferrer" className="w-11 h-11 rounded-full bg-[var(--bg-elev-1)] border border-[var(--divider)] flex items-center justify-center text-[var(--text-secondary)] hover:text-[#0088cc] hover:border-[#0088cc] hover:-translate-y-1 transition-all shadow-sm">
-                                    <TelegramIcon className="w-5 h-5" />
-                                </a>
-                                <a href="https://github.com/tas33n/miyomi" target="_blank" rel="noopener noreferrer" className="w-11 h-11 rounded-full bg-[var(--bg-elev-1)] border border-[var(--divider)] flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:border-[var(--text-primary)] hover:-translate-y-1 transition-all shadow-sm">
-                                    <Github className="w-5 h-5" />
-                                </a>
-                            </div>
+                        <h3 className="text-sm font-bold text-[var(--text-primary)] mb-1 font-['Poppins',sans-serif]">
+                            Be part of {SITE_NAME}
+                        </h3>
+                        <p className="text-xs text-[var(--text-secondary)] mb-4">
+                            Join our community servers and stay updated.
+                        </p>
+                        <div className="flex items-center gap-4">
+                            <a href="https://www.youtube.com/@iitachiyomi" target="_blank" rel="noopener noreferrer" className="w-11 h-11 rounded-full bg-[var(--bg-elev-1)] border border-[var(--divider)] flex items-center justify-center text-[var(--text-secondary)] hover:text-[#FF0000] hover:border-[#FF0000] hover:-translate-y-1 transition-all shadow-sm">
+                                <Youtube className="w-5 h-5" />
+                            </a>
+                            <a href="https://discord.gg/hfYtH9hrRm" target="_blank" rel="noopener noreferrer" className="w-11 h-11 rounded-full bg-[var(--bg-elev-1)] border border-[var(--divider)] flex items-center justify-center text-[var(--text-secondary)] hover:text-[#5865F2] hover:border-[#5865F2] hover:-translate-y-1 transition-all shadow-sm">
+                                <DiscordIcon className="w-5 h-5" />
+                            </a>
+                            <a href="https://t.me/iitachiyomi" target="_blank" rel="noopener noreferrer" className="w-11 h-11 rounded-full bg-[var(--bg-elev-1)] border border-[var(--divider)] flex items-center justify-center text-[var(--text-secondary)] hover:text-[#0088cc] hover:border-[#0088cc] hover:-translate-y-1 transition-all shadow-sm">
+                                <TelegramIcon className="w-5 h-5" />
+                            </a>
+                            <a href="https://github.com/tas33n/miyomi" target="_blank" rel="noopener noreferrer" className="w-11 h-11 rounded-full bg-[var(--bg-elev-1)] border border-[var(--divider)] flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:border-[var(--text-primary)] hover:-translate-y-1 transition-all shadow-sm">
+                                <Github className="w-5 h-5" />
+                            </a>
                         </div>
                     </div>
                 </aside>
