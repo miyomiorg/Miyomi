@@ -29,123 +29,96 @@ export function BlogCard({ post, onClick }: BlogCardProps) {
     const catColor = CATEGORY_COLORS[post.category] || 'var(--brand)';
 
     // Estimate read time
-    const text = (post.excerpt || post.content || '').replace(/<[^>]*>?/gm, '');
+    const text = (post.content || post.excerpt || '').replace(/<[^>]*>?/gm, '');
     const wordCount = text.split(/\s+/).filter(w => w.length > 0).length;
     const readTime = Math.ceil(wordCount / 200) || 1;
 
     return (
         <>
-            {/* Desktop Card — vertical layout */}
+            {/* Card — unified layout */}
             <div
                 onClick={onClick}
-                className="hidden md:flex group cursor-pointer bg-[var(--bg-surface)] border rounded-2xl overflow-hidden flex-col transition-all hover:-translate-y-1 hover:shadow-xl hover:shadow-[var(--brand)]/5 hover:border-[var(--brand)]/30"
+                className="flex group cursor-pointer bg-[var(--bg-surface)] border rounded-2xl overflow-hidden flex-col transition-all hover:-translate-y-1 hover:shadow-xl hover:shadow-[var(--brand)]/10 hover:border-[var(--brand)]/30 h-full"
                 style={{ borderColor: 'var(--divider)' }}
             >
-                {post.thumbnail_url ? (
-                    <div className="aspect-video w-full overflow-hidden bg-[var(--bg-elev-1)] relative">
+                {/* Image Section (Top Half) */}
+                <div className="relative aspect-[3/2] w-full overflow-hidden bg-[var(--bg-elev-1)] flex-shrink-0">
+                    {post.thumbnail_url ? (
                         <img
                             src={post.thumbnail_url}
                             alt={post.thumbnail_alt || post.title}
                             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                             loading="lazy"
                         />
-                    </div>
-                ) : (
-                    <div className="aspect-video w-full bg-gradient-to-br from-[var(--bg-elev-1)] to-[var(--bg-elev-2)] flex items-center justify-center relative">
-                        <FileText className="w-10 h-10 text-[var(--text-secondary)] opacity-20" />
-                    </div>
-                )}
-
-                <div className="p-5 flex flex-col flex-1">
-                    <div className="flex items-center gap-2.5 mb-3">
-                        <span
-                            className="text-white text-[11px] font-semibold px-2.5 py-1 rounded-md shadow-sm"
-                            style={{ backgroundColor: catColor }}
-                        >
-                            {post.category}
-                        </span>
-                        <span className="text-[12px] text-[var(--text-secondary)] font-medium">{formattedDate}</span>
-                    </div>
-
-                    <h3 className="text-[16px] font-bold text-[var(--text-primary)] mb-2 group-hover:text-[var(--brand)] transition-colors line-clamp-2 leading-snug font-['Poppins',sans-serif]">
-                        {post.title}
-                    </h3>
-
-                    <p className="text-[13px] text-[var(--text-secondary)] mb-4 line-clamp-2 flex-1 leading-relaxed">
-                        {post.excerpt}
-                    </p>
-
-                    <div className="flex items-center justify-between mt-auto">
-                        <div className="flex items-center text-[13px] text-[var(--brand)] font-medium">
-                            Read more <ChevronRight className="w-4 h-4 ml-0.5 group-hover:translate-x-1 transition-transform" />
-                        </div>
-                        {post.views !== undefined && (
-                            <div className="flex items-center gap-1.5 text-[12px] text-[var(--text-secondary)] font-medium">
-                                <Eye className="w-4 h-4" />
-                                {post.views.toLocaleString()}
-                            </div>
-                        )}
-                    </div>
-                </div>
-            </div>
-
-            {/* Mobile Card — horizontal row layout */}
-            <div
-                onClick={onClick}
-                className="flex md:hidden group cursor-pointer bg-[var(--bg-surface)] border rounded-2xl overflow-hidden transition-all active:scale-[0.98]"
-                style={{ borderColor: 'var(--divider)' }}
-            >
-                {/* Thumbnail */}
-                <div className="w-[130px] min-h-[130px] flex-shrink-0 overflow-hidden bg-[var(--bg-elev-1)] relative">
-                    {post.thumbnail_url ? (
-                        <img
-                            src={post.thumbnail_url}
-                            alt={post.thumbnail_alt || post.title}
-                            className="w-full h-full object-cover"
-                            loading="lazy"
-                        />
                     ) : (
                         <div className="w-full h-full bg-gradient-to-br from-[var(--bg-elev-1)] to-[var(--bg-elev-2)] flex items-center justify-center">
-                            <FileText className="w-8 h-8 text-[var(--text-secondary)] opacity-20" />
+                            <FileText className="w-10 h-10 text-[var(--text-secondary)] opacity-20" />
                         </div>
                     )}
-                </div>
 
-                {/* Content */}
-                <div className="flex-1 p-4 flex flex-col justify-center min-w-0">
-                    <div className="flex items-center gap-2 mb-1.5">
+                    {/* Subtle top gradient for date readability */}
+                    <div className="absolute inset-x-0 top-0 h-1/3 bg-gradient-to-b from-black/60 to-transparent pointer-events-none z-0" />
+
+                    {/* Top Overlay: Tag and Date */}
+                    <div className="absolute top-3 left-3 right-3 flex items-start justify-between pointer-events-none z-10">
                         <span
-                            className="text-white text-[10px] font-semibold px-2 py-0.5 rounded"
+                            className="text-white text-[11px] font-bold px-3 py-1 rounded-[10px] shadow-sm truncate max-w-[120px] inline-block"
                             style={{ backgroundColor: catColor }}
+                            title={post.category}
                         >
                             {post.category}
                         </span>
-                        <span className="text-[11px] text-[var(--text-secondary)]">{formattedDate}</span>
-                        {post.views !== undefined && (
-                            <>
-                                <span className="text-[var(--divider)] mx-0.5">•</span>
-                                <span className="flex items-center gap-1 text-[11px] text-[var(--text-secondary)] font-medium">
-                                    <Eye className="w-3.5 h-3.5" />
-                                    {post.views.toLocaleString()}
-                                </span>
-                            </>
-                        )}
+                        <span className="text-[13px] text-white/95 font-semibold tracking-wide drop-shadow-md">
+                            {formattedDate}
+                        </span>
                     </div>
 
-                    <h3 className="text-[15px] font-bold text-[var(--text-primary)] line-clamp-2 leading-snug mb-1.5 font-['Poppins',sans-serif]">
-                        {post.title}
-                    </h3>
+                    {/* Bottom Overlay: Blended Glassmorphism */}
+                    <div className="absolute inset-x-[-9px] bottom-[-9px] h-[62%] pointer-events-none z-0">
+                        {/* Feathered blur effect */}
+                        <div
+                            className="absolute inset-0 bg-black/10 backdrop-blur-[3px]"
+                            style={{ maskImage: 'linear-gradient(to top, black 30%, transparent 100%)', WebkitMaskImage: 'linear-gradient(to top, black 30%, transparent 100%)' }}
+                        />
+                        {/* Dark gradient for text contrast */}
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+                    </div>
 
-                    <p className="text-[12px] text-[var(--text-secondary)] line-clamp-2 leading-relaxed">
+                    {/* Bottom Overlay: Title Text */}
+                    <div className="absolute inset-x-0 bottom-0 p-3 pointer-events-none z-10">
+                        <h3 className="text-[15px] font-bold text-white line-clamp-2 leading-[1.35] font-['Poppins',sans-serif]" style={{ textShadow: '0px 1px 3px black' }}>
+                            {post.title}
+                        </h3>
+                    </div>
+                </div>
+
+                {/* Content Section (Bottom Half) */}
+                <div className="p-4 flex flex-col flex-1 bg-[var(--bg-surface)]">
+                    <p className="text-[13px] text-[var(--text-secondary)] mb-auto line-clamp-2 leading-relaxed">
                         {post.excerpt}
                     </p>
-                </div>
 
-                {/* Chevron */}
-                <div className="flex items-center pr-3 flex-shrink-0">
-                    <ChevronRight className="w-5 h-5 text-[var(--text-secondary)]" />
+                    <div className="flex items-center justify-between mt-3 pt-3 border-t" style={{ borderColor: 'var(--divider)' }}>
+                        <div className="flex items-center text-[13px] text-[#3b82f6] font-semibold tracking-wide">
+                            Read more <ChevronRight className="w-4 h-4 ml-0.5 group-hover:translate-x-1 transition-transform" />
+                        </div>
+                        <div className="flex items-center gap-3">
+                            {post.views !== undefined && (
+                                <div className="flex items-center gap-1.5 text-[12px] text-[var(--text-secondary)] font-medium">
+                                    <Eye className="w-4 h-4" />
+                                    {post.views.toLocaleString()}
+                                </div>
+                            )}
+                            <div className="flex items-center gap-1.5 text-[12px] text-[var(--text-secondary)] font-medium">
+                                <Clock className="w-4 h-4" />
+                                {readTime} min
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
+
+
         </>
     );
 }

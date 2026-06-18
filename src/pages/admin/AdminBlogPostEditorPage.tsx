@@ -343,6 +343,18 @@ export function AdminBlogPostEditorPage() {
                                 </div>
                             </AdminFormField>
 
+                            <AdminFormField label="Tags">
+                                <AdminInput 
+                                    value={form.tags.join(', ')} 
+                                    onChange={(e) => setForm(prev => ({
+                                        ...prev, 
+                                        tags: e.target.value.split(',').map(t => t.trim()).filter(Boolean)
+                                    }))}
+                                    placeholder="e.g. update, new-feature, community" 
+                                />
+                                <p className="text-xs text-[var(--text-secondary)] mt-1.5">Separate tags with commas</p>
+                            </AdminFormField>
+
                             <div className="flex items-center justify-between p-3 border rounded-xl" style={{ borderColor: 'var(--divider)' }}>
                                 <div>
                                     <p className="text-sm font-medium text-[var(--text-primary)]">Pin Post</p>
@@ -385,6 +397,9 @@ export function AdminBlogPostEditorPage() {
                             </AdminFormField>
                             <AdminFormField label="SEO Description">
                                 <AdminTextarea value={form.seo_description} onChange={(e) => setForm(prev => ({...prev, seo_description: e.target.value}))} rows={2} placeholder="Optional override" />
+                            </AdminFormField>
+                            <AdminFormField label="OG Image URL">
+                                <AdminInput value={form.og_image_url} onChange={(e) => setForm(prev => ({...prev, og_image_url: e.target.value}))} placeholder="https://... (Optional override)" />
                             </AdminFormField>
                         </div>
                     </div>

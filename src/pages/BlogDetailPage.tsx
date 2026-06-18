@@ -7,6 +7,7 @@ import { Globe, Clock, Eye, Calendar, UserCircle, Share, Flag, Sparkles, Chevron
 import { SITE_NAME } from '../../functions/_lib/seo';
 import DOMPurify from 'dompurify';
 import { ReportModal } from '../components/ReportModal';
+import { FeedbackPanel } from '../components/FeedbackPanel';
 import { toast } from 'sonner';
 
 // Allow deep links
@@ -22,6 +23,7 @@ export function BlogDetailPage({ onNavigate }: { onNavigate?: (path: string) => 
     });
     const contentRef = useRef<HTMLDivElement>(null);
     const [isReportOpen, setIsReportOpen] = useState(false);
+    const [isFeedbackOpen, setIsFeedbackOpen] = useState(false);
     const [headings, setHeadings] = useState<{ id: string, text: string, level: number }[]>([]);
     const [finalHtml, setFinalHtml] = useState('');
     const [showScrollTop, setShowScrollTop] = useState(false);
@@ -40,12 +42,12 @@ export function BlogDetailPage({ onNavigate }: { onNavigate?: (path: string) => 
 
     useEffect(() => {
         if (!post?.content) return;
-        
+
         const sanitized = DOMPurify.sanitize(post.content, { ALLOWED_URI_REGEXP });
-        
+
         const parser = new DOMParser();
         const doc = parser.parseFromString(sanitized, 'text/html');
-        
+
         const elements = Array.from(doc.querySelectorAll('h1, h2, h3')) as HTMLElement[];
         const extracted = elements.map((el, i) => {
             if (!el.id) {
@@ -57,7 +59,7 @@ export function BlogDetailPage({ onNavigate }: { onNavigate?: (path: string) => 
                 level: parseInt(el.tagName[1])
             };
         });
-        
+
         setHeadings(extracted);
         setFinalHtml(doc.body.innerHTML);
     }, [post?.content]);
@@ -103,6 +105,47 @@ export function BlogDetailPage({ onNavigate }: { onNavigate?: (path: string) => 
     const authorRole = post.author_role || "Staff";
     const authorAvatar = post.author_avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(authorName)}&background=random`;
 
+    const communitySections = (
+        <>
+            {/* Social Links */}
+            <div className="bg-[var(--bg-surface)] border border-[var(--divider)] rounded-3xl p-6 shadow-sm">
+                <h3 className="text-sm font-bold text-[var(--text-primary)] mb-2 font-['Poppins',sans-serif]">Be part of Miyomi</h3>
+                <p className="text-xs text-[var(--text-secondary)] mb-5 leading-relaxed">Join our community servers and stay updated.</p>
+                <div className="flex items-center gap-3">
+                    <a href="https://discord.gg/miyomi" target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-xl bg-[var(--bg-elev-1)] border border-[var(--divider)] flex items-center justify-center text-[var(--text-secondary)] hover:text-[#5865F2] hover:border-[#5865F2]/50 transition-all hover:-translate-y-0.5 shadow-sm">
+                        <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028c.462-.63.874-1.295 1.226-1.994a.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.095 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.095 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z" /></svg>
+                    </a>
+                    <a href="https://reddit.com/r/miyomi" target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-xl bg-[var(--bg-elev-1)] border border-[var(--divider)] flex items-center justify-center text-[var(--text-secondary)] hover:text-[#FF5700] hover:border-[#FF5700]/50 transition-all hover:-translate-y-0.5 shadow-sm">
+                        <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0zm5.01 4.744c.688 0 1.25.561 1.25 1.249a1.25 1.25 0 0 1-2.498.056l-2.597-.547-.8 3.747c1.824.07 3.48.632 4.674 1.488.308-.309.73-.491 1.207-.491.968 0 1.754.786 1.754 1.754 0 .716-.435 1.333-1.01 1.614a3.111 3.111 0 0 1 .042.52c0 2.694-3.13 4.87-7.004 4.87-3.874 0-7.004-2.176-7.004-4.87 0-.183.015-.366.043-.534A1.748 1.748 0 0 1 4.028 12c0-.968.786-1.754 1.754-1.754.463 0 .898.196 1.207.49 1.207-.883 2.878-1.43 4.744-1.487l.885-4.182a.342.342 0 0 1 .14-.197.35.35 0 0 1 .238-.042l2.906.617a1.214 1.214 0 0 1 1.108-.701zM9.25 12C8.561 12 8 12.562 8 13.25c0 .687.561 1.248 1.25 1.248.687 0 1.248-.561 1.248-1.249 0-.688-.561-1.249-1.249-1.249zm5.5 0c-.687 0-1.248.561-1.248 1.25 0 .687.561 1.248 1.249 1.248.688 0 1.249-.561 1.249-1.249 0-.687-.562-1.249-1.25-1.249zm-5.466 3.99a.327.327 0 0 0-.231.094.33.33 0 0 0 0 .463c.842.842 2.484.913 2.961.913.477 0 2.105-.056 2.961-.913a.361.361 0 0 0 .029-.463.33.33 0 0 0-.464 0c-.547.533-1.684.73-2.512.73-.828 0-1.979-.196-2.512-.73a.326.326 0 0 0-.232-.095z" /></svg>
+                    </a>
+                    <a href="https://t.me/miyomi" target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-xl bg-[var(--bg-elev-1)] border border-[var(--divider)] flex items-center justify-center text-[var(--text-secondary)] hover:text-[#26A5E4] hover:border-[#26A5E4]/50 transition-all hover:-translate-y-0.5 shadow-sm">
+                        <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0 12 12 0 0 0 11.944 0Zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z" /></svg>
+                    </a>
+                </div>
+            </div>
+
+            {/* Contribution Section */}
+            <div className="bg-[var(--bg-surface)] border border-[var(--divider)] rounded-3xl p-6 shadow-sm">
+                <h3 className="text-sm font-bold text-[var(--text-primary)] mb-2 font-['Poppins',sans-serif]">Want to contribute?</h3>
+                <p className="text-xs text-[var(--text-secondary)] mb-4 leading-relaxed">Help us grow by submitting new apps, extensions, or sending feedback.</p>
+                <div className="flex flex-col gap-2.5">
+                    <button 
+                        onClick={() => onNavigate ? onNavigate('/contribute') : window.location.href = '/contribute'} 
+                        className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-[var(--bg-elev-1)] hover:bg-[var(--brand)] hover:text-white text-[var(--text-primary)] border border-[var(--divider)] hover:border-[var(--brand)] text-[13px] font-semibold rounded-xl transition-all shadow-sm"
+                    >
+                        <Sparkles className="w-4 h-4" /> Submit App / Ext
+                    </button>
+                    <button 
+                        onClick={() => setIsFeedbackOpen(true)} 
+                        className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-[var(--bg-elev-1)] hover:bg-[#3b82f6] hover:text-white text-[var(--text-primary)] border border-[var(--divider)] hover:border-[#3b82f6] text-[13px] font-semibold rounded-xl transition-all shadow-sm"
+                    >
+                        <MessageCircle className="w-4 h-4" /> Send Feedback
+                    </button>
+                </div>
+            </div>
+        </>
+    );
+
     return (
         <div className="max-w-[1200px] mx-auto pb-24 px-4 sm:px-6 lg:px-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
             {/* Top Bar: Back, Share, Report */}
@@ -129,22 +172,27 @@ export function BlogDetailPage({ onNavigate }: { onNavigate?: (path: string) => 
                 {/* Main Content (Left Column) */}
                 <div className="flex-1 min-w-0">
                     {/* Header */}
-                    <div className="flex items-center justify-between text-sm font-medium text-[var(--text-secondary)] mb-6">
-                        <div className="flex items-center gap-3">
-                            <span className="bg-[#a855f7]/10 text-[#a855f7] px-3 py-1 rounded-md text-xs uppercase tracking-wider font-semibold">{post.category}</span>
+                    <div className="flex items-center justify-between text-sm font-medium text-[var(--text-secondary)] mb-4">
+                        <div className="flex items-center gap-2 sm:gap-3">
                             <span>{formattedDate}</span>
-                            <span className="text-[var(--divider)] hidden sm:inline">•</span>
-                            <span className="hidden sm:flex items-center gap-1"><Clock className="w-4 h-4" /> {readTime} min read</span>
+                            <span className="text-[var(--divider)]">•</span>
+                            <span className="flex items-center gap-1"><Clock className="w-4 h-4" /> {readTime} min read</span>
                         </div>
                         {/* Fake Pinned badge since post type might not have it yet */}
-                        <div className="flex items-center gap-1.5 text-[#ef4444] font-semibold text-xs">
-                            <Pin className="w-3.5 h-3.5" /> Pinned
+                        <div className="flex items-center gap-1.5 text-[#ef4444] font-bold text-[10px] bg-[#ef4444]/10 px-2 py-1 rounded-md uppercase tracking-widest">
+                            <Pin className="w-3 h-3" /> Pinned
                         </div>
                     </div>
 
                     <h1 className="text-3xl md:text-5xl lg:text-[3.25rem] font-bold font-['Poppins',sans-serif] text-[var(--text-primary)] leading-[1.15] mb-4 tracking-tight">
                         {post.title}
                     </h1>
+
+                    <div className="mb-6">
+                        <span className="bg-[#a855f7]/10 text-[#a855f7] px-3 py-1 rounded-md text-xs uppercase tracking-wider font-semibold truncate max-w-[150px] inline-block" title={post.category}>
+                            {post.category}
+                        </span>
+                    </div>
 
                     {post.excerpt && (
                         <p className="text-base md:text-lg text-[var(--text-secondary)] leading-relaxed mb-8 max-w-[90%]">
@@ -174,29 +222,23 @@ export function BlogDetailPage({ onNavigate }: { onNavigate?: (path: string) => 
                     )}
 
                     {/* Content (Removed box wrapping) */}
-                    <div 
+                    <div
                         ref={contentRef}
                         className="guide-content prose max-w-none text-[var(--text-secondary)] mb-12"
                         dangerouslySetInnerHTML={{ __html: finalHtml }}
                     />
 
-                    {/* Feedback block */}
-                    {/* <div className="flex flex-col sm:flex-row items-center justify-between p-6 rounded-2xl border border-[var(--divider)] bg-[var(--bg-surface)] mb-12 shadow-sm">
-                        <div className="text-sm font-medium text-[var(--text-secondary)] mb-4 sm:mb-0">
-                            Was this article helpful?
+                    {/* Mobile-only: Community Sections */}
+                    <div className="lg:hidden mb-12">
+                        <div className="flex items-center justify-center gap-4 mb-8 text-[var(--divider)]">
+                            <div className="h-px bg-[var(--divider)] flex-1"></div>
+                            <Sparkles className="w-5 h-5 opacity-40 text-[#a855f7]" />
+                            <div className="h-px bg-[var(--divider)] flex-1"></div>
                         </div>
-                        <div className="flex items-center gap-2">
-                            <button className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[var(--bg-elev-1)] border border-transparent hover:border-[#a855f7] text-[var(--text-primary)] hover:text-[#a855f7] transition-all text-sm font-medium">
-                                <ThumbsUp className="w-4 h-4" /> Yes
-                            </button>
-                            <button className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[var(--bg-elev-1)] border border-transparent hover:border-[#ef4444] text-[var(--text-primary)] hover:text-[#ef4444] transition-all text-sm font-medium">
-                                <ThumbsDown className="w-4 h-4" /> No
-                            </button>
-                            <button className="px-4 py-2 rounded-xl border border-[var(--divider)] bg-transparent hover:border-[var(--text-secondary)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-all text-sm font-medium sm:ml-4">
-                                Give feedback
-                            </button>
+                        <div className="flex flex-col gap-6">
+                            {communitySections}
                         </div>
-                    </div> */}
+                    </div>
 
                     {/* Related Articles */}
                     {(() => {
@@ -227,7 +269,7 @@ export function BlogDetailPage({ onNavigate }: { onNavigate?: (path: string) => 
                                                 </div>
                                                 <div className="flex-1 flex flex-col justify-center min-w-0 pr-4 py-1">
                                                     <div className="flex items-center gap-3 text-[11px] font-bold text-[var(--text-secondary)] mb-1.5 uppercase tracking-wider">
-                                                        <span className="bg-[#a855f7]/10 text-[#a855f7] px-2 py-0.5 rounded-md">{article.category}</span>
+                                                        <span className="bg-[#a855f7]/10 text-[#a855f7] px-2 py-0.5 rounded-md truncate max-w-[100px] inline-block" title={article.category}>{article.category}</span>
                                                         <span>{articleDate}</span>
                                                     </div>
                                                     <h4 className="text-[15px] font-bold text-[var(--text-primary)] mb-1 truncate font-['Poppins',sans-serif]">{article.title}</h4>
@@ -254,8 +296,8 @@ export function BlogDetailPage({ onNavigate }: { onNavigate?: (path: string) => 
                                 <div className="text-[11px] font-bold tracking-widest text-[var(--text-secondary)] uppercase mb-5 font-['Inter',sans-serif]">On this page</div>
                                 <div className="space-y-4 border-l-2 border-[#a855f7] pl-4 max-h-[60vh] overflow-y-auto scrollbar-hide">
                                     {headings.map(h => (
-                                        <a 
-                                            key={h.id} 
+                                        <a
+                                            key={h.id}
                                             href={`#${h.id}`}
                                             onClick={(e) => {
                                                 e.preventDefault();
@@ -273,42 +315,7 @@ export function BlogDetailPage({ onNavigate }: { onNavigate?: (path: string) => 
                                 </div>
                             </div>
                         )}
-
-                        {/* Love Miyomi Card */}
-                        <div className="relative rounded-3xl p-6 border border-[var(--divider)] overflow-hidden min-h-[260px] flex flex-col justify-end shadow-sm group cursor-pointer"
-                            style={{ background: 'linear-gradient(135deg, rgba(99,102,241,0.08) 0%, rgba(168,85,247,0.12) 100%)' }}>
-                            <img
-                                src="/inaread.png"
-                                alt="Miyomi Mascot"
-                                className="absolute top-4 -right-4 w-[160px] pointer-events-none drop-shadow-2xl opacity-90 object-contain group-hover:scale-105 transition-transform duration-500"
-                            />
-                            <div className="relative z-10 w-[85%] mb-4 mt-auto pt-24">
-                                <h3 className="text-lg font-bold text-[var(--text-primary)] mb-2 font-['Poppins',sans-serif]">Love Miyomi?</h3>
-                                <p className="text-sm text-[var(--text-secondary)] leading-relaxed">
-                                    Support the project and help us keep building for the community.
-                                </p>
-                            </div>
-                            <button onClick={() => onNavigate ? onNavigate('/donate') : window.location.href = '/donate'} className="relative z-10 w-full flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-[#ec4899] to-[#a855f7] text-white text-sm font-semibold rounded-xl shadow-[0_4px_15px_rgba(168,85,247,0.25)] group-hover:shadow-[0_4px_20px_rgba(168,85,247,0.4)] transition-all">
-                                Learn how to support <ExternalLink className="w-4 h-4" />
-                            </button>
-                        </div>
-
-                        {/* Social Links */}
-                        <div className="bg-[var(--bg-surface)] border border-[var(--divider)] rounded-3xl p-6 shadow-sm">
-                            <h3 className="text-sm font-bold text-[var(--text-primary)] mb-2 font-['Poppins',sans-serif]">Be part of Miyomi</h3>
-                            <p className="text-xs text-[var(--text-secondary)] mb-5 leading-relaxed">Join our community servers and stay updated.</p>
-                            <div className="flex items-center gap-3">
-                                <a href="https://discord.gg/miyomi" target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-xl bg-[var(--bg-elev-1)] border border-[var(--divider)] flex items-center justify-center text-[var(--text-secondary)] hover:text-[#5865F2] hover:border-[#5865F2]/50 transition-all hover:-translate-y-0.5 shadow-sm">
-                                    <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028c.462-.63.874-1.295 1.226-1.994a.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.095 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.095 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z" /></svg>
-                                </a>
-                                <a href="https://reddit.com/r/miyomi" target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-xl bg-[var(--bg-elev-1)] border border-[var(--divider)] flex items-center justify-center text-[var(--text-secondary)] hover:text-[#FF5700] hover:border-[#FF5700]/50 transition-all hover:-translate-y-0.5 shadow-sm">
-                                    <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0zm5.01 4.744c.688 0 1.25.561 1.25 1.249a1.25 1.25 0 0 1-2.498.056l-2.597-.547-.8 3.747c1.824.07 3.48.632 4.674 1.488.308-.309.73-.491 1.207-.491.968 0 1.754.786 1.754 1.754 0 .716-.435 1.333-1.01 1.614a3.111 3.111 0 0 1 .042.52c0 2.694-3.13 4.87-7.004 4.87-3.874 0-7.004-2.176-7.004-4.87 0-.183.015-.366.043-.534A1.748 1.748 0 0 1 4.028 12c0-.968.786-1.754 1.754-1.754.463 0 .898.196 1.207.49 1.207-.883 2.878-1.43 4.744-1.487l.885-4.182a.342.342 0 0 1 .14-.197.35.35 0 0 1 .238-.042l2.906.617a1.214 1.214 0 0 1 1.108-.701zM9.25 12C8.561 12 8 12.562 8 13.25c0 .687.561 1.248 1.25 1.248.687 0 1.248-.561 1.248-1.249 0-.688-.561-1.249-1.249-1.249zm5.5 0c-.687 0-1.248.561-1.248 1.25 0 .687.561 1.248 1.249 1.248.688 0 1.249-.561 1.249-1.249 0-.687-.562-1.249-1.25-1.249zm-5.466 3.99a.327.327 0 0 0-.231.094.33.33 0 0 0 0 .463c.842.842 2.484.913 2.961.913.477 0 2.105-.056 2.961-.913a.361.361 0 0 0 .029-.463.33.33 0 0 0-.464 0c-.547.533-1.684.73-2.512.73-.828 0-1.979-.196-2.512-.73a.326.326 0 0 0-.232-.095z" /></svg>
-                                </a>
-                                <a href="https://t.me/miyomi" target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-xl bg-[var(--bg-elev-1)] border border-[var(--divider)] flex items-center justify-center text-[var(--text-secondary)] hover:text-[#26A5E4] hover:border-[#26A5E4]/50 transition-all hover:-translate-y-0.5 shadow-sm">
-                                    <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0 12 12 0 0 0 11.944 0Zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z" /></svg>
-                                </a>
-                            </div>
-                        </div>
+                        {communitySections}
                     </div>
                 </aside>
             </div>
@@ -316,9 +323,8 @@ export function BlogDetailPage({ onNavigate }: { onNavigate?: (path: string) => 
             {/* Scroll to Top Button */}
             <button
                 onClick={scrollToTop}
-                className={`fixed z-50 p-3.5 rounded-2xl bg-[var(--bg-surface)] border border-[var(--divider)] shadow-[0_8px_30px_rgb(0,0,0,0.12)] text-[var(--text-secondary)] hover:text-[#a855f7] hover:border-[#a855f7]/50 transition-all duration-300 flex items-center justify-center ${
-                    showScrollTop ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10 pointer-events-none'
-                } right-4 bottom-24 md:right-8 md:bottom-8`}
+                className={`fixed z-50 p-3.5 rounded-2xl bg-[var(--bg-surface)] border border-[var(--divider)] shadow-[0_8px_30px_rgb(0,0,0,0.12)] text-[var(--text-secondary)] hover:text-[#a855f7] hover:border-[#a855f7]/50 transition-all duration-300 flex items-center justify-center ${showScrollTop ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10 pointer-events-none'
+                    } right-4 bottom-24 md:right-8 md:bottom-8`}
                 aria-label="Scroll to top"
             >
                 <ArrowUp className="w-5 h-5" />
@@ -331,6 +337,10 @@ export function BlogDetailPage({ onNavigate }: { onNavigate?: (path: string) => 
                 targetType="page"
                 targetName={post.title}
             />
+
+            {isFeedbackOpen && (
+                <FeedbackPanel page="blog" onClose={() => setIsFeedbackOpen(false)} />
+            )}
         </div>
     );
 }
