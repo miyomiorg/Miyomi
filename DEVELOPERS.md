@@ -1,155 +1,175 @@
-# Developer Notes — Miyomi v3
+# Developer Guide — Miyomi
 
-This document is meant to help contributors quickly understand how Miyomi v3 works and how they can work with it.
+This document helps contributors understand how Miyomi works and how to get involved.
 
-Miyomi is a community-run, open-source website that indexes Manga, Anime, and Light Novel apps, extensions, guides, and related resources.
+Miyomi is an open-source platform for discovering Anime, Manga, and Light Novel **apps**, **extensions**, and **guides**. It does not host content — it organizes and presents public tools in a clean, searchable way.
 
-It does not host content.  
-It simply organizes and presents public tools in a structured way.
+For a full list of changes across versions, see [CHANGELOG.md](CHANGELOG.md).
 
 ---
 
-## 🌐 What the Website Currently Does
+## 🏗️ Tech Stack
+
+| Layer | Technology |
+|---|---|
+| **Frontend** | React 18, TypeScript, Vite |
+| **Styling** | Tailwind CSS 4 |
+| **UI Components** | Radix UI primitives, shadcn-style components |
+| **Rich Text** | TipTap editor (admin) |
+| **Database** | Supabase (PostgreSQL) |
+| **Auth** | Supabase Auth (Google OAuth) |
+| **Hosting** | Cloudflare Pages |
+| **CAPTCHA** | Cloudflare Turnstile |
+| **SEO** | Cloudflare Pages Functions (edge-rendered OG images) |
+| **Animations** | Motion (framer-motion) |
+
+---
+
+## 📁 Project Structure
+
+```
+Miyomi/
+├── functions/              # Cloudflare Pages Functions (SEO edge rendering)
+│   ├── [[path]].ts         # Dynamic OG meta injection for all routes
+│   ├── sitemap.xml.ts      # Auto-generated sitemap
+│   └── _lib/               # Shared utils (supabase client, SEO helpers)
+├── scripts/                # Build & maintenance scripts
+│   ├── generate-og-images.mjs   # Build-time OG image generation (satori)
+│   ├── sync-donations.js        # Syncs donation data from Supabase
+│   ├── backup-db.mjs            # Database backup utility
+│   ├── restore-db.mjs           # Database restore utility
+│   └── update-app-meta.mjs      # GitHub metadata updater
+├── src/
+│   ├── components/         # Reusable UI components
+│   │   ├── admin/          # Admin-specific components (forms, editors, layout)
+│   │   ├── backgrounds/    # Animated background effects
+│   │   ├── forms/          # Public form components
+│   │   └── ui/             # Base UI kit (radix + shadcn style)
+│   ├── config/             # App configuration
+│   ├── context/            # React context providers (likes, etc.)
+│   ├── hooks/              # Custom React hooks (data fetching, auth, etc.)
+│   ├── integrations/       # Third-party integrations (Supabase client)
+│   ├── lib/                # Utility libraries
+│   ├── pages/              # Route pages
+│   │   └── admin/          # Admin dashboard pages (28 pages)
+│   ├── services/           # Data service layer (Supabase queries)
+│   ├── types/              # TypeScript type definitions
+│   └── utils/              # Helper functions
+├── supabase/
+│   ├── functions/          # Supabase Edge Functions (serverless API)
+│   └── migrations/         # Database schema & migrations
+├── .env.example            # Environment variable template
+├── wrangler.toml           # Cloudflare Pages configuration
+├── vite.config.ts          # Vite build configuration
+└── package.json
+```
+
+---
+
+## 🌐 What the Site Does
 
 ### Public Side
 
-Users can:
-
-- Browse Apps
-- Browse Extensions
-- Read Guides
-- Search across content
-- View FAQs
-- Submit new Apps or Extensions through a form
-- Like entries
-- See notices or announcements
-
-Everything is structured and searchable.
-
----
+- **Software** — Browse, search, filter, and sort apps (grid/list views)
+- **Extensions** — Browse extension repositories with language filtering
+- **Guides** — Read and submit community guides with rich content
+- **Blog** — Announcements and blog posts from the team
+- **Donations** — Support the project with multiple payment options
+- **FAQ** — Frequently asked questions
+- **Search** — Global search across all content (Ctrl+K / S shortcut)
+- **Submit** — Contribute new apps or extensions (Basic & Advanced modes)
+- **Like** — React to favorite entries
+- **Report** — Flag problematic content for admin review
 
 ### Admin Side
 
 Admins can:
+- Review and approve/reject submissions and edit suggestions
+- Create, edit, and delete apps, extensions, guides, FAQs, and blog posts
+- Manage donations, notices, and themes
+- View analytics, likes, reports, feedback, and bot attack logs
+- Manage admin users (promote, demote, delete)
+- View session logs and security alerts
+- Configure endpoint toggles and Telegram notifications
+- Manage compatibility groups
 
-- Log in securely
-- Review and approve submissions
-- Create / edit Apps
-- Create / edit Extensions
-- Manage Guides and FAQs
-- Manage Notices (site announcements)
-- Manage Themes
-- View likes and activity
-- View admin logs and sessions
-
-There are two roles:
-- admin
-- super_admin
-
-The first super admin can be created during initial setup.
+**Roles:**
+- `admin` — Content management and moderation
+- `super_admin` — Full access including user management and security
 
 ---
 
-## 🏗️ How v3 Works
+## 🔄 Architecture Overview
 
-### Frontend
-- React + TypeScript
-- Vite
-- TailwindCSS
-- React Router
+### Data Flow
 
-### Backend
-- Supabase (Database + Auth + Edge Functions)
+All data lives in **Supabase** (PostgreSQL). The frontend talks to Supabase directly using the `@supabase/supabase-js` client with Row-Level Security (RLS) policies controlling access.
 
-Content is stored in the database instead of JSON files.
+```
+User → React SPA → Supabase (DB + Auth + RLS)
+                  → Cloudflare Functions (SEO/OG only)
+```
 
----
+### Key Hooks (data fetching)
 
-## 🔄 What Changed From v2
+| Hook | Purpose |
+|---|---|
+| `useApp` / `useExtension` | Fetch single item details |
+| `useGlobalSearch` | Search across apps + extensions |
+| `useAuth` | Authentication state and session |
+| `useAdmin` | Admin role verification |
+| `useDonations` | Donation data and management |
+| `useBlogPosts` / `useBlogPost` | Blog content |
+| `useGitHubRelease` | GitHub release info and downloads |
+| `useGitHubLastCommit` | Latest commit activity |
+| `useThemeEngine` | Dynamic theme system |
+| `useCachedImage` | Image caching for performance |
+| `useSessionTracker` | Admin session tracking |
 
-### v2 (Old Version)
-- Data stored in JSON files inside the repo
-- Contributions required Pull Requests
-- No admin panel
-- No authentication
-- Static frontend only
+### Supabase Edge Functions
 
-### v3 (Current Version)
-- Uses Supabase database
-- Has admin panel
-- Has submission form + moderation queue
-- Supports roles and authentication
-- Updates happen without redeploying
-- CAPTCHA protection for submissions
+The backend logic runs as Supabase Edge Functions:
 
-In short:
+| Function | Purpose |
+|---|---|
+| `bootstrap-admin` | First-time super admin setup |
+| `manage-admin` | Admin CRUD operations |
+| `security-alert` | Unauthorized login detection + Telegram alerts |
+| `feedback` | User feedback → Telegram notifications |
+| `submit-content` | Content submission handler |
+| `edit-suggestion` | Edit suggestion handler |
+| `like` | Like/vote system |
+| `list-apps` | Public app listing API |
+| `report-content` | Content reporting handler |
+| `update-app-meta` | App metadata updater |
 
-v2 = Static index  
-v3 = Managed, moderated index
+### Cloudflare Pages Functions
 
----
+These run at the edge for SEO purposes only:
 
-## 📨 Submission Flow
-
-1. User submits an App or Extension
-2. Basic duplicate check happens
-3. CAPTCHA validation
-4. Stored in submissions table as "pending"
-5. Admin reviews and publishes
-
-This keeps spam and bad links out.
-
----
-
-## 🗃️ Main Database Tables
-
-Content:
-- apps
-- extensions
-- guides
-- faqs
-
-Community:
-- submissions
-- likes
-
-Admin:
-- user_roles
-- admin_logs
-- admin_sessions
-
-Operational:
-- notices
-- themes
-- settings
+| Function | Purpose |
+|---|---|
+| `[[path]].ts` | Intercepts requests to inject OG meta tags for social sharing |
+| `sitemap.xml.ts` | Auto-generates sitemap from database content |
 
 ---
 
-## 🤝 How Developers Can Help
+## 🔐 Security Note
 
-- Improve search
-- Improve submission validation
-- Improve moderation tools
-- Improve UI consistency
-- Improve performance
-- Improve accessibility
-- Add documentation
-- Strengthen security (RLS policies, rate limiting)
-
-Keep it simple and community-focused.
+> Miyomi's backend (Supabase edge functions, database schema, and migrations) lives in a **separate private repository** and is gitignored here. This was done after malicious actors attempted spam attacks, security exploits, and tried to break the site by targeting the backend.
+>
+> If you need backend context for your contribution, reach out to the team.
 
 ---
 
-## 🚀 Project Setup & Deployment
+## 🚀 Getting Started
 
 ### Prerequisites
 
-- Node.js 18+
+- **Node.js 18+**
 - A [Supabase](https://supabase.com) account (free tier works)
 - A [Cloudflare](https://cloudflare.com) account (for Turnstile CAPTCHA + Pages hosting)
 - A Google Cloud project (for OAuth login)
-
----
 
 ### 1. Clone & Install
 
@@ -159,59 +179,7 @@ cd Miyomi
 npm install
 ```
 
----
-
-### 2. Create a Supabase Project
-
-1. Go to [supabase.com/dashboard](https://supabase.com/dashboard) → **New Project**
-2. Choose a name, region, and generate a database password
-3. Once active, go to **Settings → API** and note:
-   - **Project URL** → `VITE_SUPABASE_URL`
-   - **Project Ref (ID)** → `VITE_SUPABASE_PROJECT_ID`
-   - **anon / public key** → `VITE_SUPABASE_PUBLISHABLE_KEY` and `VITE_SUPABASE_ANON_KEY`
-   - **service_role key** → `SUPABASE_SERVICE_ROLE_KEY` (never expose this client-side)
-
----
-
-### 3. Run Database Migrations
-
-Apply the schema from the consolidated migration file:
-
-```bash
-npx supabase db push
-```
-
-Or manually run `supabase/migrations/00000000000000_init.sql` in the Supabase SQL Editor.
-
-This creates all tables, RLS policies, functions, and indexes.
-
----
-
-### 4. Configure Google OAuth
-
-1. Go to [Google Cloud Console](https://console.cloud.google.com) → **APIs & Services → Credentials**
-2. Create an **OAuth 2.0 Client ID** (Web Application type)
-3. Add these authorized redirect URIs:
-   - `https://<YOUR_SUPABASE_PROJECT_REF>.supabase.co/auth/v1/callback`
-   - `http://localhost:8080/admin/dashboard` (for local dev)
-4. Copy the **Client ID** and **Client Secret**
-5. In Supabase Dashboard → **Authentication → Providers → Google**:
-   - Enable Google provider
-   - Paste the Client ID and Client Secret
-   - Save
-
----
-
-### 5. Configure Cloudflare Turnstile (CAPTCHA)
-
-1. Go to [Cloudflare Dashboard](https://dash.cloudflare.com) → **Turnstile → Add Site**
-2. Add your domain(s) (include `localhost` for dev)
-3. Copy the **Site Key** → `VITE_TURNSTILE_SITE_KEY`
-4. Copy the **Secret Key** → `TURNSTILE_SECRET_KEY`
-
----
-
-### 6. Set Up Environment Variables
+### 2. Environment Variables
 
 Copy the example and fill it in:
 
@@ -220,112 +188,23 @@ cp .env.example .env
 ```
 
 ```env
+# Public (exposed to client via Vite)
 VITE_SUPABASE_PROJECT_ID="your-project-ref"
 VITE_SUPABASE_URL="https://your-project-ref.supabase.co"
 VITE_SUPABASE_PUBLISHABLE_KEY="your-anon-key"
 VITE_SUPABASE_ANON_KEY="your-anon-key"
 VITE_TURNSTILE_SITE_KEY="your-turnstile-site-key"
 VITE_EMAIL_LOGIN_ENABLED=false
+VITE_REMEMBER_SESSION=false
 
-# Server-side only
+# Server-side only (never expose these)
 SUPABASE_SERVICE_ROLE_KEY="your-service-role-key"
 TURNSTILE_SECRET_KEY="your-turnstile-secret"
 CRON_API_KEY="any-random-secret-for-cron-jobs"
 TELEGRAM_BOT_TOKEN="your-telegram-bot-token"
 ```
 
----
-
-### 7. Deploy Edge Functions
-
-Miyomi uses several Supabase Edge Functions:
-
-| Function | Purpose |
-|---|---|
-| `bootstrap-admin` | Initial super admin setup |
-| `manage-admin` | Admin CRUD operations |
-| `security-alert` | Unauthorized login detection → DB log + Telegram alert |
-| `feedback` | User feedback → Telegram notifications |
-| `submit-content` | Content submission handler |
-| `seed-data` | Seed initial data |
-| `list-apps` | Public app listing API |
-| `update-app-meta` | App metadata updater |
-| `vote` | Like/vote handler |
-
-Deploy all functions:
-
-```bash
-npx supabase functions deploy
-```
-
-For edge functions that need secrets (Telegram bot token, etc.), set them in the Supabase Dashboard under **Edge Functions → Secrets**, or via CLI:
-
-```bash
-npx supabase secrets set TELEGRAM_BOT_TOKEN="your-token"
-npx supabase secrets set TELEGRAM_CHAT_ID="your-chat-id"
-```
-
----
-
-### 8. Super Admin Setup (First-Time Only)
-
-The first time you visit `/admin`, the system detects no super admin exists and enters **Setup Mode**:
-
-1. Navigate to `http://localhost:8080/admin`
-2. You'll see the "SETUP MODE" screen with an email/password form
-3. Enter the email and password for the first super admin account
-4. Click **CREATE SYSTEM**
-5. This creates a Supabase Auth user and assigns the `super_admin` role
-
-After setup, the email/password form is hidden (Google OAuth becomes the only login method by default).
-
----
-
-### 9. Managing Admins
-
-Once logged in as super admin:
-
-1. Go to **Admin Panel → Settings** (or the admin management section)
-2. You can invite new admins by email
-3. Roles available:
-   - `admin` — Can manage content, view submissions, moderate
-   - `super_admin` — Full access including admin management, settings, and security logs
-
-New admins must sign in with the same email via Google OAuth to access the panel.
-
----
-
-### 10. Authentication & Security Settings
-
-#### Email/Password Login Toggle
-
-Email login is **disabled by default** (Google-only). To temporarily enable it:
-
-```env
-VITE_EMAIL_LOGIN_ENABLED=true
-```
-
-Restart the dev server after changing. For full backend protection, also toggle the Email provider in **Supabase Dashboard → Authentication → Providers**.
-
-#### Unauthorized Access Detection
-
-When a non-admin user attempts to log in:
-
-1. Their session is immediately destroyed
-2. Device fingerprint, IP, geolocation, and browser info are logged to `unauthorized_login_attempts`
-3. A real-time Telegram alert is sent via the `security-alert` edge function
-4. The user is redirected to an animated "ACCESS DENIED" page
-
-To receive Telegram alerts, set these in Supabase **Settings** table (via admin panel or SQL):
-
-```sql
-INSERT INTO settings (key, value) VALUES ('telegram_bot_token', '"your-bot-token"');
-INSERT INTO settings (key, value) VALUES ('telegram_chat_ids', '["chat-id-1", "chat-id-2"]');
-```
-
----
-
-### 11. Running Locally
+### 3. Run Locally
 
 ```bash
 npm run dev
@@ -333,42 +212,101 @@ npm run dev
 
 Opens at `http://localhost:8080` by default.
 
+### 4. Build for Production
+
+```bash
+npm run build
+```
+
+This runs `vite build` and then auto-generates OG images via `scripts/generate-og-images.mjs`.
+
 ---
 
-### 12. Production Deployment
+## ☁️ Deployment
 
-Miyomi is configured for **Cloudflare Pages**:
+Miyomi runs on **Cloudflare Pages**:
 
 1. Connect your repo to Cloudflare Pages
 2. Set build command: `npm run build`
 3. Set output directory: `dist`
-4. Add all `VITE_*` environment variables in the Cloudflare Pages settings
+4. Add all `VITE_*` environment variables in Cloudflare Pages settings
 5. Deploy
 
-Alternatively, the `dist/` output works on any static hosting (Vercel, Netlify, etc.).
+The `functions/` directory is automatically picked up by Cloudflare Pages Functions for edge SEO rendering.
+
+The `dist/` output also works on any static hosting (Vercel, Netlify, etc.) but you'll lose the edge SEO functions.
 
 ---
 
-## 🔐 Security Notes
+## 🗃️ Database
 
-- Never expose Supabase service role key
-- Ensure RLS policies restrict write access properly
+Content is stored in Supabase (PostgreSQL). Main table groups:
+
+**Content:** `apps`, `extensions`, `guides`, `faqs`, `blog_posts`
+
+**Community:** `submissions`, `edit_suggestions`, `likes`, `reports`, `feedback`, `guide_submissions`
+
+**Admin:** `user_roles`, `admin_logs`, `admin_sessions`, `unauthorized_login_attempts`, `bot_attack_logs`
+
+**Config:** `notices`, `themes`, `settings`, `donations`, `compatibility_groups`
+
+Migrations are in `supabase/migrations/`. The base schema is in `00000000000000_init.sql` with incremental migrations for newer features.
+
+---
+
+## 🤝 How to Contribute
+
+We welcome contributions! Here are some areas where help is appreciated:
+
+- **UI/UX improvements** — Better layouts, animations, responsiveness
+- **Performance** — Faster load times, better caching, lazy loading
+- **Search** — Improved search ranking and relevance
+- **Accessibility** — Screen reader support, keyboard navigation
+- **Bug fixes** — Check the issues tab for known bugs
+- **Data contributions** — Submit apps and extensions through the site's form
+- **Documentation** — Improve this guide or add inline code docs
+
+### Guidelines
+
+- Keep changes clean and focused — one feature per PR
+- Follow existing code style and patterns
+- Test on both desktop and mobile
+- Don't commit `.env` or sensitive keys
+- If touching security-related code, explain your changes clearly
+
+---
+
+## 📨 Submission Flow
+
+1. User fills out the Submit form (Basic or Advanced mode)
+2. Cloudflare Turnstile CAPTCHA validation
+3. Data sent to Supabase via edge function
+4. Stored in `submissions` table as "pending"
+5. Admin reviews, edits if needed, and approves or rejects
+6. Approved entries go live immediately
+
+---
+
+## 🔒 Security Checklist
+
+- Never expose `SUPABASE_SERVICE_ROLE_KEY` client-side
+- Keep RLS policies restricting write access
 - Keep CAPTCHA enabled in production
-- Keep `VITE_EMAIL_LOGIN_ENABLED=false` unless email login is explicitly needed
-- Review `unauthorized_login_attempts` table periodically for suspicious activity
+- Keep `VITE_EMAIL_LOGIN_ENABLED=false` unless explicitly needed
+- Review `unauthorized_login_attempts` and `bot_attack_logs` regularly
+- IP addresses are stored as SHA-256 hashes, not raw IPs
 
 ---
 
-## 💡 Future Ideas (Optional)
+## 💡 Future Ideas
 
-- Better search ranking
+- Better search ranking and relevance
 - Trending / popular system
-- Translation support
+- Multi-language / i18n support
 - Improved duplicate detection
 - Contributor recognition system
+- More guide categories and content types
 
 ---
 
-Miyomi is built by the community, for the community.
-
-Keep changes clean, readable, and maintainable.
+Miyomi is built by our team and shaped by community feedback. Keep changes clean, readable, and maintainable. ❤️
