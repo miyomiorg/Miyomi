@@ -1,6 +1,6 @@
 <div align="center">
   
-<img width="250" alt="Miyomi" src="/public/logo-lg.png" />
+<img width="250" alt="Miyomi" src="public/logo-lg.png" />
 
 # [Miyomi](https://miyomi.app/)
 
@@ -13,7 +13,7 @@
 
 Community-maintained directory of manga, anime, and light novel apps, extensions, and more.
 
-[Disclaimer](#disclaimer) • [Contributing](#contributing)
+[Disclaimer](#disclaimer) • [Contributing](#contributing) • [Changelog](CHANGELOG.md)
 
 </div>
 
