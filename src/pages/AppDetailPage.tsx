@@ -19,6 +19,7 @@ import { useApp } from '../hooks/useApp';
 import { useExtensions } from '../hooks/useExtensions';
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious, type CarouselApi } from '../components/ui/carousel';
 import Autoplay from 'embla-carousel-autoplay';
+import { WheelGesturesPlugin } from 'embla-carousel-wheel-gestures';
 import { toast } from 'sonner';
 
 import { DiscordIcon } from '../components/DiscordIcon';
@@ -645,11 +646,15 @@ export function AppDetailPage({ appId, onNavigate }: AppDetailPageProps) {
             opts={{
               align: "start",
               loop: true,
+              dragFree: false,
             }}
             plugins={[
               Autoplay({
                 delay: 4000,
+                stopOnInteraction: false,
+                stopOnMouseEnter: true,
               }),
+              WheelGesturesPlugin(),
             ]}
             className="w-full relative"
           >

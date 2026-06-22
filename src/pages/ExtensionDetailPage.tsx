@@ -22,6 +22,7 @@ import { detectPlatform, getPlatform } from '../utils/communityPlatforms';
 
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious, type CarouselApi } from '../components/ui/carousel';
 import Autoplay from 'embla-carousel-autoplay';
+import { WheelGesturesPlugin } from 'embla-carousel-wheel-gestures';
 import { detectGitProvider, getProviderIcon, resolveGitProvider } from '../utils/gitProviders';
 
 interface ExtensionDetailPageProps {
@@ -652,7 +653,10 @@ export function ExtensionDetailPage({ extensionId, onNavigate }: ExtensionDetail
             plugins={[
               Autoplay({
                 delay: 4000,
+                stopOnInteraction: false,
+                stopOnMouseEnter: true,
               }),
+              WheelGesturesPlugin(),
             ]}
             className="w-full relative"
           >
