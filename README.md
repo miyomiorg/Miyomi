@@ -1,6 +1,6 @@
 <div align="center">
   
-<img width="250" alt="Miyomi" src="/public/logo.png" />
+<img width="250" alt="Miyomi" src="/public/logo-lg.png" />
 
 # [Miyomi](https://miyomi.app/)
 
