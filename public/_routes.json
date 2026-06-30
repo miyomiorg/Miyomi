@@ -15,7 +15,8 @@
     "/donate",
     "/submit",
     "/privacy",
-    "/sitemap.xml"
+    "/sitemap.xml",
+    "/api/*"
   ],
   "exclude": [
     "/assets/*",
