@@ -5,8 +5,8 @@
 # [Miyomi](https://miyomi.app/)
 
 [![Live Site](https://img.shields.io/badge/Live-Miyomi.app-blue)](https://miyomi.app/)
-[![License](https://img.shields.io/github/license/tas33n/Miyomi)](/LICENSE)
-[![Stars](https://img.shields.io/github/stars/tas33n%2FMiyomi)](https://github.com/tas33n/Miyomi/stargazers)
+[![License](https://img.shields.io/github/license/miyomiorg/Miyomi)](/LICENSE)
+[![Stars](https://img.shields.io/github/stars/miyomiorg%2FMiyomi)](https://github.com/miyomiorg/Miyomi/stargazers)
 
 [![Discord](https://img.shields.io/discord/1239848981836595281?logo=Discord&logoColor=white&label=%20&color=5865F2)](https://discord.gg/hfYtH9hrRm)
 [![Telegram](https://img.shields.io/badge/Telegram-2CA5E0?logo=telegram&logoColor=white)](https://t.me/iitachiyomi)
