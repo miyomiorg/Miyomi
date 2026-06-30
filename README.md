@@ -50,8 +50,14 @@ Miyomi operates strictly as a directory:
 
 _If something indexed here infringes copyright or should not be listed, please [let us know](/issues)._
 
-## License
-This project is licensed under the [Apache License 2.0](/LICENSE).
+## License & Trademark
+
+This project is licensed under the **GNU Affero General Public License v3.0 (AGPL-3.0)**. See the [LICENSE](LICENSE) file for the full terms.
+
+### Brand & Trademark Policy
+The name **Miyomi**, our logos, and related visual assets are reserved assets of the **Miyomi Team**. 
+* You **may** fork, modify, and host this code in accordance with the AGPLv3.
+* You **may NOT** use the name "Miyomi" or our official branding for your hosted deployment, public clones, or commercial forks without explicit permission. Modified versions must be clearly rebranded under a completely different name.
 
 
 ## Support the Project 💖
