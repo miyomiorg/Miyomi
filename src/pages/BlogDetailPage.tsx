@@ -184,21 +184,16 @@ export function BlogDetailPage({ onNavigate }: { onNavigate?: (path: string) => 
                             <span className="text-[var(--divider)]">•</span>
                             <span className="flex items-center gap-1"><Clock className="w-4 h-4" /> {readTime} min read</span>
                         </div>
-                        {/* Fake Pinned badge since post type might not have it yet */}
-                        <div className="flex items-center gap-1.5 text-[#ef4444] font-bold text-[10px] bg-[#ef4444]/10 px-2 py-1 rounded-md uppercase tracking-widest">
-                            <Pin className="w-3 h-3" /> Pinned
-                        </div>
+                        {post.is_pinned && (
+                            <div className="flex items-center gap-1.5 text-[#ef4444] font-bold text-[10px] bg-[#ef4444]/10 px-2 py-1 rounded-md uppercase tracking-widest">
+                                <Pin className="w-3 h-3" /> Pinned
+                            </div>
+                        )}
                     </div>
 
                     <h1 className="text-3xl md:text-5xl lg:text-[3.25rem] font-bold font-['Poppins',sans-serif] text-[var(--text-primary)] leading-[1.15] mb-4 tracking-tight">
                         {post.title}
                     </h1>
-
-                    <div className="mb-6">
-                        <span className="bg-[#a855f7]/10 text-[#a855f7] px-3 py-1 rounded-md text-xs uppercase tracking-wider font-semibold truncate max-w-[150px] inline-block" title={post.category}>
-                            {post.category}
-                        </span>
-                    </div>
 
                     {post.excerpt && (
                         <p className="text-base md:text-lg text-[var(--text-secondary)] leading-relaxed mb-8 max-w-[90%]">

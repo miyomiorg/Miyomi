@@ -60,14 +60,7 @@ export function BlogCard({ post, onClick }: BlogCardProps) {
                     <div className="absolute inset-x-0 top-0 h-1/3 bg-gradient-to-b from-black/60 to-transparent pointer-events-none z-0" />
 
                     {/* Top Overlay: Tag and Date */}
-                    <div className="absolute top-3 left-3 right-3 flex items-start justify-between pointer-events-none z-10">
-                        <span
-                            className="text-white text-[11px] font-bold px-3 py-1 rounded-[10px] shadow-sm truncate max-w-[120px] inline-block"
-                            style={{ backgroundColor: catColor }}
-                            title={post.category}
-                        >
-                            {post.category}
-                        </span>
+                    <div className="absolute top-3 left-3 right-3 flex items-start justify-end pointer-events-none z-10">
                         <span className="text-[13px] text-white/95 font-semibold tracking-wide drop-shadow-md">
                             {formattedDate}
                         </span>

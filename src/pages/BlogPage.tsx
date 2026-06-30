@@ -97,7 +97,6 @@ export function BlogPage({ onNavigate }: { onNavigate: (path: string) => void })
         } else if (sortMode === 'popular') {
             result = [...result].sort((a, b) => (b.views || 0) - (a.views || 0));
         }
-        // 'newest' is already the default order from the hook
 
         return result;
     }, [posts, search, sortMode]);
@@ -105,21 +104,12 @@ export function BlogPage({ onNavigate }: { onNavigate: (path: string) => void })
     const pinnedPost = useMemo(() => posts.find(p => p.is_pinned), [posts]);
     const regularPosts = useMemo(() => filteredPosts.filter(p => p.id !== pinnedPost?.id), [filteredPosts, pinnedPost]);
 
-    // Category counts from all posts
-    const categoryCounts = useMemo(() => {
-        const counts: Record<string, number> = {};
-        if (!posts) return counts;
-        posts.forEach(p => {
-            counts[p.category] = (counts[p.category] || 0) + 1;
-        });
-        return counts;
-    }, [posts]);
+
 
     const pinnedDate = pinnedPost ? new Date(pinnedPost.published_at || pinnedPost.created_at).toLocaleDateString(undefined, {
         month: 'short', day: 'numeric', year: 'numeric'
     }) : '';
 
-    // Estimate read time for pinned post
     const pinnedReadTime = pinnedPost ? (() => {
         const text = (pinnedPost.content || pinnedPost.excerpt || '').replace(/<[^>]*>?/gm, '');
         const wordCount = text.split(/\s+/).filter(w => w.length > 0).length;
@@ -190,60 +180,7 @@ export function BlogPage({ onNavigate }: { onNavigate: (path: string) => void })
                         </div>
                     </div>
 
-                    {/* Category Pills */}
-                    <div className="relative mb-8 group/cats">
-                        <div className="absolute left-0 top-0 bottom-2 w-8 bg-gradient-to-r from-[var(--bg-page)] to-transparent z-10 pointer-events-none hidden sm:block"></div>
-                        <button
-                            onClick={() => scrollCategories('left')}
-                            className="absolute left-0 top-1/2 -translate-y-[calc(50%+4px)] -ml-4 z-20 w-8 h-8 rounded-full bg-[var(--bg-surface)] border border-[var(--divider)] shadow-md flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:border-[var(--brand)] transition-all opacity-0 group-hover/cats:opacity-100 hidden sm:flex"
-                        >
-                            <ChevronRight className="w-4 h-4 rotate-180" />
-                        </button>
 
-                        <div
-                            ref={categoryContainerRef}
-                            onMouseDown={handleMouseDown}
-                            onMouseLeave={handleMouseLeave}
-                            onMouseUp={handleMouseUp}
-                            onMouseMove={handleMouseMove}
-                            className={`flex overflow-x-auto pb-2 -mx-4 px-4 sm:mx-0 sm:px-8 scrollbar-hide gap-2.5 relative z-0 ${isDragging ? 'cursor-grabbing select-none' : 'cursor-grab'}`}
-                        >
-                            {CATEGORIES.map(c => {
-                                const Icon = CATEGORY_ICONS[c];
-                                const isActive = selectedCategory === c;
-                                const catColor = CATEGORY_COLORS[c] || 'var(--brand)';
-                                return (
-                                    <button
-                                        key={c}
-                                        onClick={(e) => {
-                                            if (dragged) {
-                                                e.preventDefault();
-                                                e.stopPropagation();
-                                                return;
-                                            }
-                                            setSelectedCategory(c);
-                                        }}
-                                        className={`whitespace-nowrap flex items-center gap-2 px-4 py-2 rounded-[14px] text-sm font-medium transition-all border ${isActive
-                                            ? 'bg-transparent border-[var(--brand)] shadow-[0_0_15px_rgba(var(--brand-rgb),0.1)]'
-                                            : 'bg-[var(--bg-surface)] border-[var(--divider)] hover:border-[var(--text-secondary)] hover:bg-[var(--chip-bg)]'
-                                            }`}
-                                        style={isActive && c !== 'All' ? { borderColor: catColor, color: catColor } : isActive ? { color: 'var(--brand)' } : { color: 'var(--text-secondary)' }}
-                                    >
-                                        {Icon && <Icon className="w-4 h-4" style={{ color: isActive ? 'inherit' : catColor }} />}
-                                        {c}
-                                    </button>
-                                );
-                            })}
-                        </div>
-
-                        <div className="absolute right-0 top-0 bottom-2 w-8 bg-gradient-to-l from-[var(--bg-page)] to-transparent z-10 pointer-events-none hidden sm:block"></div>
-                        <button
-                            onClick={() => scrollCategories('right')}
-                            className="absolute right-0 top-1/2 -translate-y-[calc(50%+4px)] -mr-4 z-20 w-8 h-8 rounded-full bg-[var(--bg-surface)] border border-[var(--divider)] shadow-md flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:border-[var(--brand)] transition-all opacity-0 group-hover/cats:opacity-100 hidden sm:flex"
-                        >
-                            <ChevronRight className="w-4 h-4" />
-                        </button>
-                    </div>
 
                     {loading ? (
                         <div className="flex flex-col items-center justify-center py-24 text-[var(--text-secondary)]">
@@ -379,45 +316,7 @@ export function BlogPage({ onNavigate }: { onNavigate: (path: string) => void })
                         </div>
                     )}
 
-                    {/* Categories Card */}
-                    <div className="bg-[var(--bg-surface)] border border-[var(--divider)] rounded-2xl p-5">
-                        <h3 className="text-sm font-bold text-[var(--text-primary)] mb-4 font-['Poppins',sans-serif]">Categories</h3>
-                        <div className="space-y-2">
-                            {Object.entries(categoryCounts).map(([cat, count]) => {
-                                const Icon = CATEGORY_ICONS[cat] || FileText;
-                                const catColor = CATEGORY_COLORS[cat] || 'var(--brand)';
-                                return (
-                                    <button
-                                        key={cat}
-                                        onClick={() => setSelectedCategory(cat)}
-                                        className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-sm transition-all ${selectedCategory === cat
-                                            ? 'bg-[var(--brand)]/10 text-[var(--brand)]'
-                                            : 'hover:bg-[var(--chip-bg)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
-                                            }`}
-                                    >
-                                        <span className="flex items-center gap-3">
-                                            <Icon className="w-4 h-4" style={{ color: catColor }} />
-                                            <span className="font-medium">{cat}</span>
-                                        </span>
-                                        <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-md ${selectedCategory === cat
-                                            ? 'bg-[var(--brand)]/20 text-[var(--brand)]'
-                                            : 'bg-[var(--bg-elev-1)] text-[var(--text-secondary)] border border-[var(--divider)]'
-                                            }`}>
-                                            {count}
-                                        </span>
-                                    </button>
-                                );
-                            })}
-                        </div>
-                        {selectedCategory !== 'All' && (
-                            <button
-                                onClick={() => setSelectedCategory('All')}
-                                className="w-full mt-3 flex items-center justify-center gap-1 text-sm text-[var(--brand)] font-medium hover:underline"
-                            >
-                                View all categories <ChevronRight className="w-4 h-4" />
-                            </button>
-                        )}
-                    </div>
+
 
                     {/* Contribution Section */}
                     <div className="bg-[var(--bg-surface)] border border-[var(--divider)] rounded-2xl p-5 shadow-sm">
