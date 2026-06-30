@@ -185,7 +185,7 @@ export function SearchModal({ isOpen, onClose }: SearchModalProps) {
                               </div>
                             )}
                             <p className="text-xs text-[var(--text-secondary)] truncate">
-                              {result.description}
+                              {result.shortDescription || result.info || result.description}
                             </p>
                           </div>
 
