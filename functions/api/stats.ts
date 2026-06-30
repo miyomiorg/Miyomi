@@ -27,7 +27,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
             filter: { date_gt: "${dateStr}" }
           ) {
             sum {
-              visits
+              pageViews
             }
           }
         }
@@ -61,7 +61,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
     if (zones && zones.length > 0) {
       const groups = zones[0].httpRequests1dGroups;
       if (groups && groups.length > 0) {
-        visits = groups.reduce((acc: number, group: any) => acc + (group?.sum?.visits || 0), 0);
+        visits = groups.reduce((acc: number, group: any) => acc + (group?.sum?.pageViews || 0), 0);
       }
     }
 
