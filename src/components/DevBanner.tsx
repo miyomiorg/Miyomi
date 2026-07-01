@@ -4,7 +4,7 @@ import { useState } from 'react';
 interface DevBannerProps {
     /** What section/page is under development */
     section?: string;
-    /** GitHub repo path (e.g. "tas33n/Miyomi") */
+    /** GitHub repo path (e.g. "miyomiorg/Miyomi") */
     repo?: string;
     /** Whether the banner can be dismissed */
     dismissible?: boolean;
@@ -12,7 +12,7 @@ interface DevBannerProps {
 
 export function DevBanner({
     section = 'This section',
-    repo = 'tas33n/Miyomi',
+    repo = 'miyomiorg/Miyomi',
     dismissible = true,
 }: DevBannerProps) {
     const [dismissed, setDismissed] = useState(false);

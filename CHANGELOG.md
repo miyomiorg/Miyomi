@@ -153,7 +153,7 @@ Miyomi is a community-driven project — it will keep evolving. We use `v0.x` ve
 
 Miyomi is built by our team and shaped by our community's feedback, suggestions, and data contributions. Thank you for helping us make it better.
 
-See the full list of contributors on [GitHub](https://github.com/tas33n/Miyomi/graphs/contributors).
+See the full list of contributors on [GitHub](https://github.com/miyomiorg/Miyomi/graphs/contributors).
 
 ---
 

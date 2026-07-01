@@ -146,7 +146,7 @@ export function Navbar({
 
   const socialLinks = [
     { icon: <DiscordIcon className="w-5 h-5" />, label: 'Discord', link: 'https://discord.gg/hfYtH9hrRm', color: '#5865F2', showDesktop: true, showMobile: true },
-    { icon: <Github className="w-5 h-5" />, label: 'GitHub', link: 'https://github.com/tas33n/miyomi', showDesktop: true, showMobile: true },
+    { icon: <Github className="w-5 h-5" />, label: 'GitHub', link: 'https://github.com/miyomiorg/Miyomi', showDesktop: true, showMobile: true },
     { icon: <TelegramIcon className="w-5 h-5" />, label: 'Telegram', link: 'https://t.me/iitachiyomi', color: '#1877F2', showDesktop: false, showMobile: true },
     { icon: <Youtube className="w-5 h-5" />, label: 'YouTube', link: 'https://www.youtube.com/@iitachiyomi', color: '#FF0000', showDesktop: false, showMobile: true },
   ];

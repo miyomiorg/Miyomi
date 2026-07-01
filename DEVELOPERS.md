@@ -174,7 +174,7 @@ These run at the edge for SEO purposes only:
 ### 1. Clone & Install
 
 ```bash
-git clone https://github.com/tas33n/Miyomi.git
+git clone https://github.com/miyomiorg/Miyomi.git
 cd Miyomi
 npm install
 ```

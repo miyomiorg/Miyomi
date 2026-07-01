@@ -356,7 +356,7 @@ export function BlogPage({ onNavigate }: { onNavigate: (path: string) => void })
                             <a href="https://t.me/iitachiyomi" target="_blank" rel="noopener noreferrer" className="w-11 h-11 rounded-full bg-[var(--bg-elev-1)] border border-[var(--divider)] flex items-center justify-center text-[var(--text-secondary)] hover:text-[#0088cc] hover:border-[#0088cc] hover:-translate-y-1 transition-all shadow-sm">
                                 <TelegramIcon className="w-5 h-5" />
                             </a>
-                            <a href="https://github.com/tas33n/miyomi" target="_blank" rel="noopener noreferrer" className="w-11 h-11 rounded-full bg-[var(--bg-elev-1)] border border-[var(--divider)] flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:border-[var(--text-primary)] hover:-translate-y-1 transition-all shadow-sm">
+                            <a href="https://github.com/miyomiorg/Miyomi" target="_blank" rel="noopener noreferrer" className="w-11 h-11 rounded-full bg-[var(--bg-elev-1)] border border-[var(--divider)] flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:border-[var(--text-primary)] hover:-translate-y-1 transition-all shadow-sm">
                                 <Github className="w-5 h-5" />
                             </a>
                         </div>

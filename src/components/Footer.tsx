@@ -3,7 +3,7 @@ import { Heart } from 'lucide-react';
 import { useGitHubLastCommit } from '../hooks/useGitHubLastCommit';
 
 export function Footer() {
-  const { commit, loading } = useGitHubLastCommit('tas33n/miyomi');
+  const { commit, loading } = useGitHubLastCommit('miyomiorg/Miyomi');
 
   return (
     <footer className="border-t border-[var(--divider)] mt-6 py-8 pb-[calc(2rem+4rem+env(safe-area-inset-bottom))] md:pb-8 px-4 sm:px-8 lg:px-[120px]">
