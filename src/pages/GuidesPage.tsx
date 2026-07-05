@@ -23,7 +23,7 @@ export function GuidesPage({ onNavigate }: GuidesPageProps) {
   const [activeCategoryId, setActiveCategoryId] = useState<string>('all');
   const [isSearchFocused, setIsSearchFocused] = useState(false);
   const searchContainerRef = useRef<HTMLDivElement>(null);
-  
+
   const [noticeEnabled, setNoticeEnabled] = useState(false);
   const [noticeContent, setNoticeContent] = useState('');
   const [noticeDismissed, setNoticeDismissed] = useState(false);
@@ -43,11 +43,11 @@ export function GuidesPage({ onNavigate }: GuidesPageProps) {
       try {
         const categories = await dataService.getGuideCategories();
         setGuideCategories(categories);
-        
+
         // Fetch notice settings
         const { data: enabledData } = await supabase.from('settings').select('value').eq('key', 'guide_notice_enabled').single();
         const { data: contentData } = await supabase.from('settings').select('value').eq('key', 'guide_notice_content').single();
-        
+
         if (enabledData?.value === 'true' || enabledData?.value === true) {
           setNoticeEnabled(true);
           setNoticeContent(contentData?.value || '');
@@ -120,13 +120,13 @@ export function GuidesPage({ onNavigate }: GuidesPageProps) {
 
   // Flatten and filter guides
   const filteredGuides = useMemo(() => {
-    const allGuides = guideCategories.flatMap(cat => 
+    const allGuides = guideCategories.flatMap(cat =>
       cat.guides.map(g => ({ ...g, categoryObj: cat }))
     );
-    
+
     return allGuides.filter(guide => {
-      const matchesSearch = guide.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                           (guide.summary && guide.summary.toLowerCase().includes(searchQuery.toLowerCase()));
+      const matchesSearch = guide.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (guide.summary && guide.summary.toLowerCase().includes(searchQuery.toLowerCase()));
       const matchesCategory = activeCategoryId === 'all' || guide.categoryObj.id === activeCategoryId;
       return matchesSearch && matchesCategory;
     });
@@ -147,7 +147,7 @@ export function GuidesPage({ onNavigate }: GuidesPageProps) {
         <div className="mb-6 relative group">
           <div dangerouslySetInnerHTML={{ __html: noticeContent }} />
           {/* We assume the user's raw HTML might have a dismiss button, but we can overlay a reliable close handler on the whole box or inject a click handler if needed. We'll rely on the user's HTML and just render it. If they have a button, we can capture clicks if we wanted to, or provide a wrapper dismiss. */}
-          <button 
+          <button
             onClick={() => setNoticeDismissed(true)}
             className="absolute top-3 right-4 p-1 rounded-md transition-colors hover:bg-[var(--bg-elev-2)] text-[var(--text-secondary)] opacity-0 group-hover:opacity-100"
             title="Dismiss"
@@ -171,7 +171,7 @@ export function GuidesPage({ onNavigate }: GuidesPageProps) {
           </h1>
 
           <p className="text-[var(--text-secondary)] font-['Inter',sans-serif] max-w-2xl mx-auto mb-6" style={{ fontSize: '16px', lineHeight: '1.5' }}>
-            Explore step-by-step tutorials to get the most out of Miyomi and its extensions.
+            Explore step-by-step tutorials for setting up and using your favorite apps.
           </p>
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-8">
@@ -249,29 +249,26 @@ export function GuidesPage({ onNavigate }: GuidesPageProps) {
         <div className="flex overflow-x-auto scrollbar-hide sm:flex-wrap sm:justify-center sm:overflow-visible gap-2 pb-1 sm:pb-0">
           <button
             onClick={() => setActiveCategoryId('all')}
-            className={`flex-shrink-0 px-4 py-2 rounded-full font-['Inter',sans-serif] text-sm font-medium transition-all ${
-              activeCategoryId === 'all'
+            className={`flex-shrink-0 px-4 py-2 rounded-full font-['Inter',sans-serif] text-sm font-medium transition-all ${activeCategoryId === 'all'
                 ? 'bg-[var(--brand)] text-white shadow-md'
                 : 'bg-[var(--bg-surface)] text-[var(--text-secondary)] hover:bg-[var(--chip-bg)] hover:text-[var(--text-primary)] border border-[var(--divider)]'
-            }`}
+              }`}
           >
             All Guides ({totalGuides})
           </button>
-          
+
           {guideCategories.map((category) => (
             <button
               key={category.id}
               onClick={() => setActiveCategoryId(category.id)}
-              className={`flex-shrink-0 flex items-center gap-2 px-4 py-2 rounded-full font-['Inter',sans-serif] text-sm font-medium transition-all ${
-                activeCategoryId === category.id
+              className={`flex-shrink-0 flex items-center gap-2 px-4 py-2 rounded-full font-['Inter',sans-serif] text-sm font-medium transition-all ${activeCategoryId === category.id
                   ? 'bg-[var(--brand)] text-white shadow-md'
                   : 'bg-[var(--bg-surface)] text-[var(--text-secondary)] hover:bg-[var(--chip-bg)] hover:text-[var(--text-primary)] border border-[var(--divider)]'
-              }`}
+                }`}
             >
               {category.title}
-              <span className={`inline-flex items-center justify-center px-1.5 py-0.5 rounded text-[10px] ${
-                activeCategoryId === category.id ? 'bg-white/20 text-white' : 'bg-[var(--bg-elev-1)] text-[var(--text-secondary)]'
-              }`}>
+              <span className={`inline-flex items-center justify-center px-1.5 py-0.5 rounded text-[10px] ${activeCategoryId === category.id ? 'bg-white/20 text-white' : 'bg-[var(--bg-elev-1)] text-[var(--text-secondary)]'
+                }`}>
                 {category.guides.length}
               </span>
             </button>
@@ -285,7 +282,7 @@ export function GuidesPage({ onNavigate }: GuidesPageProps) {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredGuides.map((guide, index) => {
               const Icon = iconMap[guide.categoryObj.icon] || FileText;
-              
+
               return (
                 <motion.button
                   key={guide.id}
@@ -296,10 +293,10 @@ export function GuidesPage({ onNavigate }: GuidesPageProps) {
                   className="group relative flex flex-col items-start p-6 bg-[var(--bg-surface)] border border-[var(--divider)] hover:border-[var(--brand)] rounded-2xl transition-all text-left overflow-hidden hover:-translate-y-1 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-[var(--brand)]"
                 >
                   <div className="absolute inset-0 bg-gradient-to-br from-[var(--brand)]/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                  
+
                   {/* Category Badge & Icon */}
                   <div className="relative flex items-center gap-3 mb-4">
-                    <div 
+                    <div
                       className="w-10 h-10 rounded-xl flex items-center justify-center text-white flex-shrink-0 shadow-sm"
                       style={{ backgroundColor: guide.categoryObj.color }}
                     >
@@ -328,7 +325,7 @@ export function GuidesPage({ onNavigate }: GuidesPageProps) {
                       <Clock className="w-3.5 h-3.5" />
                       <span>{guide.readTime || '5 min read'}</span>
                     </div>
-                    
+
                     <div className="flex items-center gap-1 text-[var(--brand)] font-medium opacity-0 group-hover:opacity-100 transition-opacity">
                       Read Guide <ArrowRight className="w-4 h-4" />
                     </div>
@@ -338,9 +335,9 @@ export function GuidesPage({ onNavigate }: GuidesPageProps) {
             })}
           </div>
         ) : (
-          <motion.div 
-            initial={{ opacity: 0 }} 
-            animate={{ opacity: 1 }} 
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
             className="text-center py-20 bg-[var(--bg-surface)] border border-[var(--divider)] rounded-3xl shadow-sm"
           >
             <div className="w-20 h-20 bg-[var(--bg-elev-1)] rounded-full flex items-center justify-center mx-auto mb-6">

@@ -258,7 +258,7 @@ export function SoftwarePage({ onNavigate }: SoftwarePageProps) {
           </h1>
         </div>
         <p className="text-[var(--text-secondary)] font-['Inter',sans-serif]" style={{ fontSize: '16px' }}>
-          Apps and software for reading manga, watching anime, and more across all platforms.
+          Apps and software for enjoying your manga, anime, novels and more across all platforms.
         </p>
       </div>
 

@@ -1,6 +1,7 @@
 import React from 'react';
 import { Heart } from 'lucide-react';
 import { useGitHubLastCommit } from '../hooks/useGitHubLastCommit';
+import { Link } from 'react-router-dom';
 
 export function Footer() {
   const { commit, loading } = useGitHubLastCommit('miyomiorg/Miyomi');
@@ -31,27 +32,27 @@ export function Footer() {
             </div>
             <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2">
               <span className="hidden xl:inline text-[var(--divider)]">|</span>
-              <a
-                href="/about#disclaimer"
+              <Link
+                to="/about#disclaimer"
                 className="hover:text-[var(--brand)] transition-colors underline whitespace-nowrap"
               >
                 Disclaimer
-              </a>
+              </Link>
               <span className="hidden sm:inline text-[var(--divider)] opacity-50 xl:opacity-100">|</span>
-              <a
-                href="/privacy-policy"
+              <Link
+                to="/privacy-policy"
                 className="hover:text-[var(--brand)] transition-colors underline whitespace-nowrap"
               >
                 Privacy Policy
-              </a>
+              </Link>
               <span className="hidden sm:inline text-[var(--divider)] opacity-50 xl:opacity-100">|</span>
-              <a
-                href="/donate"
+              <Link
+                to="/donate"
                 className="inline-flex items-center gap-1 hover:text-pink-400 transition-colors group whitespace-nowrap"
               >
                 <Heart className="w-3.5 h-3.5 text-pink-400 group-hover:fill-pink-400 transition-all" />
                 Support Us
-              </a>
+              </Link>
             </div>
           </div>
 

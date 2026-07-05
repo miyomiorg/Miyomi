@@ -3,7 +3,7 @@ import { motion } from 'motion/react';
 import { useState, useEffect, type ReactNode } from 'react';
 import { FeedbackPanel } from '../components/FeedbackPanel';
 import { dataService } from '../services/dataService';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { useSeasonalAsset } from '../hooks/useSeasonalAsset';
 import { DiscordIcon } from '../components/DiscordIcon';
 import { TelegramIcon } from '../components/TelegramIcon';
@@ -59,6 +59,19 @@ const itemVariants = {
 export function AboutPage() {
   const [isFeedbackOpen, setIsFeedbackOpen] = useState(false);
   const avatarImage = useSeasonalAsset('homeAvatar', '/polic.png');
+  const location = useLocation();
+
+  useEffect(() => {
+    if (location.hash) {
+      const id = location.hash.substring(1);
+      const element = document.getElementById(id);
+      if (element) {
+        setTimeout(() => {
+          element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }, 100);
+      }
+    }
+  }, [location]);
 
   const [stats, setStats] = useState({
     monthlyVisitors: 0,
@@ -429,7 +442,7 @@ export function AboutPage() {
 
         {/* TRANSPARENCY NOTICE */}
         <motion.section initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }}>
-          <div className="md:border-l-4 md:border-l-yellow-500 md:p-6 md:bg-yellow-500/5 md:rounded-2xl md:overflow-hidden mt-4 md:mt-0">
+          <div id="disclaimer" className="md:border-l-4 md:border-l-yellow-500 md:p-6 md:bg-yellow-500/5 md:rounded-2xl md:overflow-hidden mt-4 md:mt-0 scroll-mt-24">
             <div className="flex items-center gap-2 mb-3 justify-start">
               <Info className="w-5 h-5 text-yellow-500 flex-shrink-0" />
               <h3 className="font-bold text-[var(--text-primary)] text-sm md:text-base">Transparency Notice</h3>
