@@ -29,14 +29,31 @@ export function BlogDetailPage({ onNavigate }: { onNavigate?: (path: string) => 
     const [headings, setHeadings] = useState<{ id: string, text: string, level: number }[]>([]);
     const [finalHtml, setFinalHtml] = useState('');
     const [showScrollTop, setShowScrollTop] = useState(false);
+    const [activeHeadingId, setActiveHeadingId] = useState<string>('');
 
     useEffect(() => {
         const handleScroll = () => {
             setShowScrollTop(window.scrollY > 400);
+            
+            if (headings.length > 0) {
+                const scrollPosition = window.scrollY + 150;
+                let currentActive = headings[0]?.id || '';
+                for (const h of headings) {
+                    const el = document.getElementById(h.id);
+                    if (el) {
+                        const top = el.getBoundingClientRect().top + window.scrollY;
+                        if (top <= scrollPosition) {
+                            currentActive = h.id;
+                        }
+                    }
+                }
+                setActiveHeadingId(currentActive);
+            }
         };
         window.addEventListener('scroll', handleScroll, { passive: true });
+        handleScroll();
         return () => window.removeEventListener('scroll', handleScroll);
-    }, []);
+    }, [headings, finalHtml]);
 
     const scrollToTop = () => {
         window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -304,11 +321,12 @@ export function BlogDetailPage({ onNavigate }: { onNavigate?: (path: string) => 
                                                 e.preventDefault();
                                                 const el = document.getElementById(h.id);
                                                 if (el) {
-                                                    const y = el.getBoundingClientRect().top + window.scrollY - 100; // Offset for header padding
+                                                    const y = el.getBoundingClientRect().top + window.scrollY - 100;
                                                     window.scrollTo({ top: y, behavior: 'smooth' });
+                                                    setActiveHeadingId(h.id);
                                                 }
                                             }}
-                                            className={`block text-[13px] transition-colors ${h.level === 1 || h.level === 2 ? 'font-semibold text-[#a855f7]' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'} ${h.level > 2 ? 'pl-3' : ''}`}
+                                            className={`block text-[13px] transition-all duration-200 ${activeHeadingId === h.id ? 'font-bold text-[#a855f7] translate-x-1' : h.level === 1 || h.level === 2 ? 'font-medium text-[var(--text-primary)] hover:text-[#a855f7]' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'} ${h.level > 2 ? 'pl-3' : ''}`}
                                         >
                                             {h.text}
                                         </a>
