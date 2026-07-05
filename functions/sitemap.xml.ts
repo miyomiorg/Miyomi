@@ -11,11 +11,13 @@ export const onRequest: PagesFunction<Env> = async (context) => {
     const [
       { data: apps },
       { data: extensions },
-      { data: guides }
+      { data: guides },
+      { data: blogPosts }
     ] = await Promise.all([
       supabase.from('apps').select('slug, updated_at').eq('status', 'approved'),
       supabase.from('extensions').select('slug, updated_at').eq('status', 'approved'),
-      supabase.from('guides').select('slug, updated_at').neq('status', 'draft')
+      supabase.from('guides').select('slug, updated_at').neq('status', 'draft'),
+      supabase.from('blog_posts').select('slug, updated_at').eq('status', 'published')
     ]);
 
     const urls = [
@@ -23,6 +25,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
       '/software',
       '/extensions',
       '/guides',
+      '/blog',
       '/faq',
       '/about',
       '/donate',
@@ -56,6 +59,15 @@ export const onRequest: PagesFunction<Env> = async (context) => {
         urls.push({
           loc: `${baseUrl}/guides/${guide.slug}`,
           lastmod: (guide.updated_at ? new Date(guide.updated_at) : new Date()).toISOString().split('T')[0]
+        });
+      });
+    }
+
+    if (blogPosts) {
+      blogPosts.forEach(post => {
+        urls.push({
+          loc: `${baseUrl}/blog/${post.slug}`,
+          lastmod: (post.updated_at ? new Date(post.updated_at) : new Date()).toISOString().split('T')[0]
         });
       });
     }
