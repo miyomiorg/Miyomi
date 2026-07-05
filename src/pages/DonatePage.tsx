@@ -59,7 +59,7 @@ const BRAND_COLORS: Record<string, { bg: string; accent: string; text: string }>
 /* ───── helper: pick icon by hint ───── */
 function PaymentIcon({ hint }: { hint: PaymentMethod['iconHint'] }) {
   const cls = 'w-5 h-5';
-  
+
   // Custom logos for popular methods
   if (hint === 'paypal') return <img src="https://upload.wikimedia.org/wikipedia/commons/b/b7/PayPal_Logo_Icon_2014.svg" className="w-5 h-5 object-contain" alt="PayPal" />;
   if (hint === 'bitcoin' || hint === 'crypto') return <img src="https://upload.wikimedia.org/wikipedia/commons/4/46/Bitcoin.svg" className="w-5 h-5 object-contain" alt="Bitcoin" />;
@@ -489,7 +489,7 @@ export function DonatePage() {
 
           {/* Grid for desktop, stack for mobile */}
           <div className={`grid grid-cols-1 md:grid-cols-2 ${hasWhereFundsGo ? 'lg:grid-cols-5' : 'lg:grid-cols-3'} gap-4 md:gap-6 mb-6`}>
-            
+
             {/* Box 1: Annual Cost */}
             <div className="lg:col-span-1 p-4 rounded-xl border border-[var(--divider)] bg-[var(--bg-page)] md:text-center flex flex-row md:flex-col items-center md:justify-center justify-between">
               <div className="text-[var(--text-secondary)] text-sm md:text-xs font-semibold md:uppercase tracking-wider mb-0 md:mb-2 flex items-center gap-2 md:justify-center">
@@ -690,7 +690,7 @@ export function DonatePage() {
         <Card className="bg-[var(--bg-surface)]">
           <div className="flex items-center gap-5">
             <div className="flex h-16 w-16 flex-shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-[#cbe5fb] to-[#9db8f7] overflow-hidden">
-              <img src="/polic.png" alt="Miyomi" className="w-14 h-14 object-contain mt-2" />
+              <img src="/polic.webp" alt="Miyomi" className="w-14 h-14 object-contain mt-2" />
             </div>
             <div>
               <h2 className="font-['Poppins',sans-serif] text-[var(--text-primary)] text-base font-semibold mb-1">

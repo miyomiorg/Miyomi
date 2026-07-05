@@ -58,7 +58,7 @@ const itemVariants = {
 
 export function AboutPage() {
   const [isFeedbackOpen, setIsFeedbackOpen] = useState(false);
-  const avatarImage = useSeasonalAsset('homeAvatar', '/polic.png');
+  const avatarImage = useSeasonalAsset('homeAvatar', '/polic.webp');
   const location = useLocation();
 
   useEffect(() => {
@@ -180,7 +180,7 @@ export function AboutPage() {
             </p>
           </div>
           <div className="order-1 md:order-2 hidden md:flex justify-center">
-            <img src="/hugme.png" alt="Miyomi Mascot" className="w-full max-w-[300px] object-contain drop-shadow-2xl hover:scale-105 transition-transform duration-500 ease-out" />
+            <img src="/hugme.webp" alt="Miyomi Mascot" className="w-full max-w-[300px] object-contain drop-shadow-2xl hover:scale-105 transition-transform duration-500 ease-out" />
           </div>
         </motion.section>
 

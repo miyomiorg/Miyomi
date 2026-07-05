@@ -68,7 +68,7 @@ export function HomePage({ onNavigate }: HomePageProps) {
     }
   };
 
-  const avatarImage = useSeasonalAsset('homeAvatar', '/polic.png');
+  const avatarImage = useSeasonalAsset('homeAvatar', '/polic.webp');
 
   const socialLinks = [
     { icon: <DiscordIcon className="w-5 h-5" />, label: 'Discord', link: 'https://discord.gg/hfYtH9hrRm', color: '#5865F2', showDesktop: true, showMobile: true },

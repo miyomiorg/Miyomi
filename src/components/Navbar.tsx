@@ -32,7 +32,7 @@ function NavbarParticles() {
 
     const { particleConfig } = useThemeEngineContext();
     if (!particleConfig || particleConfig.type === 'none') return null;
-    
+
     const countOverride = tier === 'medium' ? 8 : 15;
     return <ParticleEffect className="absolute inset-0 z-0" config={particleConfig} countOverride={countOverride} />;
   } catch {
@@ -72,7 +72,7 @@ export function Navbar({
     handleScroll();
     window.addEventListener('scroll', handleScroll);
     window.addEventListener('open-search-modal', handleOpenSearchModal);
-    
+
     return () => {
       window.removeEventListener('scroll', handleScroll);
       window.removeEventListener('open-search-modal', handleOpenSearchModal);
@@ -125,7 +125,7 @@ export function Navbar({
     };
   }, []);
 
-  const logoImage = useSeasonalAsset('logo', '/hugme.png');
+  const logoImage = useSeasonalAsset('logo', '/hugme.webp');
 
   const pageDropdownItems = [
     { label: 'Software', path: '/software', className: 'xl:hidden' },

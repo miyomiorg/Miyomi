@@ -95,7 +95,7 @@ export function Navbar({
     };
   }, []);
 
-  const logoImage = useSeasonalAsset('logo', '/hugme.png');
+  const logoImage = useSeasonalAsset('logo', '/hugme.webp');
 
   const pageDropdownItems = [
     { label: 'Software', path: '/software', className: 'xl:hidden' },
