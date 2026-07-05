@@ -102,7 +102,13 @@ export function BlogPage({ onNavigate }: { onNavigate: (path: string) => void })
     }, [posts, search, sortMode]);
 
     const pinnedPost = useMemo(() => posts.find(p => p.is_pinned), [posts]);
-    const regularPosts = useMemo(() => filteredPosts.filter(p => p.id !== pinnedPost?.id), [filteredPosts, pinnedPost]);
+    const showFeaturedPinned = !!(pinnedPost && selectedCategory === 'All' && !search);
+    const regularPosts = useMemo(() => {
+        if (showFeaturedPinned) {
+            return filteredPosts.filter(p => p.id !== pinnedPost?.id);
+        }
+        return filteredPosts;
+    }, [filteredPosts, pinnedPost, showFeaturedPinned]);
 
 
 
@@ -190,7 +196,7 @@ export function BlogPage({ onNavigate }: { onNavigate: (path: string) => void })
                     ) : (
                         <>
                             {/* Featured Pinned Post */}
-                            {pinnedPost && selectedCategory === 'All' && !search && (
+                            {showFeaturedPinned && pinnedPost && (
                                 <div
                                     className="mb-8 cursor-pointer group"
                                     onClick={() => onNavigate(`/blog/${pinnedPost.slug}`)}
@@ -257,7 +263,7 @@ export function BlogPage({ onNavigate }: { onNavigate: (path: string) => void })
                                         <BlogCard key={post.id} post={post} onClick={() => onNavigate(`/blog/${post.slug}`)} />
                                     ))}
                                 </div>
-                            ) : (
+                            ) : !showFeaturedPinned ? (
                                 <div className="py-24 text-center">
                                     <div className="w-20 h-20 mx-auto bg-[var(--bg-elev-1)] rounded-full flex items-center justify-center mb-6">
                                         <FileText className="w-10 h-10 text-[var(--text-secondary)] opacity-50" />
@@ -267,7 +273,7 @@ export function BlogPage({ onNavigate }: { onNavigate: (path: string) => void })
                                         We couldn't find any blog posts matching your criteria. Check back later!
                                     </p>
                                 </div>
-                            )}
+                            ) : null}
                         </>
                     )}
                 </div>
