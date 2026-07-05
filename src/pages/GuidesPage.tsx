@@ -347,12 +347,21 @@ export function GuidesPage({ onNavigate }: GuidesPageProps) {
             <p className="text-[var(--text-secondary)] font-['Inter',sans-serif] mb-8 max-w-md mx-auto">
               We couldn't find any guides matching "{searchQuery}". Try using different keywords or exploring categories.
             </p>
-            <button
-              onClick={() => { setSearchQuery(''); setActiveCategoryId('all'); }}
-              className="px-6 py-2 bg-[var(--brand)] text-white font-medium rounded-xl hover:bg-[var(--brand-strong)] transition-colors"
-            >
-              Clear Search
-            </button>
+            <div className="flex flex-wrap items-center justify-center gap-4">
+              <button
+                onClick={() => { setSearchQuery(''); setActiveCategoryId('all'); }}
+                className="px-6 py-2 bg-[var(--brand)] text-white font-medium rounded-xl hover:bg-[var(--brand-strong)] transition-colors"
+              >
+                Clear Search
+              </button>
+              <button
+                onClick={() => onNavigate?.('/submit-guide')}
+                className="px-6 py-2 bg-[var(--bg-elev-1)] border border-[var(--divider)] text-[var(--text-primary)] font-medium rounded-xl hover:bg-[var(--bg-elev-2)] transition-colors flex items-center gap-2"
+              >
+                <FileText className="w-4 h-4" />
+                Write a Guide
+              </button>
+            </div>
           </motion.div>
         )}
       </div>
