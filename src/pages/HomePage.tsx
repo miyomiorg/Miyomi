@@ -107,6 +107,7 @@ export function HomePage({ onNavigate }: HomePageProps) {
                   height={180}
                   width={180}
                   className="relative z-10 object-contain drop-shadow-2xl"
+                  fetchPriority="high"
                 />
               </div>
             </div>
@@ -273,6 +274,7 @@ export function HomePage({ onNavigate }: HomePageProps) {
                   height={280}
                   width={280}
                   className="relative z-10 object-contain drop-shadow-2xl"
+                  fetchPriority="high"
                 />
               </div>
             </div>
