@@ -8,6 +8,7 @@ import { AdminButton, StatusBadge, EmptyState } from '@/components/admin/AdminFo
 import { ConfirmDialog } from '@/components/admin/ConfirmDialog';
 import { EndpointToggle } from '@/components/admin/EndpointToggle';
 import { toast } from 'sonner';
+import { upsertContributor } from '@/utils/contributors';
 
 export function AdminSubmissionsPage() {
   const navigate = useNavigate();
@@ -94,9 +95,6 @@ export function AdminSubmissionsPage() {
           slug: generateSlug(data.name),
           repo_url: data.repo_url || data.url,
           author: sub.author || data.author,
-          submitter_name: sub.submitter_name,
-          submitter_contact: sub.submitter_contact,
-          submitter_email: sub.submitter_email,
           status: 'approved',
           tags: data.tags || [],
           icon_url: data.icon_url,
@@ -139,6 +137,14 @@ export function AdminSubmissionsPage() {
         await supabase.from('submissions').delete().eq('id', sub.id);
 
         if (insertedData) {
+          // Save contributor profile
+          await upsertContributor(
+            sub.submitter_name,
+            sub.submitter_email,
+            sub.submitter_contact,
+            { type: sub.submission_type as 'app' | 'extension', id: insertedData.id, name: data.name }
+          ).catch(console.error);
+
           await logAction('approve', 'submission', sub.id, `${sub.submission_type} submission`, {
             approved_as: targetTable,
             resource_id: insertedData.id,

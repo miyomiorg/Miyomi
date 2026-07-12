@@ -48,6 +48,7 @@ import { AdminLogsPage } from './pages/admin/AdminLogsPage';
 import { AdminBotLogsPage } from './pages/admin/AdminBotLogsPage';
 import { AdminSessionsPage } from './pages/admin/AdminSessionsPage';
 import { AdminUsersPage } from './pages/admin/AdminUsersPage';
+import { AdminContributorsPage } from './pages/admin/AdminContributorsPage';
 import { AdminEditSuggestionsPage } from './pages/admin/AdminEditSuggestionsPage';
 import { AdminReviewPage } from './pages/admin/AdminReviewPage';
 import { AdminReportsPage } from './pages/admin/AdminReportsPage';
@@ -158,6 +159,7 @@ function AppContent() {
             <Route path="faqs" element={<AdminFAQsPage />} />
             <Route path="faqs/new" element={<AdminFAQEditorPage />} />
             <Route path="faqs/:id/edit" element={<AdminFAQEditorPage />} />
+            <Route path="contributors" element={<AdminContributorsPage />} />
             <Route path="submissions" element={<AdminSubmissionsPage />} />
             <Route path="guide-submissions" element={<AdminGuideSubmissionsPage />} />
             <Route path="submissions/:id" element={<AdminReviewPage mode="submission" />} />

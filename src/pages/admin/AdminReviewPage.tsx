@@ -9,6 +9,7 @@ import { ConfirmDialog } from '@/components/admin/ConfirmDialog';
 import { SharedAppForm } from '@/components/forms/SharedAppForm';
 import { SharedExtensionForm } from '@/components/forms/SharedExtensionForm';
 import { toast } from 'sonner';
+import { upsertContributor } from '@/utils/contributors';
 
 interface ReviewPageProps {
     mode: 'submission' | 'edit-suggestion';
@@ -184,6 +185,17 @@ export function AdminReviewPage({ mode }: ReviewPageProps) {
                     }
 
                     await (supabase as any).from('submissions').delete().eq('id', record.id);
+
+                    // Save contributor profile
+                    if (insertedData) {
+                        await upsertContributor(
+                            record.submitter_name,
+                            record.submitter_email,
+                            record.submitter_contact,
+                            { type: record.submission_type as 'app' | 'extension', id: insertedData.id, name: data.name }
+                        ).catch(console.error);
+                    }
+
                     await logAction('approve', 'submission', record.id, `${record.submission_type} submission`).catch(console.error);
                     toast.success(`Published ${data.name}!`);
                 } else {
@@ -227,8 +239,14 @@ export function AdminReviewPage({ mode }: ReviewPageProps) {
                 toast.success('Rejected.');
             }
 
+            const wasApprove = actionTarget.action === 'approve';
             setActionTarget(null);
-            fetchRecord();
+            
+            if (wasApprove) {
+                navigate(backPath);
+            } else {
+                fetchRecord();
+            }
         } catch (err: any) {
             console.error(err);
             toast.error('Action failed: ' + err.message);
