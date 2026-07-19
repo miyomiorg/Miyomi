@@ -12,7 +12,7 @@ interface ProtectedRouteProps {
 
 export function ProtectedRoute({ children, requireSuperAdmin = false }: ProtectedRouteProps) {
   const { user, loading: authLoading } = useAuth();
-  const { isAdmin, isSuperAdmin, loading: adminLoading } = useAdmin();
+  const { isAdmin, isSuperAdmin, isAuthorized, loading: adminLoading } = useAdmin();
   const { trackUnauthorizedAttempt } = useSessionTracker();
   const navigate = useNavigate();
   const [rejecting, setRejecting] = useState(false);
@@ -20,7 +20,7 @@ export function ProtectedRoute({ children, requireSuperAdmin = false }: Protecte
   const rejectionHandled = useRef(false);
 
   useEffect(() => {
-    if (authLoading || adminLoading || !user || isAdmin || rejecting || rejectionHandled.current) return;
+    if (authLoading || adminLoading || !user || isAuthorized || rejecting || rejectionHandled.current) return;
 
     rejectionHandled.current = true;
     setRejecting(true);
@@ -39,7 +39,7 @@ export function ProtectedRoute({ children, requireSuperAdmin = false }: Protecte
 
       navigate('/unauthorized', { replace: true, state: { email } });
     })();
-  }, [authLoading, adminLoading, user, isAdmin, rejecting, trackUnauthorizedAttempt, navigate]);
+  }, [authLoading, adminLoading, user, isAuthorized, rejecting, trackUnauthorizedAttempt, navigate]);
 
   if (authLoading || adminLoading) {
     return (
@@ -66,7 +66,7 @@ export function ProtectedRoute({ children, requireSuperAdmin = false }: Protecte
     return <Navigate to="/admin/dashboard" replace />;
   }
 
-  if (!isAdmin) {
+  if (!isAuthorized) {
     return <Navigate to="/unauthorized" replace />;
   }
 

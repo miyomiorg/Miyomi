@@ -4,6 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAdminLogger } from '@/hooks/useAdminLogger';
 import { ArrowLeft, Save, Loader2, Check, X as XIcon, RotateCcw, User, StickyNote, AlertTriangle, FileText } from 'lucide-react';
 import { AdminButton, StatusBadge } from '@/components/admin/AdminFormElements';
+import { useAdmin } from '@/hooks/useAdmin';
 import { getGroupsForApp, setAppGroups, syncAppCompatibility, getGroupsForExtension, setExtensionGroups, syncExtensionCompatibility, fetchAllGroups } from '@/utils/compatSync';
 import { ConfirmDialog } from '@/components/admin/ConfirmDialog';
 import { SharedAppForm } from '@/components/forms/SharedAppForm';
@@ -18,6 +19,7 @@ interface ReviewPageProps {
 export function AdminReviewPage({ mode }: ReviewPageProps) {
     const { id } = useParams();
     const navigate = useNavigate();
+    const { hasPermission } = useAdmin();
     const { logAction } = useAdminLogger();
     const [record, setRecord] = useState<any>(null);
     const [loading, setLoading] = useState(true);
@@ -37,7 +39,16 @@ export function AdminReviewPage({ mode }: ReviewPageProps) {
     useEffect(() => {
         if (record) {
             let rawData = mode === 'submission' ? record.submitted_data : record.submitted_data;
-            rawData = rawData || {};
+            rawData = rawData ? { ...rawData } : {};
+
+            // Repair restricted metadata fields for edit suggestions so they reflect true live data
+            // and don't get flagged as "changed" (e.g. if the contributor submitted them as 0)
+            if (mode === 'edit-suggestion' && record.original_data_snapshot) {
+                const orig = record.original_data_snapshot as any;
+                rawData.status = orig.status;
+                rawData.likes_count = orig.likes_count;
+                rawData.download_count = orig.download_count;
+            }
 
             // If it's an extension, map install_urls properly for the form
             const isExt = mode === 'submission' ? record.submission_type === 'extension' : record.target_type === 'extension';
@@ -147,6 +158,10 @@ export function AdminReviewPage({ mode }: ReviewPageProps) {
                         payload.tutorials = data.tutorials || [];
                         payload.fork_of = data.fork_of;
                         payload.upstream_url = data.upstream_url;
+                        // Package git_provider into metadata
+                        if (data.git_provider) {
+                            payload.metadata = { ...(payload.metadata || {}), git_provider: data.git_provider };
+                        }
                     } else {
                         const installUrls = data.install_urls || [];
                         const firstAuto = installUrls.find((u: any) => u.type === 'auto');
@@ -159,6 +174,10 @@ export function AdminReviewPage({ mode }: ReviewPageProps) {
                         payload.manual_url = firstCopy?.url || data.manual_url || null;
                         payload.metadata = installUrls.length > 0 ? { install_urls: installUrls } : null;
                         payload.tutorials = data.tutorials || [];
+                        // Package git_provider into metadata
+                        if (data.git_provider) {
+                            payload.metadata = { ...(payload.metadata || {}), git_provider: data.git_provider };
+                        }
                     }
                     const { data: insertedData, error: insertError } = await supabase.from(targetTable).insert(payload).select().single();
                     if (insertError) {
@@ -210,6 +229,19 @@ export function AdminReviewPage({ mode }: ReviewPageProps) {
                     const groupIds = payload._selectedGroupIds;
                     delete payload._selectedGroupIds;
                     delete payload._selectedGroupNames;
+
+                    // Strip fields that exist in the form but not in the DB tables
+                    const fieldsToStrip = [
+                        'git_provider', 'install_urls', 'submitter_notes', 'submitter_name',
+                        'submitter_contact', 'submitter_email', 'updated_at', 'dev_status'
+                    ];
+                    const gitProvider = payload.git_provider;
+                    fieldsToStrip.forEach((f: string) => delete payload[f]);
+
+                    // Package git_provider into metadata if present
+                    if (gitProvider) {
+                        payload.metadata = { ...(payload.metadata || {}), git_provider: gitProvider };
+                    }
 
                     const { error: updateError } = await (supabase as any).from(targetTable).update(payload).eq('id', record.target_id);
                     if (updateError) throw updateError;
@@ -355,30 +387,39 @@ export function AdminReviewPage({ mode }: ReviewPageProps) {
                 </div>
             )}
 
-            {/* Edit Suggestion specific: show changed fields summary */}
+            {/* Edit Suggestion specific: show before/after diff */}
             {mode === 'edit-suggestion' && record.original_data_snapshot && (
-                <div className="mb-6 p-4 rounded-xl bg-blue-500/5 border border-blue-500/20">
-                    <h4 className="text-sm font-semibold flex items-center gap-2 text-blue-500 mb-3">
-                        <FileText className="w-4 h-4" /> Changed Fields Summary
-                    </h4>
-                    <div className="flex flex-wrap gap-2">
-                        {(() => {
-                            const orig = (record.original_data_snapshot as any) || {};
-                            const submitted = (editedData || record.submitted_data || {}) as any;
-                            const changedKeys = Object.keys(submitted).filter(key => {
-                                if (['id', 'created_at', 'updated_at'].includes(key)) return false;
-                                return JSON.stringify(orig[key]) !== JSON.stringify(submitted[key]);
-                            });
-                            if (changedKeys.length === 0) {
-                                return <span className="text-xs text-[var(--text-secondary)]">No changes detected</span>;
-                            }
-                            return changedKeys.map(key => (
-                                <span key={key} className="text-xs px-2.5 py-1 rounded-full bg-blue-500/10 text-blue-500 font-medium border border-blue-500/20">
-                                    {key.replace(/_/g, ' ')}
-                                </span>
-                            ));
-                        })()}
+                <div className="mb-6 rounded-xl bg-blue-500/5 border border-blue-500/20 overflow-hidden p-4">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
+                        <h4 className="text-sm font-semibold flex items-center gap-2 text-blue-500">
+                            <FileText className="w-4 h-4" /> Edit Suggestion 
+                        </h4>
+                        <span className="text-xs text-blue-500/80">
+                            Original values are shown below modified fields.
+                        </span>
                     </div>
+                    {(() => {
+                        const orig = (record.original_data_snapshot as any) || {};
+                        const submitted = (editedData || record.submitted_data || {}) as any;
+                        const skipKeys = ['id', 'created_at', 'updated_at', 'slug', 'likes_count', 'download_count', 'metadata', 'submitter_notes'];
+                        const changedKeys = Object.keys(submitted).filter(key => {
+                            if (skipKeys.includes(key)) return false;
+                            return JSON.stringify(orig[key]) !== JSON.stringify(submitted[key]);
+                        });
+                        
+                        if (changedKeys.length === 0) return null;
+                        
+                        return (
+                            <div className="flex flex-wrap gap-1.5 pt-3 border-t border-blue-500/10">
+                                <span className="text-xs text-blue-500/70 mr-2 flex items-center">Changed fields:</span>
+                                {changedKeys.map(key => (
+                                    <span key={key} className="px-2 py-0.5 rounded-md bg-blue-500/10 border border-blue-500/20 text-blue-500 text-[10px] font-bold uppercase tracking-wider">
+                                        {key.replace(/_/g, ' ')}
+                                    </span>
+                                ))}
+                            </div>
+                        );
+                    })()}
                 </div>
             )}
 
@@ -386,38 +427,50 @@ export function AdminReviewPage({ mode }: ReviewPageProps) {
             <div className="mb-8 p-4 rounded-2xl bg-[var(--bg-surface)] border border-[var(--divider)] flex flex-wrap gap-3 items-center">
                 <span className="text-sm font-semibold text-[var(--text-secondary)] mr-auto">Actions</span>
 
-                {record.status === 'pending' && (
-                    <>
-                        <AdminButton
-                            onClick={() => setActionTarget({ action: 'approve' })}
-                            className="bg-green-600 hover:bg-green-700 text-white border-none shadow-lg shadow-green-500/20"
-                        >
-                            <Check className="w-4 h-4 mr-2" /> {mode === 'submission' ? 'Publish' : 'Approve & Apply'}
-                        </AdminButton>
-                        <AdminButton
-                            variant="destructive"
-                            onClick={() => setActionTarget({ action: 'reject' })}
-                        >
-                            <XIcon className="w-4 h-4 mr-2" /> Reject
-                        </AdminButton>
-                    </>
-                )}
+                {(() => {
+                    const canWrite = hasPermission(mode === 'submission' ? 'submissions' : 'edit_suggestions', 'write');
+                    const canDelete = hasPermission(mode === 'submission' ? 'submissions' : 'edit_suggestions', 'delete');
 
-                {record.status === 'rejected' && (
-                    <>
-                        <AdminButton variant="secondary" onClick={handleRestore}
-                            className="hover:border-yellow-500/50 hover:bg-yellow-500/10 hover:text-yellow-600 transition-all"
-                        >
-                            <RotateCcw className="w-4 h-4 mr-2" /> Make Pending
-                        </AdminButton>
-                        <AdminButton
-                            onClick={() => setActionTarget({ action: 'approve' })}
-                            className="bg-green-600 hover:bg-green-700 text-white border-none shadow-lg shadow-green-500/20"
-                        >
-                            <Check className="w-4 h-4 mr-2" /> {mode === 'submission' ? 'Publish' : 'Approve & Apply'}
-                        </AdminButton>
-                    </>
-                )}
+                    return (
+                        <>
+                            {record.status === 'pending' && (
+                                <>
+                                    <AdminButton
+                                        onClick={() => setActionTarget({ action: 'approve' })}
+                                        disabled={!canWrite}
+                                        className="bg-green-600 hover:bg-green-700 text-white border-none shadow-lg shadow-green-500/20"
+                                    >
+                                        <Check className="w-4 h-4 mr-2" /> {mode === 'submission' ? 'Publish' : 'Approve & Apply'}
+                                    </AdminButton>
+                                    <AdminButton
+                                        variant="destructive"
+                                        disabled={!canWrite && !canDelete} // Rejecting is a status update, usually write, but requires permission
+                                        onClick={() => setActionTarget({ action: 'reject' })}
+                                    >
+                                        <XIcon className="w-4 h-4 mr-2" /> Reject
+                                    </AdminButton>
+                                </>
+                            )}
+
+                            {record.status === 'rejected' && (
+                                <>
+                                    <AdminButton variant="secondary" onClick={handleRestore} disabled={!canWrite}
+                                        className="hover:border-yellow-500/50 hover:bg-yellow-500/10 hover:text-yellow-600 transition-all"
+                                    >
+                                        <RotateCcw className="w-4 h-4 mr-2" /> Make Pending
+                                    </AdminButton>
+                                    <AdminButton
+                                        onClick={() => setActionTarget({ action: 'approve' })}
+                                        disabled={!canWrite}
+                                        className="bg-green-600 hover:bg-green-700 text-white border-none shadow-lg shadow-green-500/20"
+                                    >
+                                        <Check className="w-4 h-4 mr-2" /> {mode === 'submission' ? 'Publish' : 'Approve & Apply'}
+                                    </AdminButton>
+                                </>
+                            )}
+                        </>
+                    );
+                })()}
 
                 {record.status === 'approved' && (
                     <div className="px-4 py-2 rounded-lg bg-green-500/10 text-green-500 font-medium flex items-center gap-2 border border-green-500/20">
@@ -443,6 +496,7 @@ export function AdminReviewPage({ mode }: ReviewPageProps) {
                     errors={errors}
                     setErrors={setErrors}
                     isAdmin={true}
+                    originalData={mode === 'edit-suggestion' ? record.original_data_snapshot : undefined}
                 />
             ) : (
                 <SharedExtensionForm
@@ -451,6 +505,7 @@ export function AdminReviewPage({ mode }: ReviewPageProps) {
                     errors={errors}
                     setErrors={setErrors}
                     isAdmin={true}
+                    originalData={mode === 'edit-suggestion' ? record.original_data_snapshot : undefined}
                 />
             )}
 

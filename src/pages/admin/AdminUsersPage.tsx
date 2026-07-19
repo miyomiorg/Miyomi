@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import type { Tables } from '@/integrations/supabase/types';
 import { Trash2, Users, UserPlus, Loader2, ShieldCheck, ShieldOff, CheckCircle2, Pencil, KeyRound, Crown, Shield, ChevronUp, ChevronDown, UserX, User, Search, Globe, Mail } from 'lucide-react';
@@ -23,6 +23,64 @@ type AuthUser = {
   admin_display_name: string | null;
   admin_is_active: boolean | null;
 };
+
+/* ── Subcomponents ── */
+const RESOURCES = [
+  'apps', 'extensions', 'guides', 'blog_posts', 'faqs', 'contributors', 
+  'submissions', 'guide_submissions', 'edit_suggestions', 'reports', 
+  'feedbacks', 'notices', 'donations', 'themes'
+];
+
+function PermissionsPanel({ 
+  perms, 
+  onChange 
+}: { 
+  perms: Record<string, { read: boolean; write: boolean; delete: boolean }>; 
+  onChange: (p: any) => void;
+}) {
+  const togglePerm = (resource: string, action: 'read' | 'write' | 'delete', val: boolean) => {
+    if (action === 'delete' && val) {
+      if (!window.confirm(`WARNING: Granting delete permission allows this moderator to permanently remove ${resource}. Are you absolutely sure?`)) {
+        return;
+      }
+    }
+    const current = perms[resource] || { read: true, write: false, delete: false };
+    onChange({ ...perms, [resource]: { ...current, [action]: val } });
+  };
+
+  return (
+    <div className="space-y-3 mt-4 border rounded-xl p-4 bg-[var(--bg-elev-1)] border-[var(--divider)]">
+      <h3 className="text-sm font-semibold text-[var(--text-primary)] mb-2">Moderator Permissions</h3>
+      <div className="max-h-60 overflow-y-auto space-y-2 pr-2 custom-scrollbar">
+        {RESOURCES.map(res => {
+          const p = perms[res] || { read: true, write: false, delete: false };
+          return (
+            <div key={res} className="flex items-center justify-between py-2 border-b border-[var(--divider)] last:border-0">
+              <span className="text-xs font-medium text-[var(--text-secondary)] uppercase tracking-wider w-32 truncate">{res.replace('_', ' ')}</span>
+              <div className="flex items-center gap-4">
+                <label className="flex items-center gap-1.5 text-xs text-[var(--text-primary)] cursor-pointer">
+                  <input type="checkbox" className="w-3.5 h-3.5 rounded border-[var(--divider)] text-[var(--brand)] focus:ring-[var(--brand)]" 
+                    checked={p.read} onChange={e => togglePerm(res, 'read', e.target.checked)} />
+                  Read
+                </label>
+                <label className="flex items-center gap-1.5 text-xs text-[var(--text-primary)] cursor-pointer">
+                  <input type="checkbox" className="w-3.5 h-3.5 rounded border-[var(--divider)] text-[var(--brand)] focus:ring-[var(--brand)]" 
+                    checked={p.write} onChange={e => togglePerm(res, 'write', e.target.checked)} />
+                  Write
+                </label>
+                <label className="flex items-center gap-1.5 text-xs text-red-500 cursor-pointer">
+                  <input type="checkbox" className="w-3.5 h-3.5 rounded border-[var(--divider)] text-red-500 focus:ring-red-500" 
+                    checked={p.delete} onChange={e => togglePerm(res, 'delete', e.target.checked)} />
+                  Delete
+                </label>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
 
 /* ── Inline CSS for action buttons ── */
 const btnBase: React.CSSProperties = { transition: 'all 0.2s ease' };
@@ -112,6 +170,7 @@ export function AdminUsersPage() {
   /* Edit modal */
   const [editTarget, setEditTarget] = useState<AdminWithRole | null>(null);
   const [editForm, setEditForm] = useState({ display_name: '', role: 'admin', password: '' });
+  const [editPerms, setEditPerms] = useState<Record<string, { read: boolean; write: boolean; delete: boolean }>>({});
   const [editSaving, setEditSaving] = useState(false);
   const [editError, setEditError] = useState('');
 
@@ -127,6 +186,7 @@ export function AdminUsersPage() {
   /* Promote modal */
   const [promoteTarget, setPromoteTarget] = useState<AuthUser | null>(null);
   const [promoteRole, setPromoteRole] = useState('admin');
+  const [promotePerms, setPromotePerms] = useState<Record<string, { read: boolean; write: boolean; delete: boolean }>>({});
   const [promoteSaving, setPromoteSaving] = useState(false);
 
   /* Delete user confirm */
@@ -205,7 +265,7 @@ export function AdminUsersPage() {
         body: { action: 'create', email: form.email, password: form.password, display_name: form.display_name || null, role: form.role },
       });
       if (fnError) throw fnError;
-      if (data?.error) throw new Error(data.error);
+      
       setModalOpen(false);
       setForm({ email: '', password: '', display_name: '', role: 'admin' });
       toast.success(`Admin "${form.email}" created successfully!`, { icon: <CheckCircle2 className="w-4 h-4" /> });
@@ -221,7 +281,7 @@ export function AdminUsersPage() {
   }
 
   /* ── Edit admin ── */
-  function openEdit(admin: AdminWithRole) {
+  async function openEdit(admin: AdminWithRole) {
     setEditTarget(admin);
     setEditForm({
       display_name: admin.display_name || '',
@@ -229,6 +289,23 @@ export function AdminUsersPage() {
       password: '',
     });
     setEditError('');
+
+    if (admin.role === 'moderator' && admin.user_id) {
+      try {
+        const { data } = await (supabase as any).from('moderator_permissions').select('*').eq('user_id', admin.user_id);
+        if (data) {
+          const perms: any = {};
+          data.forEach(d => {
+            perms[d.resource] = { read: d.can_read, write: d.can_write, delete: d.can_delete };
+          });
+          setEditPerms(perms);
+        }
+      } catch (e) {
+        console.error('Failed to load perms', e);
+      }
+    } else {
+      setEditPerms({});
+    }
   }
 
   async function handleEdit() {
@@ -236,7 +313,7 @@ export function AdminUsersPage() {
     setEditSaving(true);
     setEditError('');
     try {
-      const body: Record<string, string> = {
+      const body: Record<string, any> = {
         action: 'update',
         user_id: editTarget.user_id,
         display_name: editForm.display_name,
@@ -253,6 +330,20 @@ export function AdminUsersPage() {
       const { data, error: fnError } = await supabase.functions.invoke('manage-admin', { body });
       if (fnError) throw fnError;
       if (data?.error) throw new Error(data.error);
+
+      if (editForm.role === 'moderator') {
+        const updates = Object.entries(editPerms).map(([res, p]: [string, any]) => ({
+          user_id: editTarget.user_id,
+          resource: res,
+          can_read: p.read,
+          can_write: p.write,
+          can_delete: p.delete,
+        }));
+        if (updates.length > 0) {
+          await (supabase as any).from('moderator_permissions').upsert(updates, { onConflict: 'user_id,resource' });
+        }
+      }
+
       setEditTarget(null);
       toast.success(`Admin "${editTarget.email}" updated`, { icon: <Pencil className="w-4 h-4" /> });
       fetchData();
@@ -295,7 +386,21 @@ export function AdminUsersPage() {
       });
       if (fnError) throw fnError;
       if (data?.error) throw new Error(data.error);
-      toast.success(`${promoteTarget.email} promoted to ${promoteRole === 'super_admin' ? 'Super Admin' : 'Admin'}`, {
+
+      if (promoteRole === 'moderator') {
+        const updates = Object.entries(promotePerms).map(([res, p]: [string, any]) => ({
+          user_id: promoteTarget.id,
+          resource: res,
+          can_read: p.read,
+          can_write: p.write,
+          can_delete: p.delete,
+        }));
+        if (updates.length > 0) {
+          await (supabase as any).from('moderator_permissions').upsert(updates, { onConflict: 'user_id,resource' });
+        }
+      }
+
+      toast.success(`${promoteTarget.email} promoted to ${promoteRole}`, {
         icon: <ChevronUp className="w-4 h-4" />,
       });
       setPromoteTarget(null);
@@ -669,10 +774,14 @@ export function AdminUsersPage() {
           </AdminFormField>
           <AdminFormField label="Role">
             <AdminSelect value={form.role} onChange={e => setForm(f => ({ ...f, role: e.target.value }))}>
+              <option value="moderator">Moderator</option>
               <option value="admin">Admin</option>
               <option value="super_admin">Super Admin</option>
             </AdminSelect>
           </AdminFormField>
+          {form.role === 'moderator' && (
+            <div className="text-xs text-amber-500 mb-2">Note: Please create the user first, then edit them to configure their moderator permissions.</div>
+          )}
           {error && (
             <div className="px-3 py-2.5 rounded-lg text-sm" style={{
               background: 'color-mix(in srgb, var(--destructive) 10%, transparent)',
@@ -706,10 +815,15 @@ export function AdminUsersPage() {
 
           <AdminFormField label="Role">
             <AdminSelect value={editForm.role} onChange={e => setEditForm(f => ({ ...f, role: e.target.value }))}>
+              <option value="moderator">Moderator</option>
               <option value="admin">Admin</option>
               <option value="super_admin">Super Admin</option>
             </AdminSelect>
           </AdminFormField>
+
+          {editForm.role === 'moderator' && (
+            <PermissionsPanel perms={editPerms} onChange={setEditPerms} />
+          )}
 
           {/* Optional password reset */}
           <div className="rounded-xl border p-4 space-y-2" style={{ borderColor: 'var(--divider)', background: 'var(--bg-elev-1)' }}>
@@ -768,10 +882,15 @@ export function AdminUsersPage() {
 
           <AdminFormField label="Assign Role">
             <AdminSelect value={promoteRole} onChange={e => setPromoteRole(e.target.value)}>
+              <option value="moderator">Moderator</option>
               <option value="admin">Admin</option>
               <option value="super_admin">Super Admin</option>
             </AdminSelect>
           </AdminFormField>
+
+          {promoteRole === 'moderator' && (
+            <PermissionsPanel perms={promotePerms} onChange={setPromotePerms} />
+          )}
 
           <div className="px-3 py-2.5 rounded-lg text-sm" style={{
             background: 'color-mix(in srgb, #10B981 10%, transparent)',

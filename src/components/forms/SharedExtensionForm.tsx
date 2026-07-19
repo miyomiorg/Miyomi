@@ -23,7 +23,23 @@ const TYPE_OPTIONS = ['Anime', 'Manga', 'Light Novel'];
 const TAG_OPTIONS = ['NSFW', 'SFW', 'Official', 'Fan Source'];
 const LANGUAGE_OPTIONS = ['all', 'en', 'es', 'fr', 'pt', 'pt-BR', 'ja', 'zh', 'ar', 'de', 'it', 'ru', 'tr', 'vi', 'id'];
 
-export function SharedExtensionForm({ form, setForm, errors, setErrors, isAdmin = true, isBasicMode = false }: { form: any, setForm: any, errors: any, setErrors: any, isAdmin?: boolean, isBasicMode?: boolean }) {
+export function SharedExtensionForm({ 
+    form, setForm, errors, setErrors, isAdmin = true, isBasicMode = false, originalData 
+}: { 
+    form: any, setForm: any, errors: any, setErrors: any, isAdmin?: boolean, isBasicMode?: boolean, originalData?: any 
+}) {
+    const getDiff = (field: string) => {
+        if (!originalData) return undefined;
+        const oldVal = originalData[field];
+        const newVal = form[field];
+        if (JSON.stringify(oldVal) !== JSON.stringify(newVal)) {
+            if (oldVal === null || oldVal === undefined || oldVal === '') return '(empty)';
+            if (Array.isArray(oldVal)) return oldVal.length === 0 ? '(empty)' : oldVal.join(', ');
+            if (typeof oldVal === 'object') return JSON.stringify(oldVal);
+            return String(oldVal);
+        }
+        return undefined;
+    };
     const [fetchingGithub, setFetchingGithub] = useState(false);
     const [extractingColor, setExtractingColor] = useState(false);
     const repoProvider = form.git_provider || 'github';
@@ -173,7 +189,12 @@ export function SharedExtensionForm({ form, setForm, errors, setErrors, isAdmin 
                     </h3>
                     <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-end">
                         {!isBasicMode && (
-                            <AdminFormField label="Provider" className="w-full sm:w-40">
+                            <AdminFormField label="Author" diffValue={getDiff('author')}>
+                                <AdminInput value={form.author} onChange={e => setForm((f: any) => ({ ...f, author: e.target.value }))} />
+                            </AdminFormField>
+                        )}
+                        {!isBasicMode && (
+                            <AdminFormField label="Provider" className="w-full sm:w-40" diffValue={getDiff('git_provider')}>
                                 <AdminSelect
                                     value={repoProvider}
                                     onChange={e => {
@@ -191,7 +212,7 @@ export function SharedExtensionForm({ form, setForm, errors, setErrors, isAdmin 
                                 </AdminSelect>
                             </AdminFormField>
                         )}
-                        <AdminFormField label="Repository URL" className="flex-1 w-full">
+                        <AdminFormField label="Repository URL" className="flex-1 w-full" diffValue={getDiff('repo_url')}>
                             <AdminInput
                                 value={form.repo_url}
                                 onChange={e => setForm((f: any) => ({ ...f, repo_url: e.target.value }))}
@@ -220,7 +241,7 @@ export function SharedExtensionForm({ form, setForm, errors, setErrors, isAdmin 
 
                 <div className="p-6 rounded-2xl border border-[var(--divider)] bg-[var(--bg-surface)] space-y-4">
                     <h3 className="text-lg font-semibold text-[var(--text-primary)] mb-4">Basic Information</h3>
-                    <AdminFormField label="Extension Name" required>
+                    <AdminFormField label="Extension Name" required diffValue={getDiff('name')}>
                         {errors.name && <div className="text-red-500 text-xs font-semibold mb-1 animate-pulse">⚠️ {errors.name}</div>}
                         <AdminInput
                             value={form.name}
@@ -233,7 +254,7 @@ export function SharedExtensionForm({ form, setForm, errors, setErrors, isAdmin 
                         />
                     </AdminFormField>
                     {isAdmin && (
-                        <AdminFormField label="Slug (URL identifier)" required>
+                        <AdminFormField label="Slug (URL identifier)" required diffValue={getDiff('slug')}>
                             {errors.slug && <div className="text-red-500 text-xs font-semibold mb-1 animate-pulse">⚠️ {errors.slug}</div>}
                             <AdminInput
                                 value={form.slug}
@@ -247,7 +268,7 @@ export function SharedExtensionForm({ form, setForm, errors, setErrors, isAdmin 
                             <p className="text-xs text-[var(--text-secondary)] mt-1">Used in the URL: /extensions/<strong>{form.slug || '...'}</strong></p>
                         </AdminFormField>
                     )}
-                    <AdminFormField label="Short Description (Bio)">
+                    <AdminFormField label="Short Description (Bio)" diffValue={getDiff('short_description')}>
                         <AdminTextarea className="h-20" value={form.short_description} onChange={e => setForm((f: any) => ({ ...f, short_description: e.target.value }))} placeholder="Brief summary displayed in header..." />
                     </AdminFormField>
 
@@ -267,7 +288,7 @@ export function SharedExtensionForm({ form, setForm, errors, setErrors, isAdmin 
                         </div>
                     )}
                     {!isBasicMode && (
-                        <AdminFormField label="Overview (Long Description)">
+                        <AdminFormField label="Overview (Long Description)" diffValue={getDiff('description')}>
                             <AdminTextarea className="h-32" value={form.description} onChange={e => setForm((f: any) => ({ ...f, description: e.target.value }))} placeholder="Detailed description..." />
                         </AdminFormField>
                     )}
@@ -298,7 +319,7 @@ export function SharedExtensionForm({ form, setForm, errors, setErrors, isAdmin 
                     </div>
                     {!isBasicMode && (
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2 border-t border-[var(--divider)] mt-2">
-                            <AdminFormField label="Last Updated">
+                            <AdminFormField label="Last Updated" diffValue={getDiff('last_updated_at')}>
                                 <AdminInput type="date" value={form.last_updated?.split('T')[0] || ''} onChange={e => setForm((f: any) => ({ ...f, last_updated: e.target.value }))} />
                             </AdminFormField>
                         </div>
@@ -357,10 +378,10 @@ export function SharedExtensionForm({ form, setForm, errors, setErrors, isAdmin 
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-                            <AdminFormField label="Website URL">
+                            <AdminFormField label="Website URL" diffValue={getDiff('source_url')}>
                                 <AdminInput value={form.source_url} onChange={e => setForm((f: any) => ({ ...f, source_url: e.target.value }))} placeholder="https://..." />
                             </AdminFormField>
-                            <AdminFormField label="Social / Community Links">
+                            <AdminFormField label="Social / Community Links" diffValue={getDiff('social_urls')}>
                                 <SocialUrlsInput
                                     value={form.social_urls}
                                     onChange={(urls) => setForm((f: any) => ({ ...f, social_urls: urls }))}
@@ -412,7 +433,7 @@ export function SharedExtensionForm({ form, setForm, errors, setErrors, isAdmin 
                 <div className="space-y-6">
                     <div className="p-6 rounded-2xl border border-[var(--divider)] bg-[var(--bg-surface)] space-y-4">
                         <h3 className="text-lg font-semibold text-[var(--text-primary)] mb-4">Appearance</h3>
-                        <AdminFormField label="Icon URL">
+                        <AdminFormField label="Icon URL" diffValue={getDiff('icon_url')}>
                             <AdminInput value={form.icon_url} onChange={e => setForm((f: any) => ({ ...f, icon_url: e.target.value }))} placeholder="https://..." />
                         </AdminFormField>
                         <div className="flex items-center gap-4">
@@ -430,7 +451,7 @@ export function SharedExtensionForm({ form, setForm, errors, setErrors, isAdmin 
                                 />
                             )}
                         </div>
-                        <AdminFormField label="Icon Color">
+                        <AdminFormField label="Icon Color" diffValue={getDiff('icon_color')}>
                             <div className="flex gap-2 items-center">
                                 <div className="relative w-12 h-10 rounded-lg border border-[var(--divider)] overflow-hidden cursor-pointer shadow-sm">
                                     <input
@@ -454,7 +475,7 @@ export function SharedExtensionForm({ form, setForm, errors, setErrors, isAdmin 
                     <div className="p-6 rounded-2xl border border-[var(--divider)] bg-[var(--bg-surface)] space-y-4">
                         <h3 className="text-lg font-semibold text-[var(--text-primary)] mb-4">Status & Metadata</h3>
                         {isAdmin && (
-                            <AdminFormField label="Status">
+                            <AdminFormField label="Status" diffValue={getDiff('status')}>
                                 <AdminSelect value={form.status} onChange={e => setForm((f: any) => ({ ...f, status: e.target.value }))}>
                                     <option value="approved">Approved</option>
                                     <option value="pending">Pending</option>
@@ -464,10 +485,10 @@ export function SharedExtensionForm({ form, setForm, errors, setErrors, isAdmin 
                         )}
                         {isAdmin && (
                             <div className="grid grid-cols-2 gap-4">
-                                <AdminFormField label="Downloads">
+                                <AdminFormField label="Downloads" diffValue={getDiff('download_count')}>
                                     <AdminInput type="number" value={form.download_count} onChange={e => setForm((f: any) => ({ ...f, download_count: parseInt(e.target.value) || 0 }))} placeholder="0" />
                                 </AdminFormField>
-                                <AdminFormField label="Likes">
+                                <AdminFormField label="Likes" diffValue={getDiff('likes_count')}>
                                     <AdminInput type="number" value={form.likes_count} onChange={e => setForm((f: any) => ({ ...f, likes_count: parseInt(e.target.value) || 0 }))} placeholder="0" />
                                 </AdminFormField>
                             </div>

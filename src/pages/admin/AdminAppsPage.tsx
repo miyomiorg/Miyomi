@@ -9,9 +9,11 @@ import { AdminSearchBar } from '@/components/admin/AdminSearchBar';
 import { ConfirmDialog } from '@/components/admin/ConfirmDialog';
 import { AdminButton, StatusBadge, EmptyState } from '@/components/admin/AdminFormElements';
 import { useAdminCache } from '@/hooks/useAdminCache';
+import { useAdmin } from '@/hooks/useAdmin';
 
 export function AdminAppsPage() {
   const navigate = useNavigate();
+  const { hasPermission } = useAdmin();
   const { data: apps, loading, invalidateCache, updateCacheOptimistically } = useAdminCache<Tables<'apps'>>({
     table: 'apps',
     orderBy: 'name'
@@ -26,13 +28,20 @@ export function AdminAppsPage() {
 
   return (
     <div>
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
-        <h1 className="text-2xl font-bold font-['Poppins',sans-serif]" style={{ color: 'var(--text-primary)' }}>Apps</h1>
-        <div className="flex items-center gap-3 w-full sm:w-auto">
-          <AdminSearchBar value={search} onChange={setSearch} placeholder="Search apps…" />
-          <AdminButton onClick={() => navigate('/admin/apps/new')}><Plus className="w-4 h-4" /> Add</AdminButton>
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
+          <div>
+            <h1 className="text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>Apps</h1>
+            <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>
+              Manage and organize your apps catalog
+            </p>
+          </div>
+          {hasPermission('apps', 'write') && (
+            <AdminButton onClick={() => navigate('/admin/apps/new')} className="w-full sm:w-auto">
+              <Plus className="w-4 h-4 mr-2" />
+              Add New App
+            </AdminButton>
+          )}
         </div>
-      </div>
 
 
       {loading ? (
@@ -104,31 +113,35 @@ export function AdminAppsPage() {
                       {(app.platforms || []).join(", ") || "—"}
                     </td>
                     <td className="px-4 py-3 text-right">
-                      <div className="flex items-center justify-end gap-1">
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            navigate(`/admin/apps/${app.id}/edit`);
-                          }}
-                          className="p-2 rounded-lg transition-colors"
-                          style={{ color: "var(--text-secondary)" }}
-                          onMouseEnter={(e) => (e.currentTarget.style.color = "var(--brand)")}
-                          onMouseLeave={(e) => (e.currentTarget.style.color = "var(--text-secondary)")}
-                        >
-                          <Pencil className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setDeleteTarget({ id: app.id, name: app.name });
-                          }}
-                          className="p-2 rounded-lg transition-colors"
-                          style={{ color: "var(--text-secondary)" }}
-                          onMouseEnter={(e) => (e.currentTarget.style.color = "var(--destructive)")}
-                          onMouseLeave={(e) => (e.currentTarget.style.color = "var(--text-secondary)")}
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
+                      <div className="flex items-center justify-end gap-1.5">
+                        {hasPermission('apps', 'write') && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              navigate(`/admin/apps/${app.id}/edit`);
+                            }}
+                            className="p-2 rounded-lg transition-colors"
+                            style={{ color: "var(--text-secondary)" }}
+                            onMouseEnter={(e) => (e.currentTarget.style.color = "var(--brand)")}
+                            onMouseLeave={(e) => (e.currentTarget.style.color = "var(--text-secondary)")}
+                          >
+                            <Pencil className="w-4 h-4" />
+                          </button>
+                        )}
+                        {hasPermission('apps', 'delete') && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setDeleteTarget({ id: app.id, name: app.name });
+                            }}
+                            className="p-2 rounded-lg transition-colors hover:bg-red-500/10 hover:text-red-500"
+                            style={{ color: "var(--text-secondary)" }}
+                            onMouseEnter={(e) => (e.currentTarget.style.color = "var(--destructive)")}
+                            onMouseLeave={(e) => (e.currentTarget.style.color = "var(--text-secondary)")}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>

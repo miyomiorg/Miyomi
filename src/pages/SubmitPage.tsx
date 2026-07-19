@@ -140,7 +140,22 @@ export function SubmitPage() {
     loadEditData();
   }, [urlMode, type, urlId]);
 
+  function resetForm() {
+    setAppForm(emptyApp);
+    setExtForm(emptyExt);
+    setSubmitterForm({ submitter_name: '', submitter_contact: '', submitter_notes: '' });
+    setErrors({});
+    setNameError(null);
+    setOriginalDataSnapshot(null);
+    setInitialFormSnapshot(null);
+    setTurnstileToken(import.meta.env.VITE_DISABLE_TURNSTILE === 'true' ? 'dummy-token' : '');
+  }
+
   function goTo(newStep: number, newType?: 'app' | 'extension' | null) {
+    // Reset all form state when going back to step 0 (e.g. "Submit Another")
+    if (newStep === 0) {
+      resetForm();
+    }
     const t = newType !== undefined ? newType : type;
     const params: Record<string, string> = {};
     if (t) params.type = t === 'app' ? 'software' : (t === 'extension' ? 'extensions' : t);

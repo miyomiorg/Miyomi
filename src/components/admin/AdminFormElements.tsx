@@ -5,15 +5,22 @@ interface FormFieldProps {
   children: React.ReactNode;
   required?: boolean;
   className?: string;
+  diffValue?: string | React.ReactNode;
 }
 
-export function AdminFormField({ label, children, required, className = '' }: FormFieldProps) {
+export function AdminFormField({ label, children, required, className = '', diffValue }: FormFieldProps) {
   return (
     <div className={`space-y-1.5 ${className}`}>
       <Label>
         {label}{required && <span className="text-[var(--destructive)]"> *</span>}
       </Label>
       {children}
+      {diffValue !== undefined && (
+        <div className="mt-1 text-xs px-2.5 py-1.5 bg-red-500/10 text-red-500 rounded-lg border border-red-500/20">
+          <span className="font-bold uppercase tracking-wider text-[10px] mr-1 opacity-80">Before:</span> 
+          <span className="break-words">{diffValue}</span>
+        </div>
+      )}
     </div>
   );
 }
@@ -36,6 +43,7 @@ interface AdminInputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   onBlur?: React.FocusEventHandler<HTMLInputElement>;
   onKeyDown?: React.KeyboardEventHandler<HTMLInputElement>;
   type?: string;
+  disabled?: boolean;
 }
 
 export function AdminInput({ className = '', ...props }: AdminInputProps) {
