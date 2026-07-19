@@ -44,7 +44,7 @@ const navSections: NavSection[] = [
     items: [
       { path: '/admin/contributors', label: 'Contributors', icon: UserCircle },
       { path: '/admin/submissions', label: 'Submissions', icon: Inbox },
-      { path: '/admin/guide-submissions', label: 'Guide Subs', icon: BookOpen },
+      { path: '/admin/guide-submissions', label: 'Guides', icon: BookOpen },
       { path: '/admin/edit-suggestions', label: 'Edits', icon: PenTool },
       { path: '/admin/reports', label: 'Reports', icon: Flag },
       { path: '/admin/feedbacks', label: 'Feedbacks', icon: MessageSquare },
@@ -75,7 +75,7 @@ function getInitialCollapsed(): Record<string, boolean> {
   try {
     const saved = localStorage.getItem('admin_sidebar_collapsed');
     if (saved) return JSON.parse(saved);
-  } catch {}
+  } catch { }
   return {};
 }
 
@@ -110,7 +110,7 @@ export function AdminLayout() {
   useEffect(() => {
     try {
       localStorage.setItem('admin_sidebar_collapsed', JSON.stringify(collapsed));
-    } catch {}
+    } catch { }
   }, [collapsed]);
 
   const toggleSection = (label: string) => {
