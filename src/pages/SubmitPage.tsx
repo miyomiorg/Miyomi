@@ -237,8 +237,13 @@ export function SubmitPage() {
 
   async function handleSubmit() {
     const form = type === 'app' ? appForm : extForm;
-    if (!form.name || (type === 'app' && !appForm.author)) {
-      return toast.error("Please fill in all required fields (Name for extensions, Name & Author for apps)");
+    
+    // Only require Author for apps if in advanced mode (since it's hidden in basic mode)
+    if (!form.name) {
+      return toast.error("Please fill in the Name field");
+    }
+    if (type === 'app' && formMode === 'advanced' && !appForm.author) {
+      return toast.error("Please fill in the Author field for apps");
     }
     if (!turnstileToken) {
       return toast.error("Please complete the CAPTCHA");

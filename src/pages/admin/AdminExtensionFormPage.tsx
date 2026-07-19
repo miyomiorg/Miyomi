@@ -237,7 +237,9 @@ export function AdminExtensionFormPage() {
                 await syncExtensionCompatibility(savedId, form.name, groupIds, manualApps);
             }
 
-            navigate('/admin/extensions');
+            if (!id) {
+                navigate(`/admin/extensions/${savedId}`, { replace: true });
+            }
         } catch (err: any) {
             toast.error('Failed to save extension: ' + err.message);
         } finally {

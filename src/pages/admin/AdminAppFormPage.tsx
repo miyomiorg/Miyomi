@@ -252,7 +252,9 @@ export function AdminAppFormPage() {
                 await syncAppCompatibility(savedId, form.name, groupIds, manualExts);
             }
 
-            navigate('/admin/apps');
+            if (!id) {
+                navigate(`/admin/apps/${savedId}`, { replace: true });
+            }
         } catch (err: any) {
             toast.error('Failed to save app: ' + err.message);
         } finally {
