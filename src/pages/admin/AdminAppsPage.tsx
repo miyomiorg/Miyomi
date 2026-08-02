@@ -18,8 +18,13 @@ export function AdminAppsPage() {
     table: 'apps',
     orderBy: 'name'
   });
-  const [search, setSearch] = useState('');
+  const [search, setSearch] = useState(() => sessionStorage.getItem('admin_apps_search') || '');
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
+
+  const handleSearchChange = (val: string) => {
+    setSearch(val);
+    sessionStorage.setItem('admin_apps_search', val);
+  };
 
   const filtered = useMemo(() =>
     apps.filter(a => a.name.toLowerCase().includes(search.toLowerCase()) || (a.author || '').toLowerCase().includes(search.toLowerCase())),
@@ -35,12 +40,14 @@ export function AdminAppsPage() {
               Manage and organize your apps catalog
             </p>
           </div>
-          {hasPermission('apps', 'write') && (
-            <AdminButton onClick={() => navigate('/admin/apps/new')} className="w-full sm:w-auto">
-              <Plus className="w-4 h-4 mr-2" />
-              Add New App
-            </AdminButton>
-          )}
+          <div className="flex items-center gap-3 w-full sm:w-auto">
+            <AdminSearchBar value={search} onChange={handleSearchChange} placeholder="Search apps…" />
+            {hasPermission('apps', 'write') && (
+              <AdminButton onClick={() => navigate('/admin/apps/new')}>
+                <Plus className="w-4 h-4" /> Add
+              </AdminButton>
+            )}
+          </div>
         </div>
 
 

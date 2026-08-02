@@ -16,8 +16,13 @@ export function AdminExtensionsPage() {
     table: 'extensions',
     orderBy: 'name'
   });
-  const [search, setSearch] = useState('');
+  const [search, setSearch] = useState(() => sessionStorage.getItem('admin_extensions_search') || '');
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
+
+  const handleSearchChange = (val: string) => {
+    setSearch(val);
+    sessionStorage.setItem('admin_extensions_search', val);
+  };
 
   const filtered = useMemo(() =>
     extensions.filter(e => e.name.toLowerCase().includes(search.toLowerCase()) || (e.author || '').toLowerCase().includes(search.toLowerCase())),
@@ -29,7 +34,7 @@ export function AdminExtensionsPage() {
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
         <h1 className="text-2xl font-bold font-['Poppins',sans-serif]" style={{ color: 'var(--text-primary)' }}>Extensions</h1>
         <div className="flex items-center gap-3 w-full sm:w-auto">
-          <AdminSearchBar value={search} onChange={setSearch} placeholder="Search extensions…" />
+          <AdminSearchBar value={search} onChange={handleSearchChange} placeholder="Search extensions…" />
           <AdminButton onClick={() => navigate('/admin/extensions/new')}><Plus className="w-4 h-4" /> Add</AdminButton>
         </div>
       </div>
