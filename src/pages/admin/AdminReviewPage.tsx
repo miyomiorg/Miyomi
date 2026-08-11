@@ -66,6 +66,25 @@ export function AdminReviewPage({ mode }: ReviewPageProps) {
                 rawData = { ...rawData, install_urls: loadedInstallUrls };
             }
 
+            // Normalize all form fields to prevent uncontrolled-to-controlled input warnings
+            // Submitted data often has undefined/null for fields the user didn't fill in
+            const defaults: Record<string, any> = {
+                name: '', slug: '', short_description: '', description: '', author: '',
+                category: '', version: '', status: 'pending', repo_url: '', download_url: '',
+                website_url: '', icon_url: '', icon_color: '', fork_of: '', upstream_url: '',
+                source_url: '', language: '', development_status: '',
+                platforms: [], tags: [], content_types: [], types: [], compatible_with: [],
+                social_urls: [], tutorials: [], install_urls: [],
+                download_count: 0, likes_count: 0,
+                git_provider: '', submitter_notes: '',
+                _selectedGroupIds: [], _selectedGroupNames: [],
+            };
+            for (const [key, defaultVal] of Object.entries(defaults)) {
+                if (rawData[key] === undefined || rawData[key] === null) {
+                    rawData[key] = defaultVal;
+                }
+            }
+
             setEditedData(rawData);
         }
     }, [record]);

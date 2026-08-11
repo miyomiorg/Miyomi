@@ -153,7 +153,7 @@ export function SharedAppForm({
                 short_description: data.description || prev.short_description,
                 website_url: data.homepage || prev.website_url,
                 download_url: prev.download_url || downloadUrl,
-                tags: [...new Set([...prev.tags, ...(data.topics || [])])],
+                tags: [...new Set([...(prev.tags || []), ...(data.topics || [])])],
                 author: data.owner?.login || prev.author,
                 icon_url: prev.icon_url || data.owner?.avatar_url || '',
                 version: version
