@@ -75,6 +75,8 @@ export function SubmitPage() {
   const [submitting, setSubmitting] = useState(false);
   const [turnstileToken, setTurnstileToken] = useState(import.meta.env.VITE_DISABLE_TURNSTILE === 'true' ? 'dummy-token' : '');
   const [nameError, setNameError] = useState<{ message: string; url?: string } | null>(null);
+  const [repoError, setRepoError] = useState<{ message: string; url?: string } | null>(null);
+  const [submissionDuplicate, setSubmissionDuplicate] = useState<{ message: string; status: string; reason?: string; blocking: boolean } | null>(null);
   const [formMode, setFormMode] = useState<'basic' | 'advanced'>('basic');
 
   useEffect(() => {
@@ -146,6 +148,8 @@ export function SubmitPage() {
     setSubmitterForm({ submitter_name: '', submitter_contact: '', submitter_notes: '' });
     setErrors({});
     setNameError(null);
+    setRepoError(null);
+    setSubmissionDuplicate(null);
     setOriginalDataSnapshot(null);
     setInitialFormSnapshot(null);
     setTurnstileToken(import.meta.env.VITE_DISABLE_TURNSTILE === 'true' ? 'dummy-token' : '');
@@ -163,53 +167,143 @@ export function SubmitPage() {
     setSearchParams(params, { replace: false });
   }
 
+  // Duplicate check: by name (live tables + submissions)
   useEffect(() => {
     const currentName = type === 'app' ? appForm.name : extForm.name;
-    const checkDuplicates = async () => {
-      if (!currentName) {
-        setNameError(null);
-        return;
-      }
+    if (!currentName) {
+      setNameError(null);
+      setSubmissionDuplicate(null);
+      return;
+    }
 
-      const timeoutId = setTimeout(async () => {
-        try {
-          if (currentName) {
-            const { data: appData } = await (supabase.from('apps') as any)
-              .select('id, name')
-              .ilike('name', currentName)
-              .maybeSingle();
+    const timeoutId = setTimeout(async () => {
+      try {
+        // Check live apps table
+        const { data: appData } = await (supabase.from('apps') as any)
+          .select('id, name')
+          .ilike('name', currentName)
+          .maybeSingle();
 
-            if (appData && appData.id !== urlId) {
-              setNameError({
-                message: 'This app name already exists.',
-                url: `/software/${appData.name.toLowerCase().replace(/\s+/g, '-')}`
-              });
-            } else {
-              const { data: extData } = await (supabase.from('extensions') as any)
-                .select('id, name')
-                .ilike('name', currentName)
-                .maybeSingle();
+        if (appData && appData.id !== urlId) {
+          setNameError({
+            message: 'This app name already exists.',
+            url: `/software/${appData.name.toLowerCase().replace(/\\s+/g, '-')}`
+          });
+        } else {
+          // Check live extensions table
+          const { data: extData } = await (supabase.from('extensions') as any)
+            .select('id, name')
+            .ilike('name', currentName)
+            .maybeSingle();
 
-              if (extData && extData.id !== urlId) {
-                setNameError({
-                  message: 'This extension name already exists.',
-                  url: `/extensions/${extData.name.toLowerCase().replace(/\s+/g, '-')}`
-                });
-              } else {
-                setNameError(null);
-              }
-            }
+          if (extData && extData.id !== urlId) {
+            setNameError({
+              message: 'This extension name already exists.',
+              url: `/extensions/${extData.name.toLowerCase().replace(/\\s+/g, '-')}`
+            });
+          } else {
+            setNameError(null);
           }
-        } catch (err) {
-          console.error("Duplicate check failed", err);
         }
-      }, 500);
 
-      return () => clearTimeout(timeoutId);
-    };
+        // Check submissions table for pending/rejected matches
+        const { data: subMatches } = await (supabase.from('submissions') as any)
+          .select('id, status, admin_notes')
+          .eq('submission_type', type)
+          .in('status', ['pending', 'rejected'])
+          .ilike('submitted_data->>name', currentName)
+          .limit(1);
 
-    checkDuplicates();
+        if (subMatches && subMatches.length > 0) {
+          const match = subMatches[0];
+          if (match.status === 'pending') {
+            setSubmissionDuplicate({
+              message: `This ${type} is already submitted and waiting for review.`,
+              status: 'pending',
+              blocking: true,
+            });
+          } else if (match.status === 'rejected') {
+            setSubmissionDuplicate({
+              message: `This ${type} was previously submitted but rejected.`,
+              status: 'rejected',
+              reason: match.admin_notes || undefined,
+              blocking: false,
+            });
+          }
+        } else {
+          setSubmissionDuplicate(null);
+        }
+      } catch (err) {
+        console.error("Duplicate check failed", err);
+      }
+    }, 500);
+
+    return () => clearTimeout(timeoutId);
   }, [type === 'app' ? appForm.name : extForm.name]);
+
+  // Duplicate check: by repo URL (live tables + submissions)
+  useEffect(() => {
+    const currentRepoUrl = type === 'app' ? appForm.repo_url : extForm.repo_url;
+    if (!currentRepoUrl || !currentRepoUrl.trim()) {
+      setRepoError(null);
+      return;
+    }
+
+    const timeoutId = setTimeout(async () => {
+      try {
+        // Check live apps
+        const { data: appMatch } = await (supabase.from('apps') as any)
+          .select('id, name, slug')
+          .ilike('repo_url', currentRepoUrl.trim())
+          .maybeSingle();
+
+        if (appMatch && appMatch.id !== urlId) {
+          setRepoError({
+            message: `An app with this repository URL already exists: ${appMatch.name}`,
+            url: `/software/${appMatch.slug || appMatch.name.toLowerCase().replace(/\\s+/g, '-')}`
+          });
+          return;
+        }
+
+        // Check live extensions
+        const { data: extMatch } = await (supabase.from('extensions') as any)
+          .select('id, name, slug')
+          .ilike('repo_url', currentRepoUrl.trim())
+          .maybeSingle();
+
+        if (extMatch && extMatch.id !== urlId) {
+          setRepoError({
+            message: `An extension with this repository URL already exists: ${extMatch.name}`,
+            url: `/extensions/${extMatch.slug || extMatch.name.toLowerCase().replace(/\\s+/g, '-')}`
+          });
+          return;
+        }
+
+        // Check submissions table for pending/rejected matches by repo_url
+        const { data: subMatches } = await (supabase.from('submissions') as any)
+          .select('id, status, admin_notes')
+          .eq('submission_type', type)
+          .in('status', ['pending', 'rejected'])
+          .ilike('submitted_data->>repo_url', currentRepoUrl.trim())
+          .limit(1);
+
+        if (subMatches && subMatches.length > 0) {
+          const match = subMatches[0];
+          setRepoError({
+            message: `A submission with this repository URL is already ${match.status === 'pending' ? 'waiting for review' : 'rejected'}.${match.status === 'rejected' && match.admin_notes ? ` Reason: ${match.admin_notes}` : ''}`,
+            url: undefined
+          });
+          return;
+        }
+
+        setRepoError(null);
+      } catch (err) {
+        console.error("Repo URL duplicate check failed", err);
+      }
+    }, 500);
+
+    return () => clearTimeout(timeoutId);
+  }, [type === 'app' ? appForm.repo_url : extForm.repo_url]);
 
   const hasChanges = () => {
     if (urlMode !== 'edit' || !initialFormSnapshot) return true;
@@ -249,8 +343,11 @@ export function SubmitPage() {
       return toast.error("Please complete the CAPTCHA");
     }
 
-    if (nameError) {
+    if (nameError || repoError) {
       return toast.error("Please resolve duplicate warnings before submitting.");
+    }
+    if (submissionDuplicate?.blocking) {
+      return toast.error(submissionDuplicate.message);
     }
 
     if (Object.values(errors).some(v => !!v)) {
@@ -537,7 +634,7 @@ export function SubmitPage() {
         ) : (
           <>
             {nameError && (
-              <div className="mb-6 p-4 rounded-xl border border-red-500/20 bg-red-500/10 text-red-500 flex items-start gap-3">
+              <div className="mb-4 p-4 rounded-xl border border-red-500/20 bg-red-500/10 text-red-500 flex items-start gap-3">
                 <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
                 <div className="text-sm">
                   <p className="font-semibold">{nameError.message}</p>
@@ -547,6 +644,41 @@ export function SubmitPage() {
                         View Existing Profile
                       </a>
                     </p>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {repoError && (
+              <div className="mb-4 p-4 rounded-xl border border-red-500/20 bg-red-500/10 text-red-500 flex items-start gap-3">
+                <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
+                <div className="text-sm">
+                  <p className="font-semibold">{repoError.message}</p>
+                  {repoError.url && (
+                    <p className="mt-1">
+                      <a href={repoError.url} target="_blank" rel="noreferrer" className="underline font-medium hover:text-red-400">
+                        View Existing Profile
+                      </a>
+                    </p>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {submissionDuplicate && (
+              <div className={`mb-4 p-4 rounded-xl border flex items-start gap-3 ${
+                submissionDuplicate.status === 'pending'
+                  ? 'border-yellow-500/20 bg-yellow-500/10 text-yellow-600 dark:text-yellow-400'
+                  : 'border-orange-500/20 bg-orange-500/10 text-orange-600 dark:text-orange-400'
+              }`}>
+                <AlertTriangle className="w-5 h-5 shrink-0 mt-0.5" />
+                <div className="text-sm">
+                  <p className="font-semibold">{submissionDuplicate.message}</p>
+                  {submissionDuplicate.reason && (
+                    <p className="mt-1">Reason: <span className="font-medium">{submissionDuplicate.reason}</span></p>
+                  )}
+                  {submissionDuplicate.blocking && (
+                    <p className="mt-1 text-xs opacity-75">You cannot submit again while the previous submission is pending.</p>
                   )}
                 </div>
               </div>
@@ -616,7 +748,7 @@ export function SubmitPage() {
 
                 <AdminButton
                   onClick={handleSubmit}
-                  disabled={submitting || (import.meta.env.VITE_DISABLE_TURNSTILE !== 'true' && !turnstileToken) || loadingInitial || !!nameError || (urlMode === 'edit' && !hasChanges())}
+                  disabled={submitting || (import.meta.env.VITE_DISABLE_TURNSTILE !== 'true' && !turnstileToken) || loadingInitial || !!nameError || !!repoError || !!submissionDuplicate?.blocking || (urlMode === 'edit' && !hasChanges())}
                   className="w-full py-4 text-base shadow-lg shadow-brand/20"
                 >
                   {submitting ? <Loader2 className="w-5 h-5 animate-spin mr-2" /> : <CheckCircle2 className="w-5 h-5 mr-2" />}

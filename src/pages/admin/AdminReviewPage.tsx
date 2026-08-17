@@ -27,6 +27,7 @@ export function AdminReviewPage({ mode }: ReviewPageProps) {
     const [errors, setErrors] = useState<Record<string, string>>({});
     const [actionTarget, setActionTarget] = useState<{ action: 'approve' | 'reject' } | null>(null);
     const [saving, setSaving] = useState(false);
+    const [rejectReason, setRejectReason] = useState('');
 
     const tableName = mode === 'submission' ? 'submissions' : 'public_edit_suggestions';
     const backPath = mode === 'submission' ? '/admin/submissions' : '/admin/edit-suggestions';
@@ -252,14 +253,19 @@ export function AdminReviewPage({ mode }: ReviewPageProps) {
                     // Strip fields that exist in the form but not in the DB tables
                     const fieldsToStrip = [
                         'git_provider', 'install_urls', 'submitter_notes', 'submitter_name',
-                        'submitter_contact', 'submitter_email', 'updated_at', 'dev_status'
+                        'submitter_contact', 'submitter_email', 'updated_at', 'dev_status',
+                        'development_status'
                     ];
                     const gitProvider = payload.git_provider;
+                    const devStatus = payload.development_status || payload.dev_status;
                     fieldsToStrip.forEach((f: string) => delete payload[f]);
 
-                    // Package git_provider into metadata if present
-                    if (gitProvider) {
-                        payload.metadata = { ...(payload.metadata || {}), git_provider: gitProvider };
+                    // Package non-DB fields into metadata
+                    const metaExtras: Record<string, any> = {};
+                    if (gitProvider) metaExtras.git_provider = gitProvider;
+                    if (devStatus) metaExtras.development_status = devStatus;
+                    if (Object.keys(metaExtras).length > 0) {
+                        payload.metadata = { ...(payload.metadata || {}), ...metaExtras };
                     }
 
                     const { error: updateError } = await (supabase as any).from(targetTable).update(payload).eq('id', record.target_id);
@@ -283,10 +289,15 @@ export function AdminReviewPage({ mode }: ReviewPageProps) {
                     toast.success(`Updated ${data.name || 'item'}!`);
                 }
             } else {
-                // Reject
-                await (supabase as any).from(tableName).update({ status: 'rejected' }).eq('id', record.id);
+                // Reject — save the reason as admin_notes
+                const rejectPayload: any = { status: 'rejected' };
+                if (rejectReason.trim()) {
+                    rejectPayload.admin_notes = rejectReason.trim();
+                }
+                await (supabase as any).from(tableName).update(rejectPayload).eq('id', record.id);
                 const logType = mode === 'submission' ? 'submission' : 'edit_suggestion';
-                await logAction('reject' as any, logType as any, record.id, 'Rejected').catch(console.error);
+                await logAction('reject' as any, logType as any, record.id, rejectReason.trim() || 'Rejected').catch(console.error);
+                setRejectReason('');
                 toast.success('Rejected.');
             }
 
@@ -395,14 +406,54 @@ export function AdminReviewPage({ mode }: ReviewPageProps) {
 
 
             {/* Submission-specific: Duplicate Check */}
-            {mode === 'submission' && record.duplicate_check_results && (
-                <div className="mb-6 p-4 rounded-xl bg-orange-500/10 border border-orange-500/20 text-orange-600 dark:text-orange-400">
-                    <h4 className="flex items-center gap-2 font-bold mb-2 text-sm">
+            {mode === 'submission' && record.duplicate_check_results && Array.isArray(record.duplicate_check_results) && record.duplicate_check_results.length > 0 && (
+                <div className="mb-6 p-4 rounded-xl bg-orange-500/10 border border-orange-500/20">
+                    <h4 className="flex items-center gap-2 font-bold mb-3 text-sm text-orange-600 dark:text-orange-400">
                         <AlertTriangle className="w-4 h-4" /> Potential Duplicates Detected
                     </h4>
-                    <pre className="text-[11px] whitespace-pre-wrap font-mono bg-black/5 dark:bg-black/20 p-2 rounded-lg">
-                        {JSON.stringify(record.duplicate_check_results, null, 2)}
-                    </pre>
+                    <div className="space-y-2">
+                        {(record.duplicate_check_results as any[]).map((dup: any, i: number) => {
+                            const name = dup.name || dup.id;
+                            const source = dup.source || 'live';
+                            const status = dup.status;
+                            const reason = dup.reason;
+                            const slug = dup.slug || dup.id;
+                            const itemType = record.submission_type === 'app' ? 'software' : 'extensions';
+                            
+                            const sourceLabel = source === 'submission' 
+                                ? (status === 'rejected' ? 'Rejected Submission' : 'Pending Submission')
+                                : 'Live';
+                            const sourceColor = source === 'submission'
+                                ? (status === 'rejected' ? 'text-red-500 bg-red-500/10 border-red-500/20' : 'text-yellow-500 bg-yellow-500/10 border-yellow-500/20')
+                                : 'text-green-500 bg-green-500/10 border-green-500/20';
+
+                            return (
+                                <div key={i} className="flex flex-col gap-1 p-3 rounded-lg bg-black/5 dark:bg-black/20">
+                                    <div className="flex items-center gap-2 flex-wrap">
+                                        <span className="font-semibold text-sm text-[var(--text-primary)]">{name}</span>
+                                        <span className={`text-[10px] uppercase tracking-wider font-bold px-2 py-0.5 rounded-md border ${sourceColor}`}>
+                                            {sourceLabel}
+                                        </span>
+                                        {source !== 'submission' && (
+                                            <a
+                                                href={`/${itemType}/${slug}`}
+                                                target="_blank"
+                                                rel="noreferrer"
+                                                className="text-xs text-[var(--brand)] hover:underline"
+                                            >
+                                                View →
+                                            </a>
+                                        )}
+                                    </div>
+                                    {reason && (
+                                        <div className="text-xs text-red-400 mt-1">
+                                            <span className="font-semibold">Rejection reason:</span> {reason}
+                                        </div>
+                                    )}
+                                </div>
+                            );
+                        })}
+                    </div>
                 </div>
             )}
 
@@ -531,7 +582,7 @@ export function AdminReviewPage({ mode }: ReviewPageProps) {
             {/* Confirm Dialogs */}
             <ConfirmDialog
                 open={!!actionTarget}
-                onClose={() => setActionTarget(null)}
+                onClose={() => { setActionTarget(null); setRejectReason(''); }}
                 onConfirm={handleAction}
                 title={actionTarget?.action === 'approve'
                     ? (mode === 'submission' ? 'Publish Submission' : 'Approve Edit Suggestion')
@@ -541,11 +592,26 @@ export function AdminReviewPage({ mode }: ReviewPageProps) {
                     ? (mode === 'submission'
                         ? 'This will create a new entry in the live database. Are you sure?'
                         : 'This will update the existing app/extension with these changes. Are you sure?')
-                    : 'Are you sure you want to reject this?'
+                    : 'Are you sure you want to reject this? Provide a reason so re-submitters can see why.'
                 }
                 confirmLabel={actionTarget?.action === 'approve' ? (mode === 'submission' ? 'Publish' : 'Apply') : 'Reject'}
                 destructive={actionTarget?.action === 'reject'}
-            />
+            >
+                {actionTarget?.action === 'reject' && (
+                    <textarea
+                        value={rejectReason}
+                        onChange={(e) => setRejectReason(e.target.value)}
+                        placeholder="Rejection reason (optional but recommended)…"
+                        rows={3}
+                        className="w-full rounded-xl border px-3 py-2 text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--brand)]/40"
+                        style={{
+                            background: 'var(--bg-elev-1)',
+                            borderColor: 'var(--divider)',
+                            color: 'var(--text-primary)',
+                        }}
+                    />
+                )}
+            </ConfirmDialog>
         </div>
     );
 }

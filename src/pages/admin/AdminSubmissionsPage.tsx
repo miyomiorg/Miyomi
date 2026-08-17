@@ -20,6 +20,7 @@ export function AdminSubmissionsPage() {
   const [bulkDeleteTarget, setBulkDeleteTarget] = useState<'approved' | 'rejected' | 'pending' | 'all' | null>(null);
   const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'approved' | 'rejected'>('pending');
   const [typeFilter, setTypeFilter] = useState<'all' | 'app' | 'extension'>('all');
+  const [rejectReason, setRejectReason] = useState('');
 
   useEffect(() => { fetchData(); }, []);
 
@@ -157,13 +158,17 @@ export function AdminSubmissionsPage() {
         const sub = actionTarget.submission;
         const data = sub ? (sub.submitted_data as any) : {};
 
-        await supabase.from('submissions').update({ status: 'rejected' }).eq('id', actionTarget.id);
+        await supabase.from('submissions').update({ 
+          status: 'rejected',
+          ...(rejectReason.trim() ? { admin_notes: rejectReason.trim() } : {})
+        }).eq('id', actionTarget.id);
 
         await logAction('reject', 'submission', actionTarget.id, sub ? `${sub.submission_type} submission` : 'submission', {
-          reason: 'Rejected by admin',
+          reason: rejectReason.trim() || 'Rejected by admin',
           submission_name: data?.name
         }).catch(console.error);
 
+        setRejectReason('');
         toast.success('Submission rejected.');
       }
 
@@ -405,15 +410,30 @@ export function AdminSubmissionsPage() {
       {/* Confirmation Dialogs */}
       <ConfirmDialog
         open={!!actionTarget}
-        onClose={() => setActionTarget(null)}
+        onClose={() => { setActionTarget(null); setRejectReason(''); }}
         onConfirm={handleAction}
         title={actionTarget?.action === 'approve' ? 'Publish Submission' : 'Reject Submission'}
         message={actionTarget?.action === 'approve'
           ? 'This will create a new entry in the live database. Are you sure?'
-          : 'Are you sure you want to reject this submission?'}
+          : 'Are you sure you want to reject this? Provide a reason so re-submitters can see why.'}
         confirmLabel={actionTarget?.action === 'approve' ? 'Publish' : 'Reject'}
         destructive={actionTarget?.action === 'reject'}
-      />
+      >
+        {actionTarget?.action === 'reject' && (
+          <textarea
+            value={rejectReason}
+            onChange={(e) => setRejectReason(e.target.value)}
+            placeholder="Rejection reason (optional but recommended)…"
+            rows={3}
+            className="w-full rounded-xl border px-3 py-2 text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--brand)]/40"
+            style={{
+              background: 'var(--bg-elev-1)',
+              borderColor: 'var(--divider)',
+              color: 'var(--text-primary)',
+            }}
+          />
+        )}
+      </ConfirmDialog>
 
       <ConfirmDialog
         open={!!bulkDeleteTarget}

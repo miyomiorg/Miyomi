@@ -1,3 +1,4 @@
+import React from 'react';
 import { AlertTriangle } from 'lucide-react';
 
 interface ConfirmDialogProps {
@@ -8,9 +9,10 @@ interface ConfirmDialogProps {
   message: string;
   confirmLabel?: string;
   destructive?: boolean;
+  children?: React.ReactNode;
 }
 
-export function ConfirmDialog({ open, onClose, onConfirm, title, message, confirmLabel = 'Delete', destructive = true }: ConfirmDialogProps) {
+export function ConfirmDialog({ open, onClose, onConfirm, title, message, confirmLabel = 'Delete', destructive = true, children }: ConfirmDialogProps) {
   if (!open) return null;
 
   return (
@@ -33,6 +35,7 @@ export function ConfirmDialog({ open, onClose, onConfirm, title, message, confir
             <p className="text-xs mt-0.5" style={{ color: 'var(--text-secondary)' }}>{message}</p>
           </div>
         </div>
+        {children && <div className="mb-4">{children}</div>}
         <div className="flex gap-2 justify-end">
           <button
             onClick={onClose}
