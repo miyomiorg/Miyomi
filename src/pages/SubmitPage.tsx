@@ -206,34 +206,7 @@ export function SubmitPage() {
           }
         }
 
-        // Check submissions table for pending/rejected matches
-        const { data: subMatches } = await (supabase.from('submissions') as any)
-          .select('id, status, admin_notes')
-          .eq('submission_type', type)
-          .in('status', ['pending', 'rejected'])
-          .ilike('submitted_data->>name', currentName)
-          .limit(1);
-
-        if (subMatches && subMatches.length > 0) {
-          const match = subMatches[0];
-          if (match.status === 'pending') {
-            setSubmissionDuplicate({
-              message: `This ${type} is already submitted and waiting for review.`,
-              status: 'pending',
-              blocking: true,
-            });
-          } else if (match.status === 'rejected') {
-            setSubmissionDuplicate({
-              message: `This ${type} was previously submitted but rejected.`,
-              status: 'rejected',
-              reason: match.admin_notes || undefined,
-              blocking: false,
-            });
-          }
-        } else {
-          setSubmissionDuplicate(null);
-        }
-      } catch (err) {
+        } catch (err) {
         console.error("Duplicate check failed", err);
       }
     }, 500);
@@ -279,23 +252,6 @@ export function SubmitPage() {
           return;
         }
 
-        // Check submissions table for pending/rejected matches by repo_url
-        const { data: subMatches } = await (supabase.from('submissions') as any)
-          .select('id, status, admin_notes')
-          .eq('submission_type', type)
-          .in('status', ['pending', 'rejected'])
-          .ilike('submitted_data->>repo_url', currentRepoUrl.trim())
-          .limit(1);
-
-        if (subMatches && subMatches.length > 0) {
-          const match = subMatches[0];
-          setRepoError({
-            message: `A submission with this repository URL is already ${match.status === 'pending' ? 'waiting for review' : 'rejected'}.${match.status === 'rejected' && match.admin_notes ? ` Reason: ${match.admin_notes}` : ''}`,
-            url: undefined
-          });
-          return;
-        }
-
         setRepoError(null);
       } catch (err) {
         console.error("Repo URL duplicate check failed", err);
@@ -304,6 +260,51 @@ export function SubmitPage() {
 
     return () => clearTimeout(timeoutId);
   }, [type === 'app' ? appForm.repo_url : extForm.repo_url]);
+
+  // Duplicate check: Submissions table (pending/rejected)
+  useEffect(() => {
+    const currentName = type === 'app' ? appForm.name : extForm.name;
+    const currentRepoUrl = type === 'app' ? appForm.repo_url : extForm.repo_url;
+    
+    if (!currentName && (!currentRepoUrl || !currentRepoUrl.trim())) {
+      setSubmissionDuplicate(null);
+      return;
+    }
+
+    const timeoutId = setTimeout(async () => {
+      try {
+        const { data: subMatches } = await (supabase.rpc('check_submission_duplicate', {
+          p_type: type,
+          p_name: currentName || null,
+          p_repo_url: currentRepoUrl ? currentRepoUrl.trim() : null
+        }) as any);
+
+        if (subMatches && subMatches.length > 0) {
+          const match = subMatches[0];
+          if (match.status === 'pending') {
+            setSubmissionDuplicate({
+              message: `This ${type} is already submitted and waiting for review.`,
+              status: 'pending',
+              blocking: true,
+            });
+          } else if (match.status === 'rejected') {
+            setSubmissionDuplicate({
+              message: `This ${type} was previously submitted but rejected.`,
+              status: 'rejected',
+              reason: match.admin_notes || undefined,
+              blocking: false,
+            });
+          }
+        } else {
+          setSubmissionDuplicate(null);
+        }
+      } catch (err) {
+        console.error("Submission check failed", err);
+      }
+    }, 500);
+
+    return () => clearTimeout(timeoutId);
+  }, [type, appForm.name, extForm.name, appForm.repo_url, extForm.repo_url]);
 
   const hasChanges = () => {
     if (urlMode !== 'edit' || !initialFormSnapshot) return true;
