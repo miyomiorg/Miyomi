@@ -313,9 +313,12 @@ export function AdminSessionsPage() {
                                         </div>
                                         <div className="space-y-1.5 pl-6">
                                             <div className="flex justify-between">
-                                                <span className="text-sm" style={{ color: 'var(--text-secondary)' }}>IP Address</span>
-                                                <span className="text-sm font-mono font-medium" style={{ color: 'var(--text-primary)' }}>
-                                                    {session.ip_address}
+                                                <span className="text-sm" style={{ color: 'var(--text-secondary)' }}>IP Hash</span>
+                                                <span className="text-sm font-mono font-medium cursor-pointer" style={{ color: 'var(--text-primary)' }}
+                                                    title={session.ip_address}
+                                                    onClick={() => { navigator.clipboard.writeText(session.ip_address); }}
+                                                >
+                                                    {session.ip_address?.length > 16 ? `${session.ip_address.slice(0, 16)}…` : session.ip_address}
                                                 </span>
                                             </div>
                                             {session.country && (

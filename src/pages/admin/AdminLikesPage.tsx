@@ -105,7 +105,7 @@ export function AdminLikesPage() {
 
     // Export to CSV
     const handleExport = () => {
-        const headers = ['Item ID', 'Type', 'Anonymous ID', 'Browser', 'OS', 'Device Type', 'IP', 'Resolution', 'Timezone', 'Language', 'Liked At'];
+        const headers = ['Item ID', 'Type', 'Anonymous ID', 'Browser', 'OS', 'Device Type', 'IP Hash', 'Resolution', 'Timezone', 'Language', 'Liked At'];
         const rows = filtered.map((like: any) => [
             like.item_id,
             like.item_type,

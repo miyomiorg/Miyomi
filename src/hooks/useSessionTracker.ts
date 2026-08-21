@@ -3,6 +3,20 @@ import FingerprintJS from '@fingerprintjs/fingerprintjs';
 import { UAParser } from 'ua-parser-js';
 import { supabase } from '@/integrations/supabase/client';
 
+/**
+ * Hash an IP address using SHA-256 (Web Crypto API).
+ * Returns a hex string. The hash is one-way — it can be compared
+ * but never reversed back to the original IP.
+ */
+async function hashIP(ip: string): Promise<string> {
+    const encoder = new TextEncoder();
+    const data = encoder.encode(ip);
+    const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+    return Array.from(new Uint8Array(hashBuffer))
+        .map(b => b.toString(16).padStart(2, '0'))
+        .join('');
+}
+
 async function gatherDeviceInfo() {
     const fp = await FingerprintJS.load();
     const result = await fp.get();
@@ -11,26 +25,54 @@ async function gatherDeviceInfo() {
     const parser = new UAParser();
     const ua = parser.getResult();
 
+    // Fetch IP address
     const ipResponse = await fetch('https://api.ipify.org?format=json');
     const { ip } = await ipResponse.json();
 
-    let country = null;
-    let city = null;
+    // Hash the IP immediately — never store or send the raw IP
+    const ipHash = await hashIP(ip);
+
+    // Geolocation: Try Cloudflare trace first (free, no API key, works on CF-proxied domains)
+    let country: string | null = null;
+    let city: string | null = null;
+
     try {
-        const geoResponse = await fetch(`http://ip-api.com/json/${ip}`);
-        const geo = await geoResponse.json();
-        if (geo.status === 'success') {
-            country = geo.country;
-            city = geo.city;
+        const cfResponse = await fetch('/cdn-cgi/trace');
+        if (cfResponse.ok) {
+            const cfText = await cfResponse.text();
+            // Cloudflare trace returns key=value pairs separated by newlines
+            const cfData: Record<string, string> = {};
+            cfText.split('\n').forEach(line => {
+                const [key, ...rest] = line.split('=');
+                if (key && rest.length) cfData[key.trim()] = rest.join('=').trim();
+            });
+            // Cloudflare trace provides country code (e.g. "BD", "US") but not city
+            if (cfData.loc) {
+                country = cfData.loc; // ISO country code
+            }
         }
     } catch {
-        // Geolocation optional, ignore errors
+        // Cloudflare trace not available (e.g. localhost), fall through to fallback
+    }
+
+    // Fallback: Use HTTPS geolocation API if Cloudflare didn't provide full data
+    if (!country || !city) {
+        try {
+            const geoResponse = await fetch(`https://ipapi.co/${ip}/json/`);
+            const geo = await geoResponse.json();
+            if (!geo.error) {
+                if (!country) country = geo.country_name || geo.country || null;
+                if (!city) city = geo.city || null;
+            }
+        } catch {
+            // Geolocation is optional, ignore errors
+        }
     }
 
     return {
         fingerprint,
         ua,
-        ip,
+        ipHash,
         country,
         city,
     };
@@ -39,7 +81,7 @@ async function gatherDeviceInfo() {
 export function useSessionTracker() {
     const trackSession = useCallback(async (sessionType: 'login' | 'logout') => {
         try {
-            const { fingerprint, ua, ip, country, city } = await gatherDeviceInfo();
+            const { fingerprint, ua, ipHash, country, city } = await gatherDeviceInfo();
 
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) return;
@@ -55,7 +97,7 @@ export function useSessionTracker() {
             await supabase.from('admin_sessions').insert({
                 admin_id: admin.id,
                 session_type: sessionType,
-                ip_address: ip,
+                ip_address: ipHash,
                 user_agent: navigator.userAgent,
                 browser: ua.browser.name || null,
                 browser_version: ua.browser.version || null,
@@ -75,13 +117,14 @@ export function useSessionTracker() {
 
     const trackUnauthorizedAttempt = useCallback(async (email: string, provider: string) => {
         try {
-            const { fingerprint, ua, ip, country, city } = await gatherDeviceInfo();
+            const { fingerprint, ua, ipHash, country, city } = await gatherDeviceInfo();
 
             // Get the Supabase project URL for the edge function
             const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
             const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || '';
 
             // Call security-alert edge function (handles both DB logging and Telegram)
+            // Send the hashed IP — never the raw IP
             await fetch(`${supabaseUrl}/functions/v1/security-alert`, {
                 method: 'POST',
                 headers: {
@@ -91,7 +134,7 @@ export function useSessionTracker() {
                 body: JSON.stringify({
                     email,
                     auth_provider: provider,
-                    ip_address: ip,
+                    ip_address: ipHash,
                     user_agent: navigator.userAgent,
                     browser: ua.browser.name || null,
                     browser_version: ua.browser.version || null,

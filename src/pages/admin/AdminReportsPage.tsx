@@ -329,8 +329,11 @@ export function AdminReportsPage() {
                                             <span className="text-[var(--text-primary)]">{viewReport.browser || 'Unknown'} / {viewReport.os || 'Unknown'}</span>
                                         </div>
                                         <div className="flex justify-between text-xs">
-                                            <span className="text-[var(--text-secondary)] flex items-center gap-1.5"><Globe className="w-3.5 h-3.5" /> IP</span>
-                                            <span className="text-[var(--text-primary)] font-mono">{viewReport.ip_address || 'N/A'}</span>
+                                            <span className="text-[var(--text-secondary)] flex items-center gap-1.5"><Globe className="w-3.5 h-3.5" /> IP Hash</span>
+                                            <span className="text-[var(--text-primary)] font-mono cursor-pointer"
+                                                title={viewReport.ip_address || undefined}
+                                                onClick={() => viewReport.ip_address && navigator.clipboard.writeText(viewReport.ip_address)}
+                                            >{viewReport.ip_address ? (viewReport.ip_address.length > 16 ? `${viewReport.ip_address.slice(0, 16)}…` : viewReport.ip_address) : 'N/A'}</span>
                                         </div>
                                     </div>
                                 </div>
