@@ -11,6 +11,7 @@ import { SharedExtensionForm } from '@/components/forms/SharedExtensionForm';
 import { emptyApp } from '@/pages/admin/AdminAppFormPage';
 import { emptyExt } from '@/pages/admin/AdminExtensionFormPage';
 import { InstallUrlEntry } from '@/components/admin/InstallUrlsInput';
+import { extractFunctionError } from '@/utils/functionErrors';
 
 export function SubmitPage() {
   const navigate = useNavigate();
@@ -273,11 +274,11 @@ export function SubmitPage() {
 
     const timeoutId = setTimeout(async () => {
       try {
-        const { data: subMatches } = await (supabase.rpc('check_submission_duplicate', {
+        const { data: subMatches } = await (supabase.rpc as any)('check_submission_duplicate', {
           p_type: type,
           p_name: currentName || null,
           p_repo_url: currentRepoUrl ? currentRepoUrl.trim() : null
-        }) as any);
+        });
 
         if (subMatches && subMatches.length > 0) {
           const match = subMatches[0];
@@ -453,20 +454,17 @@ export function SubmitPage() {
         body: payload
       });
 
-      if (error) {
-        const serverMsg = data?.error || error.message;
-        throw new Error(serverMsg);
-      }
-      if (!data.success) {
-        const detailMsg = data.details ? ` (${JSON.stringify(data.details)})` : '';
-        throw new Error((data.error || "Submission failed") + detailMsg);
+      if (error || !data?.success) {
+        const errorMsg = await extractFunctionError(error, data, "Submission failed");
+        const detailMsg = data?.details ? ` (${JSON.stringify(data.details)})` : '';
+        throw new Error(errorMsg + detailMsg);
       }
 
       goTo(3);
       toast.success("Submission received!");
     } catch (err: any) {
       console.error(err);
-      toast.error("Submission failed: " + err.message);
+      toast.error(err.message || "Submission failed");
     } finally {
       setSubmitting(false);
     }

@@ -6,6 +6,7 @@ import Turnstile from 'react-turnstile';
 import { supabase } from '@/integrations/supabase/client';
 import { getDeviceFingerprint } from '@/utils/deviceFingerprint';
 import { collectDeviceInfo } from '@/utils/deviceInfo';
+import { extractFunctionError } from '@/utils/functionErrors';
 
 interface ReportModalProps {
   isOpen: boolean;
@@ -102,14 +103,16 @@ export function ReportModal({ isOpen, onClose, targetType, targetId, targetName,
         body: payload
       });
 
-      if (error) throw new Error(error.message);
-      if (!data?.success) throw new Error(data?.error || 'Failed to submit report');
+      if (error || !data?.success) {
+        const errorMsg = await extractFunctionError(error, data, 'Failed to submit report');
+        throw new Error(errorMsg);
+      }
 
       setSubmitted(true);
       toast.success('Thanks! Your report was submitted and will be reviewed.');
     } catch (err: any) {
       console.error(err);
-      toast.error('Submission failed: ' + err.message);
+      toast.error(err.message || 'Submission failed');
     } finally {
       setSubmitting(false);
     }

@@ -7,6 +7,7 @@ import Turnstile from 'react-turnstile';
 import { supabase } from '../integrations/supabase/client';
 import { dataService } from '../services/dataService';
 import { AdminRichTextEditor } from '../components/admin/AdminRichTextEditor';
+import { extractFunctionError } from '../utils/functionErrors';
 
 interface SubmitGuidePageProps {
   onNavigate?: (path: string) => void;
@@ -111,11 +112,9 @@ export function SubmitGuidePage({ onNavigate }: SubmitGuidePageProps) {
         body: payload
       });
 
-      if (error) {
-        throw new Error(data?.error || error.message);
-      }
-      if (!data.success) {
-        throw new Error(data.error || "Submission failed");
+      if (error || !data?.success) {
+        const errorMsg = await extractFunctionError(error, data, "Submission failed");
+        throw new Error(errorMsg);
       }
 
       toast.success(isEdit ? "Edit suggestion submitted successfully!" : "Guide submitted successfully!");
