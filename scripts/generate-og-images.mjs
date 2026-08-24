@@ -12,6 +12,32 @@ import { renderToPng } from './og/renderOgImage.mjs';
 dotenv.config({ path: '.env.local' });
 dotenv.config();
 
+// Skip OG image generation for debug or preview deployments (e.g. Cloudflare Pages dev branch)
+const isDebug =
+  process.env.DEBUG === 'true' ||
+  process.env.DEBUG === '1' ||
+  process.env.VITE_DEBUG === 'true' ||
+  process.env.VITE_DEBUG === '1';
+
+const isPreview =
+  process.env.CF_PAGES_ENVIRONMENT === 'preview' ||
+  process.env.CF_PAGES_BRANCH === 'dev' ||
+  process.env.CF_PAGES_BRANCH === 'development' ||
+  (process.env.CF_PAGES_BRANCH && process.env.CF_PAGES_BRANCH !== 'master' && process.env.CF_PAGES_BRANCH !== 'main');
+
+const isExplicitSkip =
+  process.env.SKIP_OG_IMAGES === 'true' ||
+  process.env.SKIP_OG_IMAGES === '1' ||
+  process.env.VITE_SKIP_OG_IMAGES === 'true' ||
+  process.env.VITE_SKIP_OG_IMAGES === '1';
+
+if (isDebug || isPreview || isExplicitSkip) {
+  console.log(
+    `⏩ Skipping OG image generation for preview/debug deployment (DEBUG=${process.env.DEBUG || process.env.VITE_DEBUG}, CF_PAGES_BRANCH=${process.env.CF_PAGES_BRANCH}, CF_PAGES_ENVIRONMENT=${process.env.CF_PAGES_ENVIRONMENT}).`
+  );
+  process.exit(0);
+}
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const ROOT_DIR = path.resolve(__dirname, '..');
