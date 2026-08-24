@@ -10,6 +10,7 @@ import { Download, Palette, HelpCircle, GitBranch, Loader2, Link2, Layers } from
 import { toast } from 'sonner';
 import { extractColorFromImage } from '@/utils/extractColorFromImage';
 import { detectGitProvider } from '@/utils/gitProviders';
+import { getFieldDiff } from '@/utils/diffUtils';
 
 function formatSlugInput(text: string): string {
     return text
@@ -28,28 +29,8 @@ export function SharedExtensionForm({
 }: { 
     form: any, setForm: any, errors: any, setErrors: any, isAdmin?: boolean, isBasicMode?: boolean, originalData?: any 
 }) {
-    const isEmptyVal = (val: any) => {
-        if (val === null || val === undefined || val === '') return true;
-        if (Array.isArray(val) && val.length === 0) return true;
-        if (typeof val === 'object' && Object.keys(val).length === 0) return true;
-        return false;
-    };
-
     const getDiff = (field: string) => {
-        if (!originalData) return undefined;
-        const oldVal = originalData[field];
-        const newVal = form[field];
-
-        // If both values represent empty states, do not flag as a diff
-        if (isEmptyVal(oldVal) && isEmptyVal(newVal)) return undefined;
-
-        if (JSON.stringify(oldVal) !== JSON.stringify(newVal)) {
-            if (isEmptyVal(oldVal)) return '(empty)';
-            if (Array.isArray(oldVal)) return oldVal.length === 0 ? '(empty)' : oldVal.join(', ');
-            if (typeof oldVal === 'object') return JSON.stringify(oldVal);
-            return String(oldVal);
-        }
-        return undefined;
+        return getFieldDiff(field, originalData, form);
     };
     const [fetchingGithub, setFetchingGithub] = useState(false);
     const [extractingColor, setExtractingColor] = useState(false);

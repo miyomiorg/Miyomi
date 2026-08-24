@@ -9,6 +9,7 @@ import { Download, Palette, HelpCircle, GitBranch, Loader2, Layers, Puzzle } fro
 import { toast } from 'sonner';
 import { extractColorFromImage } from '@/utils/extractColorFromImage';
 import { detectGitProvider } from '@/utils/gitProviders';
+import { getFieldDiff } from '@/utils/diffUtils';
 
 function formatSlugInput(text: string): string {
     return text
@@ -26,28 +27,8 @@ export function SharedAppForm({
 }: { 
     form: any, setForm: any, errors: any, setErrors: any, isAdmin?: boolean, isBasicMode?: boolean, originalData?: any 
 }) {
-    const isEmptyVal = (val: any) => {
-        if (val === null || val === undefined || val === '') return true;
-        if (Array.isArray(val) && val.length === 0) return true;
-        if (typeof val === 'object' && Object.keys(val).length === 0) return true;
-        return false;
-    };
-
     const getDiff = (field: string) => {
-        if (!originalData) return undefined;
-        const oldVal = originalData[field];
-        const newVal = form[field];
-
-        // If both values represent empty states, do not flag as a diff
-        if (isEmptyVal(oldVal) && isEmptyVal(newVal)) return undefined;
-
-        if (JSON.stringify(oldVal) !== JSON.stringify(newVal)) {
-            if (isEmptyVal(oldVal)) return '(empty)';
-            if (Array.isArray(oldVal)) return oldVal.length === 0 ? '(empty)' : oldVal.join(', ');
-            if (typeof oldVal === 'object') return JSON.stringify(oldVal);
-            return String(oldVal);
-        }
-        return undefined;
+        return getFieldDiff(field, originalData, form);
     };
     const [fetchingGithub, setFetchingGithub] = useState(false);
     const [extractingColor, setExtractingColor] = useState(false);
@@ -313,7 +294,7 @@ export function SharedAppForm({
                                 <AdminFormField label="Version" diffValue={getDiff('version')}>
                                     <AdminInput value={form.version} onChange={e => setForm((f: any) => ({ ...f, version: e.target.value }))} placeholder="1.0.0" />
                                 </AdminFormField>
-                                <AdminFormField label="Last Updated" diffValue={getDiff('last_updated_at')}>
+                                <AdminFormField label="Last Updated" diffValue={getDiff('last_release_date')}>
                                     <AdminInput type="date" value={form.last_release_date?.split('T')[0] || ''} onChange={e => setForm((f: any) => ({ ...f, last_release_date: e.target.value }))} />
                                 </AdminFormField>
                             </div>
@@ -321,13 +302,13 @@ export function SharedAppForm({
                     </div>
                     {!isBasicMode && (
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2 border-t border-[var(--divider)] mt-2">
-                            <AdminFormField label="Fork Of (Parent App)" diffValue={getDiff('parent_app_slug')}>
+                            <AdminFormField label="Fork Of (Parent App)" diffValue={getDiff('fork_of')}>
                                 <AdminInput value={form.fork_of} onChange={e => setForm((f: any) => ({ ...f, fork_of: e.target.value }))} placeholder="e.g. Mihon" />
                             </AdminFormField>
                             <AdminFormField label="Upstream URL" diffValue={getDiff('upstream_url')}>
                                 <AdminInput value={form.upstream_url} onChange={e => setForm((f: any) => ({ ...f, upstream_url: e.target.value }))} placeholder="https://github.com/parent/repo" />
                             </AdminFormField>
-                            <AdminFormField label="Development Status" diffValue={getDiff('development_status')}>
+                            <AdminFormField label="Development Status" diffValue={getDiff('dev_status')}>
                                 <AdminSelect value={form.dev_status || 'active'} onChange={e => setForm((f: any) => ({ ...f, dev_status: e.target.value }))}>
                                     <option value="active">Active</option>
                                     <option value="discontinued">Discontinued</option>

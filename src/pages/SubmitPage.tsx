@@ -12,6 +12,7 @@ import { emptyApp } from '@/pages/admin/AdminAppFormPage';
 import { emptyExt } from '@/pages/admin/AdminExtensionFormPage';
 import { InstallUrlEntry } from '@/components/admin/InstallUrlsInput';
 import { extractFunctionError } from '@/utils/functionErrors';
+import { detectGitProvider } from '@/utils/gitProviders';
 
 export function SubmitPage() {
   const navigate = useNavigate();
@@ -90,11 +91,16 @@ export function SubmitPage() {
           if (error) throw error;
           const data = rawData as any;
           if (data) {
-            setOriginalDataSnapshot(data);
             if (type === 'app') {
+              const meta = data.metadata as any;
+              const detectedProvider = data.repo_url ? detectGitProvider(data.repo_url).toLowerCase() : 'github';
               const normalized = {
                 ...emptyApp,
                 ...data,
+                git_provider: meta?.git_provider || data.git_provider || detectedProvider,
+                dev_status: meta?.dev_status || data.dev_status || 'active',
+                fork_of: data.fork_of || data.parent_app_slug || '',
+                upstream_url: data.upstream_url || meta?.upstream_url || '',
                 platforms: data.platforms || [],
                 tags: data.tags || [],
                 content_types: data.content_types || [],
@@ -103,10 +109,12 @@ export function SubmitPage() {
                   : (data.discord_url ? [data.discord_url] : []),
                 tutorials: Array.isArray(data.tutorials) ? data.tutorials : []
               };
+              setOriginalDataSnapshot(normalized);
               setAppForm(normalized);
               setInitialFormSnapshot(normalized);
             } else {
               const meta = data.metadata as any;
+              const detectedProvider = data.repo_url ? detectGitProvider(data.repo_url).toLowerCase() : (data.source_url ? detectGitProvider(data.source_url).toLowerCase() : 'github');
               let loadedInstallUrls: InstallUrlEntry[] = [];
               if (meta?.install_urls && Array.isArray(meta.install_urls) && meta.install_urls.length > 0) {
                 loadedInstallUrls = meta.install_urls;
@@ -118,6 +126,7 @@ export function SubmitPage() {
               const normalized = {
                 ...emptyExt,
                 ...data,
+                git_provider: meta?.git_provider || data.git_provider || detectedProvider,
                 platforms: data.platforms || [],
                 tags: data.tags || [],
                 types: data.types || [],
@@ -128,6 +137,7 @@ export function SubmitPage() {
                   : (data.discord_url ? [data.discord_url] : []),
                 tutorials: Array.isArray(data.tutorials) ? data.tutorials : []
               };
+              setOriginalDataSnapshot(normalized);
               setExtForm(normalized);
               setInitialFormSnapshot(normalized);
             }

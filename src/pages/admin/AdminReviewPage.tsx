@@ -12,6 +12,7 @@ import { SharedExtensionForm } from '@/components/forms/SharedExtensionForm';
 import { toast } from 'sonner';
 import { upsertContributor } from '@/utils/contributors';
 import { approveSubmissionRecord, approveEditSuggestionRecord } from '@/utils/approvalUtils';
+import { getFieldDiff } from '@/utils/diffUtils';
 
 interface ReviewPageProps {
     mode: 'submission' | 'edit-suggestion';
@@ -363,7 +364,7 @@ export function AdminReviewPage({ mode }: ReviewPageProps) {
                         const skipKeys = ['id', 'created_at', 'updated_at', 'slug', 'likes_count', 'download_count', 'metadata', 'submitter_notes'];
                         const changedKeys = Object.keys(submitted).filter(key => {
                             if (skipKeys.includes(key)) return false;
-                            return JSON.stringify(orig[key]) !== JSON.stringify(submitted[key]);
+                            return getFieldDiff(key, orig, submitted) !== undefined;
                         });
                         
                         if (changedKeys.length === 0) return null;

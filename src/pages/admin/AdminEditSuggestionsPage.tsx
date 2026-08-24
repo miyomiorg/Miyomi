@@ -8,6 +8,7 @@ import { ConfirmDialog } from '@/components/admin/ConfirmDialog';
 import { EndpointToggle } from '@/components/admin/EndpointToggle';
 import { toast } from 'sonner';
 import { approveEditSuggestionRecord } from '@/utils/approvalUtils';
+import { getFieldDiff } from '@/utils/diffUtils';
 
 export function AdminEditSuggestionsPage() {
   const navigate = useNavigate();
@@ -44,9 +45,10 @@ export function AdminEditSuggestionsPage() {
   function getChangedFieldCount(sub: any): number {
     const orig = (sub.original_data_snapshot as any) || {};
     const submitted = (sub.submitted_data as any) || {};
+    const skipKeys = ['id', 'created_at', 'updated_at', 'slug', 'likes_count', 'download_count', 'metadata', 'submitter_notes'];
     return Object.keys(submitted).filter(key => {
-      if (['id', 'created_at', 'updated_at'].includes(key)) return false;
-      return JSON.stringify(orig[key]) !== JSON.stringify(submitted[key]);
+      if (skipKeys.includes(key)) return false;
+      return getFieldDiff(key, orig, submitted) !== undefined;
     }).length;
   }
 
