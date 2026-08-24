@@ -7,4 +7,6 @@ bun.lockb
 backups/
 .env.production
 .env.local
-supabase
+supabase/.temp/
+supabase/.branches/
+supabase/config.toml
