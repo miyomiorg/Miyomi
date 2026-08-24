@@ -25,56 +25,25 @@ async function gatherDeviceInfo() {
     const parser = new UAParser();
     const ua = parser.getResult();
 
-    // Fetch IP address
-    const ipResponse = await fetch('https://api.ipify.org?format=json');
-    const { ip } = await ipResponse.json();
-
-    // Hash the IP immediately — never store or send the raw IP
-    const ipHash = await hashIP(ip);
-
-    // Geolocation: Try Cloudflare trace first (free, no API key, works on CF-proxied domains)
-    let country: string | null = null;
-    let city: string | null = null;
-
+    // Fetch IP address and hash it immediately — never store or send raw IP
+    let ipHash = '';
     try {
-        const cfResponse = await fetch('/cdn-cgi/trace');
-        if (cfResponse.ok) {
-            const cfText = await cfResponse.text();
-            // Cloudflare trace returns key=value pairs separated by newlines
-            const cfData: Record<string, string> = {};
-            cfText.split('\n').forEach(line => {
-                const [key, ...rest] = line.split('=');
-                if (key && rest.length) cfData[key.trim()] = rest.join('=').trim();
-            });
-            // Cloudflare trace provides country code (e.g. "BD", "US") but not city
-            if (cfData.loc) {
-                country = cfData.loc; // ISO country code
-            }
+        const ipResponse = await fetch('https://api.ipify.org?format=json');
+        const { ip } = await ipResponse.json();
+        if (ip) {
+            ipHash = await hashIP(ip);
         }
     } catch {
-        // Cloudflare trace not available (e.g. localhost), fall through to fallback
-    }
-
-    // Fallback: Use HTTPS geolocation API if Cloudflare didn't provide full data
-    if (!country || !city) {
-        try {
-            const geoResponse = await fetch(`https://ipapi.co/${ip}/json/`);
-            const geo = await geoResponse.json();
-            if (!geo.error) {
-                if (!country) country = geo.country_name || geo.country || null;
-                if (!city) city = geo.city || null;
-            }
-        } catch {
-            // Geolocation is optional, ignore errors
-        }
+        // Fallback hash if ipify is blocked
+        ipHash = await hashIP(fingerprint);
     }
 
     return {
         fingerprint,
         ua,
         ipHash,
-        country,
-        city,
+        country: null,
+        city: null,
     };
 }
 

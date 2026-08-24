@@ -17,7 +17,7 @@ interface SoftwarePageProps {
 
 type SortOption = 'name-asc' | 'name-desc' | 'updated-desc' | 'updated-asc' | 'rating' | 'downloads' | 'loved' | 'added-desc' | 'added-asc';
 
-const contentTypes = ['All', 'Manga', 'Anime', 'Light Novel', 'Webtoon', 'Comics', 'Multi'];
+const contentTypes = ['All', 'Anime', 'Manga', 'Light Novel', 'Multi'];
 const platforms = ['All', 'Android', 'iOS', 'Windows', 'macOS', 'Linux', 'Web'];
 
 export function SoftwarePage({ onNavigate }: SoftwarePageProps) {

@@ -18,7 +18,7 @@ function formatSlugInput(text: string): string {
 }
 
 const PLATFORM_OPTIONS = ['Android', 'iOS', 'Windows', 'macOS', 'Linux', 'Web'];
-const CONTENT_TYPE_OPTIONS = ['Anime', 'Manga', 'Light Novel', 'Webtoon', 'Comics'];
+const CONTENT_TYPE_OPTIONS = ['Anime', 'Manga', 'Light Novel', 'Multi'];
 const TAG_OPTIONS = ['Free', 'Paid', 'Open Source', 'Ad-free', 'NSFW', 'Reader', 'Tracker', 'Downloader'];
 
 export function SharedAppForm({ 
@@ -26,12 +26,23 @@ export function SharedAppForm({
 }: { 
     form: any, setForm: any, errors: any, setErrors: any, isAdmin?: boolean, isBasicMode?: boolean, originalData?: any 
 }) {
+    const isEmptyVal = (val: any) => {
+        if (val === null || val === undefined || val === '') return true;
+        if (Array.isArray(val) && val.length === 0) return true;
+        if (typeof val === 'object' && Object.keys(val).length === 0) return true;
+        return false;
+    };
+
     const getDiff = (field: string) => {
         if (!originalData) return undefined;
         const oldVal = originalData[field];
         const newVal = form[field];
+
+        // If both values represent empty states, do not flag as a diff
+        if (isEmptyVal(oldVal) && isEmptyVal(newVal)) return undefined;
+
         if (JSON.stringify(oldVal) !== JSON.stringify(newVal)) {
-            if (oldVal === null || oldVal === undefined || oldVal === '') return '(empty)';
+            if (isEmptyVal(oldVal)) return '(empty)';
             if (Array.isArray(oldVal)) return oldVal.length === 0 ? '(empty)' : oldVal.join(', ');
             if (typeof oldVal === 'object') return JSON.stringify(oldVal);
             return String(oldVal);

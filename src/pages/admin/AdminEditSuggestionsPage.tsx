@@ -7,6 +7,7 @@ import { AdminButton, StatusBadge, EmptyState } from '@/components/admin/AdminFo
 import { ConfirmDialog } from '@/components/admin/ConfirmDialog';
 import { EndpointToggle } from '@/components/admin/EndpointToggle';
 import { toast } from 'sonner';
+import { approveEditSuggestionRecord } from '@/utils/approvalUtils';
 
 export function AdminEditSuggestionsPage() {
   const navigate = useNavigate();
@@ -18,6 +19,7 @@ export function AdminEditSuggestionsPage() {
   const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'approved' | 'rejected'>('pending');
   const [typeFilter, setTypeFilter] = useState<'all' | 'app' | 'extension'>('all');
   const [actionTarget, setActionTarget] = useState<{ id: string; action: 'approve' | 'reject'; suggestion?: any } | null>(null);
+  const [rejectReason, setRejectReason] = useState('');
 
   useEffect(() => { fetchData(); }, []);
 
@@ -92,22 +94,23 @@ export function AdminEditSuggestionsPage() {
     try {
       if (actionTarget.action === 'approve' && actionTarget.suggestion) {
         const sub = actionTarget.suggestion;
-        const data = (sub.submitted_data as any) || {};
-        const targetTable = sub.target_type === 'app' ? 'apps' : 'extensions';
+        const result = await approveEditSuggestionRecord(sub);
 
-        const payload = { ...data };
-        delete payload.id;
-        delete payload.created_at;
+        if (!result.success) {
+          toast.error(result.error || 'Approval failed');
+          return;
+        }
 
-        const { error: updateError } = await (supabase as any).from(targetTable).update(payload).eq('id', sub.target_id);
-        if (updateError) throw updateError;
-
-        await (supabase as any).from('public_edit_suggestions').delete().eq('id', sub.id);
         await logAction('approve' as any, 'edit_suggestion' as any, sub.id, `${sub.target_type} edit suggestion`).catch(console.error);
-        toast.success(`Updated ${data.name || 'item'}!`);
+        toast.success(`Updated ${result.name}!`);
       } else {
-        await (supabase as any).from('public_edit_suggestions').update({ status: 'rejected' }).eq('id', actionTarget.id);
-        await logAction('reject' as any, 'edit_suggestion' as any, actionTarget.id, 'Rejected').catch(console.error);
+        const rejectPayload: any = { status: 'rejected' };
+        if (rejectReason.trim()) {
+          rejectPayload.admin_note = rejectReason.trim();
+        }
+        await (supabase as any).from('public_edit_suggestions').update(rejectPayload).eq('id', actionTarget.id);
+        await logAction('reject' as any, 'edit_suggestion' as any, actionTarget.id, rejectReason.trim() || 'Rejected').catch(console.error);
+        setRejectReason('');
         toast.success('Rejected.');
       }
       setActionTarget(null);
@@ -336,15 +339,30 @@ export function AdminEditSuggestionsPage() {
       {/* Confirmation Dialogs */}
       <ConfirmDialog
         open={!!actionTarget}
-        onClose={() => setActionTarget(null)}
+        onClose={() => { setActionTarget(null); setRejectReason(''); }}
         onConfirm={handleAction}
         title={actionTarget?.action === 'approve' ? 'Approve Edit Suggestion' : 'Reject Edit Suggestion'}
         message={actionTarget?.action === 'approve'
           ? 'This will update the existing app/extension with the suggested changes. Are you sure?'
-          : 'Are you sure you want to reject this edit suggestion?'}
+          : 'Are you sure you want to reject this edit suggestion? Provide a reason so re-submitters can see why.'}
         confirmLabel={actionTarget?.action === 'approve' ? 'Apply' : 'Reject'}
         destructive={actionTarget?.action === 'reject'}
-      />
+      >
+        {actionTarget?.action === 'reject' && (
+          <textarea
+            value={rejectReason}
+            onChange={(e) => setRejectReason(e.target.value)}
+            placeholder="Rejection reason (optional but recommended)…"
+            rows={3}
+            className="w-full rounded-xl border px-3 py-2 text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--brand)]/40"
+            style={{
+              background: 'var(--bg-elev-1)',
+              borderColor: 'var(--divider)',
+              color: 'var(--text-primary)',
+            }}
+          />
+        )}
+      </ConfirmDialog>
 
       <ConfirmDialog
         open={!!bulkDeleteTarget}

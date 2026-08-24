@@ -11,6 +11,7 @@ import { SharedAppForm } from '@/components/forms/SharedAppForm';
 import { SharedExtensionForm } from '@/components/forms/SharedExtensionForm';
 import { toast } from 'sonner';
 import { upsertContributor } from '@/utils/contributors';
+import { approveSubmissionRecord, approveEditSuggestionRecord } from '@/utils/approvalUtils';
 
 interface ReviewPageProps {
     mode: 'submission' | 'edit-suggestion';
@@ -150,153 +151,41 @@ export function AdminReviewPage({ mode }: ReviewPageProps) {
         try {
             if (actionTarget.action === 'approve') {
                 if (mode === 'submission') {
-                    // INSERT into apps/extensions
-                    const data = editedData || record.submitted_data || {};
-                    const targetTable = record.submission_type === 'app' ? 'apps' : 'extensions';
-
-                    const slug = (data.name || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
-                    const payload: any = {
-                        name: data.name,
-                        description: data.description,
-                        short_description: data.short_description || null,
-                        slug,
-                        repo_url: data.repo_url || data.url,
-                        author: record.author || data.author,
-                        status: 'approved',
-                        tags: data.tags || [],
-                        icon_url: data.icon_url,
-                        icon_color: data.icon_color,
-                        website_url: data.website_url,
-                        social_urls: Array.isArray(data.social_urls) ? data.social_urls.filter((u: string) => u?.trim()) : [],
-                    };
-
-                    if (record.submission_type === 'app') {
-                        payload.platforms = data.platforms || [];
-                        payload.download_url = data.download_url;
-                        payload.version = data.version;
-                        payload.content_types = data.content_types || [];
-                        payload.tutorials = data.tutorials || [];
-                        payload.fork_of = data.fork_of;
-                        payload.upstream_url = data.upstream_url;
-                        // Package git_provider into metadata
-                        if (data.git_provider) {
-                            payload.metadata = { ...(payload.metadata || {}), git_provider: data.git_provider };
-                        }
-                    } else {
-                        const installUrls = data.install_urls || [];
-                        const firstAuto = installUrls.find((u: any) => u.type === 'auto');
-                        const firstCopy = installUrls.find((u: any) => u.type === 'copy');
-                        payload.compatible_with = data.compatible_with || [];
-                        payload.types = data.types || data.content_types || [];
-                        payload.source_url = data.source_url;
-                        payload.language = data.language;
-                        payload.auto_url = firstAuto?.url || data.auto_url || null;
-                        payload.manual_url = firstCopy?.url || data.manual_url || null;
-                        payload.metadata = installUrls.length > 0 ? { install_urls: installUrls } : null;
-                        payload.tutorials = data.tutorials || [];
-                        // Package git_provider into metadata
-                        if (data.git_provider) {
-                            payload.metadata = { ...(payload.metadata || {}), git_provider: data.git_provider };
-                        }
+                    const result = await approveSubmissionRecord(record, editedData);
+                    if (!result.success) {
+                        toast.error(result.error || 'Approval failed');
+                        setActionTarget(null);
+                        return;
                     }
-                    const { data: insertedData, error: insertError } = await supabase.from(targetTable).insert(payload).select().single();
-                    if (insertError) {
-                        if (insertError.code === '23505') {
-                            toast.error(`Slug conflict: '${slug}' already exists.`);
-                            setActionTarget(null);
-                            return;
-                        }
-                        throw insertError;
-                    }
-
-                    // Handle groups
-                    if (insertedData) {
-                        const groupIds = data._selectedGroupIds || [];
-                        if (record.submission_type === 'app') {
-                            const manualExts = data.compatible_with || [];
-                            await setAppGroups(insertedData.id, groupIds);
-                            await syncAppCompatibility(insertedData.id, insertedData.name, groupIds, manualExts);
-                        } else {
-                            const manualApps = data.compatible_with || [];
-                            await setExtensionGroups(insertedData.id, groupIds);
-                            await syncExtensionCompatibility(insertedData.id, insertedData.name, groupIds, manualApps);
-                        }
-                    }
-
-                    await (supabase as any).from('submissions').delete().eq('id', record.id);
-
-                    // Save contributor profile
-                    if (insertedData) {
-                        await upsertContributor(
-                            record.submitter_name,
-                            record.submitter_email,
-                            record.submitter_contact,
-                            { type: record.submission_type as 'app' | 'extension', id: insertedData.id, name: data.name }
-                        ).catch(console.error);
-                    }
-
                     await logAction('approve', 'submission', record.id, `${record.submission_type} submission`).catch(console.error);
-                    toast.success(`Published ${data.name}!`);
+                    toast.success(`Published ${result.name}!`);
                 } else {
-                    // UPDATE existing app/extension
-                    const data = editedData || record.submitted_data || {};
-                    const targetTable = record.target_type === 'app' ? 'apps' : 'extensions';
-                    const payload = { ...data };
-                    delete payload.id;
-                    delete payload.created_at;
-                    
-                    // Extract group info before saving to DB
-                    const groupIds = payload._selectedGroupIds;
-                    delete payload._selectedGroupIds;
-                    delete payload._selectedGroupNames;
-
-                    // Strip fields that exist in the form but not in the DB tables
-                    const fieldsToStrip = [
-                        'git_provider', 'install_urls', 'submitter_notes', 'submitter_name',
-                        'submitter_contact', 'submitter_email', 'updated_at', 'dev_status',
-                        'development_status'
-                    ];
-                    const gitProvider = payload.git_provider;
-                    const devStatus = payload.development_status || payload.dev_status;
-                    fieldsToStrip.forEach((f: string) => delete payload[f]);
-
-                    // Package non-DB fields into metadata
-                    const metaExtras: Record<string, any> = {};
-                    if (gitProvider) metaExtras.git_provider = gitProvider;
-                    if (devStatus) metaExtras.development_status = devStatus;
-                    if (Object.keys(metaExtras).length > 0) {
-                        payload.metadata = { ...(payload.metadata || {}), ...metaExtras };
+                    const result = await approveEditSuggestionRecord(record, editedData);
+                    if (!result.success) {
+                        toast.error(result.error || 'Approval failed');
+                        setActionTarget(null);
+                        return;
                     }
-
-                    const { error: updateError } = await (supabase as any).from(targetTable).update(payload).eq('id', record.target_id);
-                    if (updateError) throw updateError;
-
-                    // Sync groups if provided
-                    if (groupIds !== undefined) {
-                        if (record.target_type === 'app') {
-                            const manualExts = payload.compatible_with || [];
-                            await setAppGroups(record.target_id, groupIds);
-                            await syncAppCompatibility(record.target_id, payload.name || data.name, groupIds, manualExts);
-                        } else {
-                            const manualApps = payload.compatible_with || [];
-                            await setExtensionGroups(record.target_id, groupIds);
-                            await syncExtensionCompatibility(record.target_id, payload.name || data.name, groupIds, manualApps);
-                        }
-                    }
-
-                    await (supabase as any).from('public_edit_suggestions').delete().eq('id', record.id);
-                    await logAction('approve' as any, 'edit_suggestion' as any, record.id, `${record.target_type} edit suggestion`).catch(console.error);
-                    toast.success(`Updated ${data.name || 'item'}!`);
+                    await logAction('approve', 'edit_suggestion' as any, record.id, `${record.target_type} edit suggestion`).catch(console.error);
+                    toast.success(`Updated ${result.name}!`);
                 }
             } else {
-                // Reject — save the reason as admin_notes
-                const rejectPayload: any = { status: 'rejected' };
-                if (rejectReason.trim()) {
-                    rejectPayload.admin_notes = rejectReason.trim();
+                // Reject — use correct column name per table (admin_notes vs admin_note)
+                if (mode === 'submission') {
+                    const rejectPayload: any = { status: 'rejected' };
+                    if (rejectReason.trim()) {
+                        rejectPayload.admin_notes = rejectReason.trim();
+                    }
+                    await (supabase as any).from('submissions').update(rejectPayload).eq('id', record.id);
+                    await logAction('reject', 'submission', record.id, rejectReason.trim() || 'Rejected').catch(console.error);
+                } else {
+                    const rejectPayload: any = { status: 'rejected' };
+                    if (rejectReason.trim()) {
+                        rejectPayload.admin_note = rejectReason.trim();
+                    }
+                    await (supabase as any).from('public_edit_suggestions').update(rejectPayload).eq('id', record.id);
+                    await logAction('reject', 'edit_suggestion' as any, record.id, rejectReason.trim() || 'Rejected').catch(console.error);
                 }
-                await (supabase as any).from(tableName).update(rejectPayload).eq('id', record.id);
-                const logType = mode === 'submission' ? 'submission' : 'edit_suggestion';
-                await logAction('reject' as any, logType as any, record.id, rejectReason.trim() || 'Rejected').catch(console.error);
                 setRejectReason('');
                 toast.success('Rejected.');
             }

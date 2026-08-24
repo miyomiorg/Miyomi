@@ -128,7 +128,7 @@
         "accountName": "",
         "instructions": "Send your donation to this bKash (personal) number. Please include your name and any reference message in the payment reference box."
       },
-      "enabled": true,
+      "enabled": false,
       "iconHint": "bkash",
       "description": "Send via bKash (Bangladesh)"
     },
@@ -220,7 +220,7 @@
         "accountName": "Charlotte Regidor",
         "instructions": "Send to this GCash number"
       },
-      "enabled": true,
+      "enabled": false,
       "iconHint": "gcash",
       "description": "Send via GCash (Philippines)"
     },
@@ -293,16 +293,19 @@
     },
     {
       "id": "contact_team",
-      "url": "#",
+      "url": "https://discord.com/invite/hfYtH9hrRm",
       "type": "details",
-      "label": "Contact Team Directly",
+      "label": "Claim Your Reward",
       "details": {
         "email": "miyomi.info@gmail.com",
-        "instructions": "Want to use a different payment method or contribute directly? Reach out to our team and we will work something out!"
+        "number": "",
+        "address": "",
+        "qrCodeUrl": "",
+        "instructions": "Thank you so much for supporting miyomi.app! Your generosity keeps everything running and growing.\n\nOnce your donation is complete, please reach out to us on Discord or send us an email with your transaction receipt or confirmation details. As a token of our appreciation, we will verify your support and deliver your exclusive supporter gift right away!"
       },
       "enabled": true,
       "iconHint": "contact",
-      "description": "Reach out for custom payment options"
+      "description": "Thank you for your support!"
     },
     {
       "id": "binance",

@@ -8,7 +8,7 @@ import { SocialUrlsInput } from '@/components/admin/SocialUrlsInput';
 import { InstallUrlsInput, type InstallUrlEntry } from '@/components/admin/InstallUrlsInput';
 
 const PLATFORM_OPTIONS = ['Android', 'iOS', 'Windows', 'macOS', 'Linux', 'Web'];
-const CONTENT_TYPE_OPTIONS = ['Anime', 'Manga', 'Light Novel', 'Webtoon', 'Comics'];
+const CONTENT_TYPE_OPTIONS = ['Anime', 'Manga', 'Light Novel', 'Multi'];
 const EXT_TYPE_OPTIONS = ['Anime', 'Manga', 'Light Novel'];
 const TAG_OPTIONS = ['Free', 'Paid', 'Open Source', 'Ad-free', 'NSFW', 'Reader', 'Tracker', 'Downloader'];
 const EXT_TAG_OPTIONS = ['NSFW', 'SFW', 'Official', 'Fan Source'];

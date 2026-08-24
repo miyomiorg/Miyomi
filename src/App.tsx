@@ -175,7 +175,7 @@ function AppContent() {
             <Route path="settings" element={<AdminSettingsPage />} />
             <Route path="logs" element={<AdminLogsPage />} />
             <Route path="bot-logs" element={<AdminBotLogsPage />} />
-            <Route path="sessions" element={<AdminSessionsPage />} />
+            {/* <Route path="sessions" element={<AdminSessionsPage />} /> */}
             <Route path="admins" element={<ProtectedRoute requireSuperAdmin><AdminUsersPage /></ProtectedRoute>} />
           </Route>
         </Routes>

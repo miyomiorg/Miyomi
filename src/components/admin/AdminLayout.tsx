@@ -64,7 +64,7 @@ const navSections: NavSection[] = [
       { path: '/admin/themes', label: 'Themes', icon: Palette },
       { path: '/admin/logs', label: 'Activity Logs', icon: ScrollText },
       { path: '/admin/bot-logs', label: 'Bot Attacks', icon: Bot },
-      { path: '/admin/sessions', label: 'Sessions', icon: Shield },
+      // { path: '/admin/sessions', label: 'Sessions', icon: Shield },
       { path: '/admin/settings', label: 'Settings', icon: Settings },
       { path: '/admin/admins', label: 'Admins', icon: Users, superAdminOnly: true },
     ]

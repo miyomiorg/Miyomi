@@ -9,6 +9,7 @@ import { ConfirmDialog } from '@/components/admin/ConfirmDialog';
 import { EndpointToggle } from '@/components/admin/EndpointToggle';
 import { toast } from 'sonner';
 import { upsertContributor } from '@/utils/contributors';
+import { approveSubmissionRecord } from '@/utils/approvalUtils';
 
 export function AdminSubmissionsPage() {
   const navigate = useNavigate();
@@ -86,74 +87,20 @@ export function AdminSubmissionsPage() {
     try {
       if (actionTarget.action === 'approve' && actionTarget.submission) {
         const sub = actionTarget.submission;
-        const data = sub.submitted_data as any;
-        const targetTable = sub.submission_type === 'app' ? 'apps' : 'extensions';
+        const result = await approveSubmissionRecord(sub);
 
-        const payload: any = {
-          name: data.name,
-          description: data.description,
-          short_description: data.short_description || null,
-          slug: generateSlug(data.name),
-          repo_url: data.repo_url || data.url,
-          author: sub.author || data.author,
-          status: 'approved',
-          tags: data.tags || [],
-          icon_url: data.icon_url,
-          icon_color: data.icon_color,
-          website_url: data.website_url,
-          social_urls: Array.isArray(data.social_urls) ? data.social_urls.filter((u: string) => u?.trim()) : [],
-        };
-
-        if (sub.submission_type === 'app') {
-          payload.platforms = data.platforms || [];
-          payload.download_url = data.download_url;
-          payload.version = data.version;
-          payload.content_types = data.content_types || [];
-          payload.tutorials = data.tutorials || [];
-          payload.fork_of = data.fork_of;
-          payload.upstream_url = data.upstream_url;
-        } else {
-          const installUrls = data.install_urls || [];
-          const firstAuto = installUrls.find((u: any) => u.type === 'auto');
-          const firstCopy = installUrls.find((u: any) => u.type === 'copy');
-          payload.compatible_with = data.compatible_with || [];
-          payload.types = data.types || data.content_types || [];
-          payload.source_url = data.source_url;
-          payload.language = data.language;
-          payload.auto_url = firstAuto?.url || data.auto_url || null;
-          payload.manual_url = firstCopy?.url || data.manual_url || null;
-          payload.metadata = installUrls.length > 0 ? { install_urls: installUrls } : null;
-          payload.tutorials = data.tutorials || [];
+        if (!result.success) {
+          toast.error(result.error || 'Approval failed');
+          return;
         }
 
-        const { data: insertedData, error: insertError } = await supabase.from(targetTable).insert(payload).select().single();
-        if (insertError) {
-          if (insertError.code === '23505') {
-            toast.error(`Slug conflict: '${payload.slug}' already exists.`);
-            return;
-          }
-          throw insertError;
-        }
+        await logAction('approve', 'submission', sub.id, `${sub.submission_type} submission`, {
+          approved_as: result.targetTable,
+          resource_id: result.targetId,
+          resource_name: result.name
+        }).catch(console.error);
 
-        await supabase.from('submissions').delete().eq('id', sub.id);
-
-        if (insertedData) {
-          // Save contributor profile
-          await upsertContributor(
-            sub.submitter_name,
-            sub.submitter_email,
-            sub.submitter_contact,
-            { type: sub.submission_type as 'app' | 'extension', id: insertedData.id, name: data.name }
-          ).catch(console.error);
-
-          await logAction('approve', 'submission', sub.id, `${sub.submission_type} submission`, {
-            approved_as: targetTable,
-            resource_id: insertedData.id,
-            resource_name: data.name
-          }).catch(console.error);
-        }
-
-        toast.success(`Published ${data.name} to ${targetTable}!`);
+        toast.success(`Published ${result.name} to ${result.targetTable}!`);
       } else {
         const sub = actionTarget.submission;
         const data = sub ? (sub.submitted_data as any) : {};
