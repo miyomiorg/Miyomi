@@ -110,6 +110,7 @@ Guidelines:
                     navigate('/admin/guides');
                     return;
                 }
+                setSlugTouched(true);
                 setForm({
                     title: data.title,
                     description: data.description || '',
@@ -223,9 +224,9 @@ Guidelines:
                             setForm(f => ({
                                 ...f,
                                 title: newTitle,
-                                ...(slugTouched ? {} : { slug: generateSlug(newTitle) }),
+                                ...((id || slugTouched) ? {} : { slug: generateSlug(newTitle) }),
                             }));
-                            if (!slugTouched) {
+                            if (!id && !slugTouched) {
                                 setSlugError('');
                             }
                         }}

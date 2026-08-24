@@ -94,15 +94,15 @@ export function AdminGuideSubmissionsPage() {
             author: submittedData.author,
           };
 
-          if (submittedData.title && submittedData.title !== sub.original_data_snapshot?.title) {
-             payload.slug = generateSlug(submittedData.title);
+          if (submittedData.slug) {
+             payload.slug = submittedData.slug;
           }
 
           const { error: updateError } = await supabase.from('guides').update(payload).eq('id', sub.target_id);
           if (updateError) throw updateError;
 
           await supabase.from('public_edit_suggestions').update({ status: 'approved' }).eq('id', sub.id);
-          await logAction('approve', 'edit_suggestion', sub.id, 'Guide edit suggestion').catch(console.error);
+          await logAction('approve', 'guide', sub.id, 'Guide edit suggestion').catch(console.error);
           toast.success(`Updated guide: ${payload.title}`);
         }
       } else {
@@ -110,7 +110,7 @@ export function AdminGuideSubmissionsPage() {
         const table = actionTarget.type === 'new' ? 'submissions' : 'public_edit_suggestions';
         await supabase.from(table).update({ status: 'rejected' }).eq('id', actionTarget.id);
         
-        await logAction('reject', actionTarget.type === 'new' ? 'submission' : 'edit_suggestion', actionTarget.id, 'Rejected guide submission', {
+        await logAction('reject', 'guide', actionTarget.id, 'Rejected guide submission', {
           reason: 'Rejected by admin'
         }).catch(console.error);
 

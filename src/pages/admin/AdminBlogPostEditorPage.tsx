@@ -72,6 +72,7 @@ export function AdminBlogPostEditorPage() {
                     navigate('/admin/blog-posts');
                     return;
                 }
+                setSlugTouched(true);
                 setForm({
                     title: data.title || '',
                     slug: data.slug || '',
@@ -106,9 +107,9 @@ export function AdminBlogPostEditorPage() {
         if (!form.title && isAutoSave) return; // Don't auto-save empty posts
         if (!form.title) { toast.error('Title is required'); return; }
 
-        const finalSlug = form.slug || generateSlug(form.title);
-        if (!finalSlug) { if(!isAutoSave) toast.error('Slug is required'); return; }
-        if (!isValidSlug(finalSlug)) { if(!isAutoSave) toast.error('Invalid slug'); return; }
+        const finalSlug = form.slug || (activeId ? undefined : generateSlug(form.title));
+        if (!finalSlug && !activeId) { if(!isAutoSave) toast.error('Slug is required'); return; }
+        if (finalSlug && !isValidSlug(finalSlug)) { if(!isAutoSave) toast.error('Invalid slug'); return; }
 
         const finalStatus = targetStatus || form.status;
 

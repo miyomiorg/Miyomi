@@ -42,7 +42,7 @@ export function AdminAppFormPage() {
     const [loading, setLoading] = useState(!!id);
     const [saving, setSaving] = useState(false);
     const [errors, setErrors] = useState<Record<string, string>>({});
-    const [slugManuallyEdited, setSlugManuallyEdited] = useState(false);
+    const [slugManuallyEdited, setSlugManuallyEdited] = useState(!!id);
 
     useEffect(() => {
         if (id) {
@@ -51,10 +51,10 @@ export function AdminAppFormPage() {
     }, [id]);
 
     useEffect(() => {
-        if (!slugManuallyEdited && form.name) {
+        if (!id && !slugManuallyEdited && form.name) {
             setForm(f => ({ ...f, slug: slugify(f.name) }));
         }
-    }, [form.name, slugManuallyEdited]);
+    }, [form.name, slugManuallyEdited, id]);
 
     useEffect(() => {
         const timer = setTimeout(async () => {
@@ -125,6 +125,7 @@ export function AdminAppFormPage() {
                     .filter((g: any) => groupIds.includes(g.id))
                     .map((g: any) => g.name);
 
+                setSlugManuallyEdited(true);
                 setForm({
                     ...emptyApp,
                     ...appData,

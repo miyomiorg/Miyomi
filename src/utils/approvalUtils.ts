@@ -122,7 +122,7 @@ export function prepareAppDbPayload(raw: any, isUpdate = false): {
 
   const rawPayload: Record<string, any> = {
     name: data.name,
-    slug: data.slug || generateSlug(data.name) || null,
+    slug: data.slug ? data.slug : (isUpdate ? undefined : (generateSlug(data.name) || null)),
     short_description: data.short_description || null,
     description: data.description || null,
     author: data.author || null,
@@ -210,7 +210,7 @@ export function prepareExtensionDbPayload(raw: any, isUpdate = false): {
 
   const rawPayload: Record<string, any> = {
     name: data.name,
-    slug: data.slug || generateSlug(data.name) || null,
+    slug: data.slug ? data.slug : (isUpdate ? undefined : (generateSlug(data.name) || null)),
     short_description: data.short_description || null,
     description: data.description || null,
     author: data.author || null,
