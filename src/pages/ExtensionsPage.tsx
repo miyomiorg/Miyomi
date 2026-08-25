@@ -9,6 +9,7 @@ import { Skeleton } from '../components/ui/skeleton';
 import { ExtensionListCard } from '../components/ExtensionListCard';
 import { AnimatePresence } from 'motion/react';
 import { useLikes } from '../context/LikeContext';
+import { useAppMeta } from '../hooks/useAppMeta';
 
 interface ExtensionsPageProps {
   onNavigate?: (path: string) => void;
@@ -16,12 +17,36 @@ interface ExtensionsPageProps {
 
 type SortOption = 'name-asc' | 'name-desc' | 'updated-desc' | 'updated-asc' | 'loved' | 'added-desc' | 'added-asc';
 
-const apps = ['All', 'Aniyomi', 'Mihon', 'Dantotsu', 'Mangayomi'];
+const defaultApps = ['All', 'Aniyomi', 'Mihon', 'Dantotsu', 'Mangayomi'];
 const types = ['All', 'Anime', 'Manga', 'Light Novel'];
 
 export function ExtensionsPage({ onNavigate }: ExtensionsPageProps) {
   const location = useLocation();
 
+  const { apps: allApps } = useAppMeta();
+  const { extensions: unifiedExtensions, loading } = useExtensions();
+
+  const availableApps = useMemo(() => {
+    const appSet = new Set<string>();
+    defaultApps.filter(a => a !== 'All').forEach(a => appSet.add(a));
+    unifiedExtensions.forEach(ext => {
+      (ext.supportedApps || []).forEach(a => {
+        const matched = allApps.find(
+          app => app.name.toLowerCase() === a.toLowerCase() ||
+                 (app.slug && app.slug.toLowerCase() === a.toLowerCase()) ||
+                 app.id === a
+        );
+        if (matched) appSet.add(matched.name);
+        else if (a) appSet.add(a.charAt(0).toUpperCase() + a.slice(1));
+      });
+    });
+    allApps.forEach(app => {
+      if (app.supportedExtensions && app.supportedExtensions.length > 0) {
+        appSet.add(app.name);
+      }
+    });
+    return ['All', ...Array.from(appSet).sort()];
+  }, [unifiedExtensions, allApps]);
 
   const getInitialParam = (key: string, options: string[], defaultVal: string) => {
     if (typeof window === 'undefined') return defaultVal;
@@ -32,7 +57,7 @@ export function ExtensionsPage({ onNavigate }: ExtensionsPageProps) {
   };
 
   const [selectedApp, setSelectedApp] = useState<string>(() =>
-    getInitialParam('app', apps, 'All')
+    getInitialParam('app', defaultApps, 'All')
   );
   const [selectedType, setSelectedType] = useState<string>(() =>
     getInitialParam('type', types, 'All')
@@ -114,12 +139,11 @@ export function ExtensionsPage({ onNavigate }: ExtensionsPageProps) {
       }
     }
   }, []);
-  const { extensions: unifiedExtensions, loading } = useExtensions();
 
   const availableLanguages = useMemo(() => {
     const langs = new Set<string>();
     unifiedExtensions.forEach(ext => {
-      const codeStr = ext.language || ext.region || '';
+      const codeStr = ext.language || (ext as any).region || '';
       if (!codeStr || codeStr.toLowerCase() === 'all' || codeStr.toLowerCase() === 'global') return;
       codeStr.split(',').forEach(c => langs.add(c.trim().toLowerCase()));
     });
@@ -159,8 +183,26 @@ export function ExtensionsPage({ onNavigate }: ExtensionsPageProps) {
   const filteredAndSortedExtensions = useMemo(() => {
     let filtered = unifiedExtensions.filter((ext) => {
 
-      if (selectedApp !== 'All' && !ext.supportedApps.includes(selectedApp.toLowerCase())) {
-        return false;
+      if (selectedApp !== 'All') {
+        const matchesSupportedApps = (ext.supportedApps || []).some(
+          a => a.toLowerCase() === selectedApp.toLowerCase()
+        );
+        const matchedApp = allApps.find(
+          a => a.name.toLowerCase() === selectedApp.toLowerCase() ||
+               (a.slug && a.slug.toLowerCase() === selectedApp.toLowerCase()) ||
+               a.id === selectedApp
+        );
+        const matchesAppSupportedExtensions = matchedApp
+          ? (matchedApp.supportedExtensions || []).some(
+              e => e.toLowerCase() === ext.name.toLowerCase() ||
+                   (ext.slug && e.toLowerCase() === ext.slug.toLowerCase()) ||
+                   e === ext.id
+            )
+          : false;
+
+        if (!matchesSupportedApps && !matchesAppSupportedExtensions) {
+          return false;
+        }
       }
 
 
@@ -169,7 +211,7 @@ export function ExtensionsPage({ onNavigate }: ExtensionsPageProps) {
       }
 
       if (selectedLanguage !== 'All') {
-        const extLang = (ext.language || ext.region || '').toLowerCase();
+        const extLang = (ext.language || (ext as any).region || '').toLowerCase();
         const extLangs = extLang.split(',').map(l => l.trim());
         if (!extLangs.includes(selectedLanguage.toLowerCase()) && !extLangs.includes('all') && !extLangs.includes('global')) {
           return false;
@@ -181,11 +223,12 @@ export function ExtensionsPage({ onNavigate }: ExtensionsPageProps) {
         const searchableText = [
           ext.name,
           ...ext.types,
-          ext.region,
+          ext.language,
+          (ext as any).region,
           ext.info,
           ...(ext.supportedApps || []),
           ...(ext.keywords || []),
-        ].join(' ').toLowerCase();
+        ].filter(Boolean).join(' ').toLowerCase();
         if (!searchableText.includes(query)) return false;
       }
 
@@ -288,7 +331,7 @@ export function ExtensionsPage({ onNavigate }: ExtensionsPageProps) {
           <FilterDropdown
             label="App Compatibility"
             value={selectedApp}
-            options={apps}
+            options={availableApps}
             onChange={setSelectedApp}
           />
           <FilterDropdown

@@ -88,6 +88,7 @@ export interface ExtensionData {
     downloadCount?: number;
     likes?: number;
     createdAt?: string;
+    devStatus?: string;
 }
 
 

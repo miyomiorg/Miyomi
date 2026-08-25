@@ -34,7 +34,9 @@ export const emptyExt = {
     install_urls: [] as InstallUrlEntry[],
     tutorials: [] as any[],
     download_count: 0, likes_count: 0,
-    last_updated: ''
+    last_updated: '',
+    dev_status: 'active',
+    metadata: {} as any
 };
 export function AdminExtensionFormPage() {
     const { id } = useParams();
@@ -127,7 +129,8 @@ export function AdminExtensionFormPage() {
                     likes_count: extData.likes_count || 0,
                     install_urls: loadedInstallUrls,
                     last_updated: extData.last_updated || '',
-                    git_provider: meta?.git_provider || ''
+                    git_provider: meta?.git_provider || '',
+                    dev_status: meta?.dev_status || 'active'
                 });
             }
         } catch (err: any) {
@@ -192,7 +195,8 @@ export function AdminExtensionFormPage() {
                 manual_url: firstCopy?.url || null,
                 metadata: { 
                     install_urls: validInstallUrls,
-                    git_provider: form.git_provider || (form.repo_url ? detectGitProvider(form.repo_url).toLowerCase() : null)
+                    git_provider: form.git_provider || (form.repo_url ? detectGitProvider(form.repo_url).toLowerCase() : null),
+                    dev_status: form.dev_status || 'active'
                 },
                 social_urls: form.social_urls.filter((u: string) => u.trim()) || [],
                 discord_url: form.social_urls.filter((u: string) => u.trim())[0] || null,

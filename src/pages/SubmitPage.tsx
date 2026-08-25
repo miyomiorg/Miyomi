@@ -127,6 +127,7 @@ export function SubmitPage() {
                 ...emptyExt,
                 ...data,
                 git_provider: meta?.git_provider || data.git_provider || detectedProvider,
+                dev_status: meta?.dev_status || data.dev_status || 'active',
                 platforms: data.platforms || [],
                 tags: data.tags || [],
                 types: data.types || [],
@@ -321,8 +322,8 @@ export function SubmitPage() {
     if (urlMode !== 'edit' || !initialFormSnapshot) return true;
     const currentForm = type === 'app' ? appForm : extForm;
     const keys = type === 'app'
-      ? ['name', 'slug', 'short_description', 'description', 'author', 'category', 'version', 'platforms', 'tags', 'content_types', 'repo_url', 'download_url', 'website_url', 'icon_url', 'icon_color', 'fork_of', 'upstream_url', 'social_urls', 'tutorials']
-      : ['name', 'slug', 'short_description', 'description', 'author', 'category', 'language', 'platforms', 'tags', 'types', 'compatible_with', 'repo_url', 'source_url', 'icon_url', 'icon_color', 'install_urls', 'social_urls', 'tutorials'];
+      ? ['name', 'slug', 'short_description', 'description', 'author', 'category', 'version', 'platforms', 'tags', 'content_types', 'repo_url', 'download_url', 'website_url', 'icon_url', 'icon_color', 'fork_of', 'upstream_url', 'dev_status', 'social_urls', 'tutorials']
+      : ['name', 'slug', 'short_description', 'description', 'author', 'category', 'language', 'platforms', 'tags', 'types', 'compatible_with', 'repo_url', 'source_url', 'icon_url', 'icon_color', 'dev_status', 'install_urls', 'social_urls', 'tutorials'];
 
     for (const key of keys) {
       const valA = currentForm[key];

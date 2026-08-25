@@ -47,7 +47,8 @@ export function useExtensions(): { extensions: ExtensionData[]; loading: boolean
             rating: 0,
             downloadCount: ext.download_count || 0,
             likes: ext.likes_count || 0,
-            createdAt: ext.created_at || undefined
+            createdAt: ext.created_at || undefined,
+            devStatus: (ext.metadata as any)?.dev_status || undefined
         }));
     };
 

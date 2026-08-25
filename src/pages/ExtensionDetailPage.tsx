@@ -25,6 +25,41 @@ import Autoplay from 'embla-carousel-autoplay';
 import { WheelGesturesPlugin } from 'embla-carousel-wheel-gestures';
 import { detectGitProvider, getProviderIcon, resolveGitProvider } from '../utils/gitProviders';
 
+type StatusStyle = {
+  bg: string;
+  text: string;
+  border: string;
+};
+
+const STATUS_STYLE_MAP: Record<string, StatusStyle> = {
+  active: { bg: 'rgba(76, 175, 80, 0.12)', text: '#4CAF50', border: 'rgba(76, 175, 80, 0.35)' },
+  discontinued: { bg: 'rgba(255, 99, 71, 0.15)', text: '#FF6347', border: 'rgba(255, 99, 71, 0.4)' },
+  abandoned: { bg: 'rgba(255, 193, 7, 0.15)', text: '#FFB300', border: 'rgba(255, 193, 7, 0.4)' },
+  suspended: { bg: 'rgba(156, 39, 176, 0.15)', text: '#9C27B0', border: 'rgba(156, 39, 176, 0.35)' },
+  dmca: { bg: 'rgba(233, 30, 99, 0.15)', text: '#E91E63', border: 'rgba(233, 30, 99, 0.35)' },
+  dead: { bg: 'rgba(158, 158, 158, 0.15)', text: '#9E9E9E', border: 'rgba(158, 158, 158, 0.35)' },
+};
+
+const STATUS_LABEL_MAP: Record<string, string> = {
+  active: 'Active',
+  discontinued: 'Discontinued',
+  abandoned: 'Abandoned',
+  suspended: 'Suspended',
+  dmca: 'DMCA',
+  dead: 'Dead',
+};
+
+const DEFAULT_STATUS_STYLE: StatusStyle = {
+  bg: 'rgba(255, 255, 255, 0.08)',
+  text: 'var(--text-secondary)',
+  border: 'rgba(255, 255, 255, 0.2)',
+};
+
+const getStatusLabel = (status: string): string => {
+  const normalized = status.toLowerCase();
+  return STATUS_LABEL_MAP[normalized] || status.charAt(0).toUpperCase() + status.slice(1);
+};
+
 interface ExtensionDetailPageProps {
   extensionId: string;
   onNavigate?: (path: string) => void;
@@ -46,9 +81,17 @@ export function ExtensionDetailPage({ extensionId, onNavigate }: ExtensionDetail
   const supportedApps = React.useMemo(() => {
     if (!extension) return [];
     return allApps.filter(app =>
-      app.supportedExtensions?.includes(extensionId) ||
-      extension.supportedApps?.includes(app.id) ||
-      extension.supportedApps?.includes(app.name.toLowerCase())
+      (extension.supportedApps ?? []).some(appEntry =>
+        appEntry.toLowerCase() === app.name.toLowerCase() ||
+        appEntry.toLowerCase() === (app.slug || '').toLowerCase() ||
+        appEntry === app.id
+      ) ||
+      (app.supportedExtensions ?? []).some(extEntry =>
+        extEntry.toLowerCase() === extension.name.toLowerCase() ||
+        extEntry.toLowerCase() === (extension.slug || '').toLowerCase() ||
+        extEntry === extension.id ||
+        extEntry.toLowerCase() === extensionId.toLowerCase()
+      )
     );
   }, [extension, extensionId, allApps]);
 
@@ -444,7 +487,7 @@ export function ExtensionDetailPage({ extensionId, onNavigate }: ExtensionDetail
         className="relative bg-[var(--bg-surface)] border border-[var(--divider)] rounded-2xl p-6 sm:p-8 mb-6 sm:mb-8 overflow-hidden"
         style={{ boxShadow: '0 6px 20px 0 rgba(0,0,0,0.08)' }}
       >
-        <ParticleBackground />
+        <ParticleBackground appStatus={extension.devStatus} />
         <div className="relative z-10 grid grid-cols-1 lg:grid-cols-[auto_1fr_auto] gap-6 lg:gap-12 items-center">
           {/* Extension Logo - Left */}
           <div className="mx-auto flex h-24 w-24 sm:h-32 sm:w-32 lg:h-40 lg:w-40 items-center justify-center rounded-3xl text-white flex-shrink-0 shadow-2xl ring-1 ring-white/10 overflow-hidden bg-[var(--chip-bg)]">
@@ -476,6 +519,19 @@ export function ExtensionDetailPage({ extensionId, onNavigate }: ExtensionDetail
 
               <LoveButton itemId={extension.id} itemType="extension" fallbackCount={extension.likes || 0} size="lg" />
             </div>
+
+            {extension.devStatus && extension.devStatus !== 'active' && (
+              <div
+                className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold tracking-wide uppercase shadow-sm"
+                style={{
+                  backgroundColor: STATUS_STYLE_MAP[extension.devStatus.toLowerCase()]?.bg || DEFAULT_STATUS_STYLE.bg,
+                  color: STATUS_STYLE_MAP[extension.devStatus.toLowerCase()]?.text || DEFAULT_STATUS_STYLE.text,
+                  border: `1px solid ${STATUS_STYLE_MAP[extension.devStatus.toLowerCase()]?.border || DEFAULT_STATUS_STYLE.border}`
+                }}
+              >
+                {getStatusLabel(extension.devStatus)}
+              </div>
+            )}
 
             {/* Short Description */}
             <p className={`text-[var(--text-secondary)] font-['Inter',sans-serif] text-lg max-w-2xl leading-relaxed ${!extension.shortDescription && !extension.info ? 'line-clamp-3' : ''}`}>

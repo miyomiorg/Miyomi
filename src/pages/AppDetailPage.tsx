@@ -87,20 +87,22 @@ export function AppDetailPage({ appId, onNavigate }: AppDetailPageProps) {
 
   const supportedExtensions = React.useMemo(() => {
     if (!app) return [];
-    return (app.supportedExtensions ?? [])
-      .map((extensionId) => allExtensions.find(e => e.id === extensionId))
-      .filter((ext): ext is NonNullable<typeof ext> => Boolean(ext));
-  }, [app, allExtensions]);
-
-  const recommendedExtensions = React.useMemo(() => {
-    if (!app) return [];
-    if (supportedExtensions.length > 0) return supportedExtensions;
     return allExtensions.filter(ext =>
-      ext.supportedApps?.includes(appId.toLowerCase()) ||
-      ext.supportedApps?.includes(app.name.toLowerCase()) ||
-      ext.supportedApps?.includes(app.id)
+      (app.supportedExtensions ?? []).some(extEntry =>
+        extEntry.toLowerCase() === ext.name.toLowerCase() ||
+        (ext.slug && extEntry.toLowerCase() === ext.slug.toLowerCase()) ||
+        extEntry === ext.id
+      ) ||
+      (ext.supportedApps ?? []).some(appEntry =>
+        appEntry.toLowerCase() === app.name.toLowerCase() ||
+        (app.slug && appEntry.toLowerCase() === app.slug.toLowerCase()) ||
+        appEntry === app.id ||
+        appEntry.toLowerCase() === appId.toLowerCase()
+      )
     );
-  }, [app, appId, allExtensions, supportedExtensions]);
+  }, [app, appId, allExtensions]);
+
+  const recommendedExtensions = supportedExtensions;
 
   const displayedExtensions = recommendedExtensions.slice(0, 3);
   const hasMoreExtensions = recommendedExtensions.length > displayedExtensions.length;

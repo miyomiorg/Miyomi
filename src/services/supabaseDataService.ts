@@ -60,6 +60,7 @@ function toExtensionData(row: Tables<'extensions'>): ExtensionData {
     rating: meta.rating || undefined,
     downloadCount: r.download_count || meta.downloadCount || undefined,
     likes: r.likes_count || undefined,
+    devStatus: meta.dev_status || undefined,
   };
 }
 

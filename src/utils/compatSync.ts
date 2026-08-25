@@ -118,7 +118,7 @@ export async function getAppsFromGroups(groupIds: string[]): Promise<string[]> {
 }
 
 /**
- * After saving an app, sync its compatible_with array to all extensions in its groups.
+ * After saving an app, sync its compatible_with array to all extensions in its groups and manual selections.
  * Also updates the app's own compatible_with with all extension names from its groups.
  */
 export async function syncAppCompatibility(appId: string, appName: string, groupIds: string[], manualExtensions: string[]) {
@@ -126,42 +126,44 @@ export async function syncAppCompatibility(appId: string, appName: string, group
     const groupExtensions = await getExtensionsFromGroups(groupIds);
 
     // 2. Merge group-derived + manual selections (union, dedupe)
-    const finalCompatWith = [...new Set([...manualExtensions, ...groupExtensions])];
+    const finalCompatWith = [...new Set([...manualExtensions, ...groupExtensions])].filter(Boolean);
 
     // 3. Update this app's compatible_with
     await (supabase as any).from('apps').update({ compatible_with: finalCompatWith }).eq('id', appId);
 
-    // 4. For each extension in the groups, ensure this app is in their compatible_with
-    if (groupIds.length > 0) {
-        const { data: extMemberships } = await (supabase as any)
-            .from('extension_group_memberships')
-            .select('extension_id')
-            .in('group_id', groupIds);
+    // 4. Bidirectional sync: fetch all extensions to ensure two-way link
+    const { data: allExts } = await (supabase as any).from('extensions').select('id, name, slug, compatible_with');
+    if (!allExts || allExts.length === 0) return;
 
-        const extIds = [...new Set((extMemberships || []).map((m: any) => m.extension_id))];
+    for (const ext of allExts) {
+        const currentCompat: string[] = ext.compatible_with || [];
+        const isLinkedToThisApp = finalCompatWith.some((entry: string) =>
+            entry.toLowerCase() === ext.name.toLowerCase() ||
+            (ext.slug && entry.toLowerCase() === ext.slug.toLowerCase()) ||
+            entry === ext.id
+        );
 
-        for (const extId of extIds) {
-            const { data: ext } = await (supabase as any)
+        const hasAppName = currentCompat.some((a: string) => a.toLowerCase() === appName.toLowerCase());
+
+        if (isLinkedToThisApp && !hasAppName) {
+            // Add app name to extension's compatible_with
+            await (supabase as any)
                 .from('extensions')
-                .select('compatible_with')
-                .eq('id', extId)
-                .single();
-
-            if (ext) {
-                const currentCompat: string[] = ext.compatible_with || [];
-                if (!currentCompat.includes(appName)) {
-                    await (supabase as any)
-                        .from('extensions')
-                        .update({ compatible_with: [...currentCompat, appName] })
-                        .eq('id', extId);
-                }
-            }
+                .update({ compatible_with: [...currentCompat, appName] })
+                .eq('id', ext.id);
+        } else if (!isLinkedToThisApp && hasAppName) {
+            // App was unlinked, remove it from extension's compatible_with
+            const updated = currentCompat.filter((a: string) => a.toLowerCase() !== appName.toLowerCase());
+            await (supabase as any)
+                .from('extensions')
+                .update({ compatible_with: updated })
+                .eq('id', ext.id);
         }
     }
 }
 
 /**
- * After saving an extension, sync its compatible_with array to all apps in its groups.
+ * After saving an extension, sync its compatible_with array to all apps in its groups and manual selections.
  * Also updates the extension's own compatible_with with all app names from its groups.
  */
 export async function syncExtensionCompatibility(extId: string, extName: string, groupIds: string[], manualApps: string[]) {
@@ -169,36 +171,38 @@ export async function syncExtensionCompatibility(extId: string, extName: string,
     const groupApps = await getAppsFromGroups(groupIds);
 
     // 2. Merge group-derived + manual selections (union, dedupe)
-    const finalCompatWith = [...new Set([...manualApps, ...groupApps])];
+    const finalCompatWith = [...new Set([...manualApps, ...groupApps])].filter(Boolean);
 
     // 3. Update this extension's compatible_with
     await (supabase as any).from('extensions').update({ compatible_with: finalCompatWith }).eq('id', extId);
 
-    // 4. For each app in the groups, ensure this extension is in their compatible_with
-    if (groupIds.length > 0) {
-        const { data: appMemberships } = await (supabase as any)
-            .from('app_group_memberships')
-            .select('app_id')
-            .in('group_id', groupIds);
+    // 4. Bidirectional sync: fetch all apps to ensure two-way link
+    const { data: allApps } = await (supabase as any).from('apps').select('id, name, slug, compatible_with');
+    if (!allApps || allApps.length === 0) return;
 
-        const appIds = [...new Set((appMemberships || []).map((m: any) => m.app_id))];
+    for (const app of allApps) {
+        const currentCompat: string[] = app.compatible_with || [];
+        const isLinkedToThisExt = finalCompatWith.some((entry: string) =>
+            entry.toLowerCase() === app.name.toLowerCase() ||
+            (app.slug && entry.toLowerCase() === app.slug.toLowerCase()) ||
+            entry === app.id
+        );
 
-        for (const appId of appIds) {
-            const { data: app } = await (supabase as any)
+        const hasExtName = currentCompat.some((e: string) => e.toLowerCase() === extName.toLowerCase());
+
+        if (isLinkedToThisExt && !hasExtName) {
+            // Add extension name to app's compatible_with
+            await (supabase as any)
                 .from('apps')
-                .select('compatible_with')
-                .eq('id', appId)
-                .single();
-
-            if (app) {
-                const currentCompat: string[] = app.compatible_with || [];
-                if (!currentCompat.includes(extName)) {
-                    await (supabase as any)
-                        .from('apps')
-                        .update({ compatible_with: [...currentCompat, extName] })
-                        .eq('id', appId);
-                }
-            }
+                .update({ compatible_with: [...currentCompat, extName] })
+                .eq('id', app.id);
+        } else if (!isLinkedToThisExt && hasExtName) {
+            // Extension was unlinked, remove it from app's compatible_with
+            const updated = currentCompat.filter((e: string) => e.toLowerCase() !== extName.toLowerCase());
+            await (supabase as any)
+                .from('apps')
+                .update({ compatible_with: updated })
+                .eq('id', app.id);
         }
     }
 }

@@ -65,7 +65,8 @@ export function useExtension(extensionId: string): { extension: ExtensionData | 
                             : (data.discord_url ? [data.discord_url] : []),
                         rating: 0,
                         downloadCount: data.download_count || 0,
-                        likes: data.likes_count || 0
+                        likes: data.likes_count || 0,
+                        devStatus: meta?.dev_status || undefined
                     });
                 } else {
                     setExtension(null);

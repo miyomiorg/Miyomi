@@ -201,6 +201,8 @@ export function prepareExtensionDbPayload(raw: any, isUpdate = false): {
   const cleanMetadata: Record<string, any> = { ...existingMeta };
   if (validInstallUrls.length > 0) cleanMetadata.install_urls = validInstallUrls;
   if (gitProvider) cleanMetadata.git_provider = gitProvider;
+  const devStatus = data.development_status || data.dev_status || null;
+  if (devStatus) cleanMetadata.dev_status = devStatus;
 
   // Normalize social_urls & discord_url
   const socialUrls = Array.isArray(data.social_urls)

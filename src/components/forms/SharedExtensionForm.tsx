@@ -310,7 +310,17 @@ export function SharedExtensionForm({
                         )}
                     </div>
                     {!isBasicMode && (
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2 border-t border-[var(--divider)] mt-2">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2 border-t border-[var(--divider)] mt-2">
+                            <AdminFormField label="Development Status" diffValue={getDiff('dev_status')}>
+                                <AdminSelect value={form.dev_status || 'active'} onChange={e => setForm((f: any) => ({ ...f, dev_status: e.target.value }))}>
+                                    <option value="active">Active</option>
+                                    <option value="discontinued">Discontinued</option>
+                                    <option value="abandoned">Abandoned</option>
+                                    <option value="suspended">Suspended</option>
+                                    <option value="dmca">DMCA</option>
+                                    <option value="dead">Dead</option>
+                                </AdminSelect>
+                            </AdminFormField>
                             <AdminFormField label="Last Updated" diffValue={getDiff('last_updated_at')}>
                                 <AdminInput type="date" value={form.last_updated?.split('T')[0] || ''} onChange={e => setForm((f: any) => ({ ...f, last_updated: e.target.value }))} />
                             </AdminFormField>
