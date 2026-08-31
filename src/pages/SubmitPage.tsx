@@ -196,26 +196,26 @@ export function SubmitPage() {
       try {
         // Check live apps table
         const { data: appData } = await (supabase.from('apps') as any)
-          .select('id, name')
-          .ilike('name', currentName)
+          .select('id, name, slug')
+          .ilike('name', currentName.trim())
           .maybeSingle();
 
         if (appData && appData.id !== urlId) {
           setNameError({
             message: 'This app name already exists.',
-            url: `/software/${appData.name.toLowerCase().replace(/\\s+/g, '-')}`
+            url: `/software/${appData.slug || appData.id}`
           });
         } else {
           // Check live extensions table
           const { data: extData } = await (supabase.from('extensions') as any)
-            .select('id, name')
-            .ilike('name', currentName)
+            .select('id, name, slug')
+            .ilike('name', currentName.trim())
             .maybeSingle();
 
           if (extData && extData.id !== urlId) {
             setNameError({
               message: 'This extension name already exists.',
-              url: `/extensions/${extData.name.toLowerCase().replace(/\\s+/g, '-')}`
+              url: `/extensions/${extData.slug || extData.id}`
             });
           } else {
             setNameError(null);
@@ -249,7 +249,7 @@ export function SubmitPage() {
         if (appMatch && appMatch.id !== urlId) {
           setRepoError({
             message: `An app with this repository URL already exists: ${appMatch.name}`,
-            url: `/software/${appMatch.slug || appMatch.name.toLowerCase().replace(/\\s+/g, '-')}`
+            url: `/software/${appMatch.slug || appMatch.id}`
           });
           return;
         }
@@ -263,7 +263,7 @@ export function SubmitPage() {
         if (extMatch && extMatch.id !== urlId) {
           setRepoError({
             message: `An extension with this repository URL already exists: ${extMatch.name}`,
-            url: `/extensions/${extMatch.slug || extMatch.name.toLowerCase().replace(/\\s+/g, '-')}`
+            url: `/extensions/${extMatch.slug || extMatch.id}`
           });
           return;
         }
