@@ -14,7 +14,7 @@ export function useAppMeta(): { apps: AppData[]; loading: boolean } {
         return (data || []).map((app: any) => ({
             id: app.id,
             slug: app.slug || undefined,
-            name: app.name,
+            name: (app.name || '').trim(),
             shortDescription: app.short_description || app.metadata?.shortDescription,
             description: app.description || '',
             contentTypes: app.content_types || [],

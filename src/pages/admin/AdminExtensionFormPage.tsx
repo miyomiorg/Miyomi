@@ -175,7 +175,7 @@ export function AdminExtensionFormPage() {
             const firstCopy = validInstallUrls.find((u: InstallUrlEntry) => u.type === 'copy');
 
             const payload = {
-                name: form.name,
+                name: form.name.trim(),
                 slug: form.slug || slugify(form.name) || null,
                 short_description: form.short_description || null,
                 description: form.description || null,

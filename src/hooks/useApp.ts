@@ -23,7 +23,7 @@ export function useApp(appId: string): { app: AppData | null; loading: boolean }
         return {
             id: data.id,
             slug: data.slug || undefined,
-            name: data.name,
+            name: (data.name || '').trim(),
             description: data.description || '',
             version: data.version || undefined,
             contentTypes: data.content_types || data.tags || [],

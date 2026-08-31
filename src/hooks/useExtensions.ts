@@ -14,7 +14,7 @@ export function useExtensions(): { extensions: ExtensionData[]; loading: boolean
         return (data || []).map((ext: any) => ({
             id: ext.id,
             slug: ext.slug,
-            name: ext.name,
+            name: (ext.name || '').trim(),
             info: ext.short_description || ext.description || '',
             shortDescription: ext.short_description,
             logoUrl: ext.icon_url,

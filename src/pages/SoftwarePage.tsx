@@ -175,7 +175,9 @@ export function SoftwarePage({ onNavigate }: SoftwarePageProps) {
 
       switch (field) {
         case 'name':
-          return dir === 1 ? a.name.localeCompare(b.name) : b.name.localeCompare(a.name);
+          return dir === 1 
+            ? a.name.trim().localeCompare(b.name.trim(), undefined, { sensitivity: 'base' })
+            : b.name.trim().localeCompare(a.name.trim(), undefined, { sensitivity: 'base' });
         case 'updated': {
           if (!a.lastUpdated && !b.lastUpdated) return 0;
           if (!a.lastUpdated) return 1;

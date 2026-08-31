@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { Filter } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import type { Tables } from '@/integrations/supabase/types';
@@ -20,6 +21,27 @@ export function AdminAppsPage() {
   });
   const [search, setSearch] = useState(() => sessionStorage.getItem('admin_apps_search') || '');
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
+  const [statusFilter, setStatusFilter] = useState(() => sessionStorage.getItem('admin_apps_status') || 'all');
+
+  const handleStatusChange = (val: string) => {
+    setStatusFilter(val);
+    sessionStorage.setItem('admin_apps_status', val);
+  };
+
+  const statusOptions = useMemo(() => {
+    const statuses = new Set<string>();
+    apps.forEach(a => { if (a.status) statuses.add(a.status); });
+    return Array.from(statuses).sort();
+  }, [apps]);
+
+  const statusCounts = useMemo(() => {
+    const counts: Record<string, number> = { all: apps.length };
+    apps.forEach(a => {
+      const s = a.status || 'pending';
+      counts[s] = (counts[s] || 0) + 1;
+    });
+    return counts;
+  }, [apps]);
 
   const handleSearchChange = (val: string) => {
     setSearch(val);
@@ -27,8 +49,12 @@ export function AdminAppsPage() {
   };
 
   const filtered = useMemo(() =>
-    apps.filter(a => a.name.toLowerCase().includes(search.toLowerCase()) || (a.author || '').toLowerCase().includes(search.toLowerCase())),
-    [apps, search]
+    apps
+      .filter(a => statusFilter === 'all' || (a.status || 'pending') === statusFilter)
+      .filter(a => (a.name || '').toLowerCase().includes(search.toLowerCase()) || (a.author || '').toLowerCase().includes(search.toLowerCase()))
+      .slice()
+      .sort((a, b) => (a.name || '').trim().localeCompare((b.name || '').trim(), undefined, { sensitivity: 'base' })),
+    [apps, search, statusFilter]
   );
 
   return (
@@ -49,6 +75,28 @@ export function AdminAppsPage() {
             )}
           </div>
         </div>
+
+        {/* Status Filter Pills */}
+        {statusOptions.length > 1 && (
+          <div className="flex items-center gap-2 mb-6 flex-wrap">
+            <Filter className="w-4 h-4 flex-shrink-0" style={{ color: 'var(--text-secondary)' }} />
+            {['all', ...statusOptions].map(status => (
+              <button
+                key={status}
+                onClick={() => handleStatusChange(status)}
+                className="px-3 py-1.5 rounded-full text-xs font-medium transition-all"
+                style={{
+                  background: statusFilter === status ? 'var(--brand)' : 'var(--bg-elev-1)',
+                  color: statusFilter === status ? '#fff' : 'var(--text-secondary)',
+                  border: `1px solid ${statusFilter === status ? 'var(--brand)' : 'var(--divider)'}`,
+                }}
+              >
+                {status === 'all' ? 'All' : status.charAt(0).toUpperCase() + status.slice(1)}
+                <span className="ml-1.5 opacity-70">{statusCounts[status] || 0}</span>
+              </button>
+            ))}
+          </div>
+        )}
 
 
       {loading ? (
