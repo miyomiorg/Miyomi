@@ -175,7 +175,7 @@ export const supabaseDataService = {
     if (isUuid) {
       query = query.or(`id.eq.${slug},slug.eq.${slug}`);
     } else {
-      query = query.or(`slug.eq.${slug},id.eq.${slug}`);
+      query = query.eq('slug', slug);
     }
     const { data, error } = await query.maybeSingle();
 

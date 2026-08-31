@@ -21,7 +21,7 @@ export function useExtension(extensionId: string): { extension: ExtensionData | 
                 if (isUuid) {
                     query = query.or(`id.eq.${extensionId},slug.eq.${extensionId}`);
                 } else {
-                    query = query.or(`slug.eq.${extensionId},id.eq.${extensionId}`);
+                    query = query.eq('slug', extensionId);
                 }
 
                 const { data, error } = await query.maybeSingle();
