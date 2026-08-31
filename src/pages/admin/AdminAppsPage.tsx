@@ -30,14 +30,17 @@ export function AdminAppsPage() {
 
   const statusOptions = useMemo(() => {
     const statuses = new Set<string>();
-    apps.forEach(a => { if (a.status) statuses.add(a.status); });
+    apps.forEach(a => {
+      const s = (a.status || 'pending').toLowerCase().trim();
+      if (s) statuses.add(s);
+    });
     return Array.from(statuses).sort();
   }, [apps]);
 
   const statusCounts = useMemo(() => {
     const counts: Record<string, number> = { all: apps.length };
     apps.forEach(a => {
-      const s = a.status || 'pending';
+      const s = (a.status || 'pending').toLowerCase().trim();
       counts[s] = (counts[s] || 0) + 1;
     });
     return counts;
@@ -50,7 +53,7 @@ export function AdminAppsPage() {
 
   const filtered = useMemo(() =>
     apps
-      .filter(a => statusFilter === 'all' || (a.status || 'pending') === statusFilter)
+      .filter(a => statusFilter === 'all' || (a.status || 'pending').toLowerCase().trim() === statusFilter.toLowerCase().trim())
       .filter(a => (a.name || '').toLowerCase().includes(search.toLowerCase()) || (a.author || '').toLowerCase().includes(search.toLowerCase()))
       .slice()
       .sort((a, b) => (a.name || '').trim().localeCompare((b.name || '').trim(), undefined, { sensitivity: 'base' })),
@@ -138,7 +141,8 @@ export function AdminAppsPage() {
                   <th className="text-left px-4 py-3 font-semibold text-xs uppercase tracking-wider" style={{ color: "var(--text-secondary)" }}>Name</th>
                   <th className="text-left px-4 py-3 font-semibold text-xs uppercase tracking-wider hidden sm:table-cell" style={{ color: "var(--text-secondary)" }}>Author</th>
                   <th className="text-left px-4 py-3 font-semibold text-xs uppercase tracking-wider hidden md:table-cell" style={{ color: "var(--text-secondary)" }}>Status</th>
-                  <th className="text-left px-4 py-3 font-semibold text-xs uppercase tracking-wider hidden lg:table-cell" style={{ color: "var(--text-secondary)" }}>Platforms</th>
+                  <th className="text-left px-4 py-3 font-semibold text-xs uppercase tracking-wider hidden lg:table-cell" style={{ color: "var(--text-secondary)" }}>Dev Status</th>
+                  <th className="text-left px-4 py-3 font-semibold text-xs uppercase tracking-wider hidden xl:table-cell" style={{ color: "var(--text-secondary)" }}>Platforms</th>
                   <th className="text-right px-4 py-3 font-semibold text-xs uppercase tracking-wider" style={{ color: "var(--text-secondary)" }}>Actions</th>
                 </tr>
               </thead>
@@ -162,9 +166,25 @@ export function AdminAppsPage() {
                       {app.author || "—"}
                     </td>
                     <td className="px-4 py-3 hidden md:table-cell">
-                      <StatusBadge status={app.status || "pending"} />
+                      <StatusBadge status={(app.status || "pending").toLowerCase()} />
                     </td>
-                    <td className="px-4 py-3 hidden lg:table-cell" style={{ color: "var(--text-secondary)" }}>
+                    <td className="px-4 py-3 hidden lg:table-cell">
+                      {(app.metadata as any)?.dev_status ? (
+                        <span
+                          className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border"
+                          style={{
+                            background: (app.metadata as any).dev_status === 'active' ? 'rgba(76, 175, 80, 0.12)' : 'rgba(255, 99, 71, 0.12)',
+                            color: (app.metadata as any).dev_status === 'active' ? '#4CAF50' : 'var(--text-secondary)',
+                            borderColor: (app.metadata as any).dev_status === 'active' ? 'rgba(76, 175, 80, 0.3)' : 'var(--divider)'
+                          }}
+                        >
+                          {(app.metadata as any).dev_status.charAt(0).toUpperCase() + (app.metadata as any).dev_status.slice(1)}
+                        </span>
+                      ) : (
+                        <span style={{ color: "var(--text-secondary)" }}>—</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3 hidden xl:table-cell" style={{ color: "var(--text-secondary)" }}>
                       {(app.platforms || []).join(", ") || "—"}
                     </td>
                     <td className="px-4 py-3 text-right">

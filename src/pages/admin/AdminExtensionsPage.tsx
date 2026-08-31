@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import type { Tables } from '@/integrations/supabase/types';
-import { Plus, Pencil, Trash2, Puzzle } from 'lucide-react';
+import { Plus, Pencil, Trash2, Puzzle, Filter } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
 import { AdminSearchBar } from '@/components/admin/AdminSearchBar';
@@ -18,6 +18,30 @@ export function AdminExtensionsPage() {
   });
   const [search, setSearch] = useState(() => sessionStorage.getItem('admin_extensions_search') || '');
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
+  const [statusFilter, setStatusFilter] = useState(() => sessionStorage.getItem('admin_extensions_status') || 'all');
+
+  const handleStatusChange = (val: string) => {
+    setStatusFilter(val);
+    sessionStorage.setItem('admin_extensions_status', val);
+  };
+
+  const statusOptions = useMemo(() => {
+    const statuses = new Set<string>();
+    extensions.forEach(e => {
+      const s = (e.status || 'pending').toLowerCase().trim();
+      if (s) statuses.add(s);
+    });
+    return Array.from(statuses).sort();
+  }, [extensions]);
+
+  const statusCounts = useMemo(() => {
+    const counts: Record<string, number> = { all: extensions.length };
+    extensions.forEach(e => {
+      const s = (e.status || 'pending').toLowerCase().trim();
+      counts[s] = (counts[s] || 0) + 1;
+    });
+    return counts;
+  }, [extensions]);
 
   const handleSearchChange = (val: string) => {
     setSearch(val);
@@ -25,8 +49,12 @@ export function AdminExtensionsPage() {
   };
 
   const filtered = useMemo(() =>
-    extensions.filter(e => e.name.toLowerCase().includes(search.toLowerCase()) || (e.author || '').toLowerCase().includes(search.toLowerCase())),
-    [extensions, search]
+    extensions
+      .filter(e => statusFilter === 'all' || (e.status || 'pending').toLowerCase().trim() === statusFilter.toLowerCase().trim())
+      .filter(e => (e.name || '').toLowerCase().includes(search.toLowerCase()) || (e.author || '').toLowerCase().includes(search.toLowerCase()))
+      .slice()
+      .sort((a, b) => (a.name || '').trim().localeCompare((b.name || '').trim(), undefined, { sensitivity: 'base' })),
+    [extensions, search, statusFilter]
   );
 
   return (
@@ -38,6 +66,28 @@ export function AdminExtensionsPage() {
           <AdminButton onClick={() => navigate('/admin/extensions/new')}><Plus className="w-4 h-4" /> Add</AdminButton>
         </div>
       </div>
+
+      {/* Status Filter Pills */}
+      {statusOptions.length > 1 && (
+        <div className="flex items-center gap-2 mb-6 flex-wrap">
+          <Filter className="w-4 h-4 flex-shrink-0" style={{ color: 'var(--text-secondary)' }} />
+          {['all', ...statusOptions].map(status => (
+            <button
+              key={status}
+              onClick={() => handleStatusChange(status)}
+              className="px-3 py-1.5 rounded-full text-xs font-medium transition-all"
+              style={{
+                background: statusFilter === status ? 'var(--brand)' : 'var(--bg-elev-1)',
+                color: statusFilter === status ? '#fff' : 'var(--text-secondary)',
+                border: `1px solid ${statusFilter === status ? 'var(--brand)' : 'var(--divider)'}`,
+              }}
+            >
+              {status === 'all' ? 'All' : status.charAt(0).toUpperCase() + status.slice(1)}
+              <span className="ml-1.5 opacity-70">{statusCounts[status] || 0}</span>
+            </button>
+          ))}
+        </div>
+      )}
 
 
       {loading ? (

@@ -140,7 +140,7 @@ export function AdminAppFormPage() {
                     author: appData.author || '',
                     category: appData.category || '',
                     version: appData.version || '',
-                    status: appData.status,
+                    status: ['approved', 'pending', 'rejected'].includes((appData.status || '').toLowerCase()) ? (appData.status.toLowerCase() as any) : 'approved',
                     platforms: appData.platforms || [],
                     tags: appData.tags || [],
                     content_types: appData.content_types || [],
@@ -197,7 +197,7 @@ export function AdminAppFormPage() {
                 author: form.author || null,
                 category: form.category || null,
                 version: form.version || null,
-                status: form.status,
+                status: ['approved', 'pending', 'rejected'].includes((form.status || '').toLowerCase()) ? form.status.toLowerCase() : 'approved',
                 platforms: form.platforms?.length ? form.platforms : null,
                 tags: form.tags?.length ? form.tags : null,
                 // @ts-ignore
