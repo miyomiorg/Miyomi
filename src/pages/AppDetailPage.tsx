@@ -79,6 +79,15 @@ export function AppDetailPage({ appId, onNavigate }: AppDetailPageProps) {
   const { app, loading: appLoading } = useApp(appId);
   const { extensions: allExtensions } = useExtensions();
 
+  // Smart redirect: if accessed via UUID/ID instead of slug, update URL to canonical slug
+  React.useEffect(() => {
+    if (app?.slug && appId !== app.slug) {
+      const search = window.location.search || '';
+      const hash = window.location.hash || '';
+      window.history.replaceState(null, '', `/software/${app.slug}${search}${hash}`);
+    }
+  }, [app?.slug, appId]);
+
   const accentColor = useAccentColor({
     logoUrl: app?.logoUrl,
     preferredColor: app?.accentColor,

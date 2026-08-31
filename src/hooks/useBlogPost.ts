@@ -31,7 +31,7 @@ export function useBlogPost(idOrSlug: string | undefined, options: UseBlogPostOp
                 if (isUuid) {
                     query = query.or(`id.eq.${idOrSlug},slug.eq.${idOrSlug}`);
                 } else {
-                    query = query.eq('slug', idOrSlug);
+                    query = query.or(`slug.eq.${idOrSlug},id.eq.${idOrSlug}`);
                 }
 
                 if (options.requirePublished) {

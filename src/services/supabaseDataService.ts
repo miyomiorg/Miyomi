@@ -170,11 +170,14 @@ export const supabaseDataService = {
   },
 
   async getGuideBySlug(slug: string): Promise<GuideData | null> {
-    const { data, error } = await supabase
-      .from('guides')
-      .select('*')
-      .eq('slug', slug)
-      .single();
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(slug);
+    let query = supabase.from('guides').select('*');
+    if (isUuid) {
+      query = query.or(`id.eq.${slug},slug.eq.${slug}`);
+    } else {
+      query = query.or(`slug.eq.${slug},id.eq.${slug}`);
+    }
+    const { data, error } = await query.maybeSingle();
 
     if (error) {
       console.error('Failed to fetch guide by slug:', error);

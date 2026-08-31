@@ -19,9 +19,9 @@ export function useExtension(extensionId: string): { extension: ExtensionData | 
 
                 let query = (supabase.from('extensions').select('*') as any).eq('status', 'approved');
                 if (isUuid) {
-                    query = query.eq('id', extensionId);
+                    query = query.or(`id.eq.${extensionId},slug.eq.${extensionId}`);
                 } else {
-                    query = query.eq('slug', extensionId);
+                    query = query.or(`slug.eq.${extensionId},id.eq.${extensionId}`);
                 }
 
                 const { data, error } = await query.maybeSingle();

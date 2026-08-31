@@ -92,6 +92,15 @@ export function GuideDetailPage({ slug: propSlug, onNavigate }: GuideDetailPageP
       .finally(() => setLoading(false));
   }, [slug]);
 
+  // Smart redirect: if accessed via UUID/ID instead of slug, update URL to canonical slug
+  useEffect(() => {
+    if (guide?.slug && slug !== guide.slug) {
+      const search = window.location.search || '';
+      const hash = window.location.hash || '';
+      window.history.replaceState(null, '', `/guides/${guide.slug}${search}${hash}`);
+    }
+  }, [guide?.slug, slug]);
+
   // Extract ToC from DOM after render
   useEffect(() => {
     if (loading || !guide || !contentRef.current) return;

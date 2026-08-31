@@ -12,7 +12,7 @@ export function useApp(appId: string): { app: AppData | null; loading: boolean }
         if (isUuid) {
             query = query.or(`id.eq.${appId},slug.eq.${appId}`);
         } else {
-            query = query.eq('slug', appId);
+            query = query.or(`slug.eq.${appId},id.eq.${appId}`);
         }
 
         const { data, error } = await query.maybeSingle();

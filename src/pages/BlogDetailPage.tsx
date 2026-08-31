@@ -31,6 +31,15 @@ export function BlogDetailPage({ onNavigate }: { onNavigate?: (path: string) => 
     const [showScrollTop, setShowScrollTop] = useState(false);
     const [activeHeadingId, setActiveHeadingId] = useState<string>('');
 
+    // Smart redirect: if accessed via UUID/ID instead of slug, update URL to canonical slug
+    useEffect(() => {
+        if (post?.slug && slug !== post.slug) {
+            const search = window.location.search || '';
+            const hash = window.location.hash || '';
+            window.history.replaceState(null, '', `/blog/${post.slug}${search}${hash}`);
+        }
+    }, [post?.slug, slug]);
+
     useEffect(() => {
         const handleScroll = () => {
             setShowScrollTop(window.scrollY > 400);

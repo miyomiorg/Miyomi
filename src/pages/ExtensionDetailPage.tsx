@@ -69,6 +69,15 @@ export function ExtensionDetailPage({ extensionId, onNavigate }: ExtensionDetail
   const { extension, loading: extensionLoading } = useExtension(extensionId);
   const { apps: allApps, loading: appsLoading } = useAppMeta();
 
+  // Smart redirect: if accessed via UUID/ID instead of slug, update URL to canonical slug
+  React.useEffect(() => {
+    if (extension?.slug && extensionId !== extension.slug) {
+      const search = window.location.search || '';
+      const hash = window.location.hash || '';
+      window.history.replaceState(null, '', `/extensions/${extension.slug}${search}${hash}`);
+    }
+  }, [extension?.slug, extensionId]);
+
 
   const accentColor = useAccentColor({
     logoUrl: extension?.logoUrl,
