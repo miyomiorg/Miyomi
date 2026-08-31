@@ -13,6 +13,7 @@ import { emptyExt } from '@/pages/admin/AdminExtensionFormPage';
 import { InstallUrlEntry } from '@/components/admin/InstallUrlsInput';
 import { extractFunctionError } from '@/utils/functionErrors';
 import { detectGitProvider } from '@/utils/gitProviders';
+import { getUnifiedCompatibleExtensionsForApp, getUnifiedCompatibleAppsForExtension } from '@/utils/compatSync';
 
 export function SubmitPage() {
   const navigate = useNavigate();
@@ -94,6 +95,7 @@ export function SubmitPage() {
             if (type === 'app') {
               const meta = data.metadata as any;
               const detectedProvider = data.repo_url ? detectGitProvider(data.repo_url).toLowerCase() : 'github';
+              const unifiedCompat = await getUnifiedCompatibleExtensionsForApp(urlId, data.name, data.slug);
               const normalized = {
                 ...emptyApp,
                 ...data,
@@ -104,6 +106,7 @@ export function SubmitPage() {
                 platforms: data.platforms || [],
                 tags: data.tags || [],
                 content_types: data.content_types || [],
+                compatible_with: unifiedCompat,
                 social_urls: (Array.isArray(data.social_urls) && data.social_urls.length > 0)
                   ? data.social_urls.filter((u: string) => u)
                   : (data.discord_url ? [data.discord_url] : []),
@@ -123,6 +126,7 @@ export function SubmitPage() {
                 if (data.manual_url) loadedInstallUrls.push({ label: 'Copy URL', url: data.manual_url, type: 'copy' });
               }
 
+              const unifiedCompat = await getUnifiedCompatibleAppsForExtension(urlId, data.name, data.slug);
               const normalized = {
                 ...emptyExt,
                 ...data,
@@ -131,7 +135,7 @@ export function SubmitPage() {
                 platforms: data.platforms || [],
                 tags: data.tags || [],
                 types: data.types || [],
-                compatible_with: data.compatible_with || [],
+                compatible_with: unifiedCompat,
                 install_urls: loadedInstallUrls,
                 social_urls: (Array.isArray(data.social_urls) && data.social_urls.length > 0)
                   ? data.social_urls.filter((u: string) => u)

@@ -12,7 +12,7 @@ import { detectGitProvider } from '@/utils/gitProviders';
 import { InstallUrlsInput, type InstallUrlEntry } from '@/components/admin/InstallUrlsInput';
 import { FlagDisplay } from '@/components/FlagDisplay';
 import { SharedExtensionForm } from '@/components/forms/SharedExtensionForm';
-import { getGroupsForExtension, setExtensionGroups, syncExtensionCompatibility, fetchAllGroups } from '@/utils/compatSync';
+import { getGroupsForExtension, setExtensionGroups, syncExtensionCompatibility, fetchAllGroups, getUnifiedCompatibleAppsForExtension } from '@/utils/compatSync';
 
 function slugify(text: string): string {
     return text
@@ -112,6 +112,7 @@ export function AdminExtensionFormPage() {
                 const selectedGroupNames = allGroups
                     .filter((g: any) => groupIds.includes(g.id))
                     .map((g: any) => g.name);
+                const unifiedCompat = await getUnifiedCompatibleAppsForExtension(extId, extData.name, extData.slug);
 
                 setSlugManuallyEdited(true);
                 setForm({
@@ -122,7 +123,7 @@ export function AdminExtensionFormPage() {
                     name: extData.name || '',
                     tags: extData.tags || [],
                     types: extData.types || [],
-                    compatible_with: extData.compatible_with || [],
+                    compatible_with: unifiedCompat,
                     social_urls: extData.social_urls || [],
                     tutorials: loadedTutorials,
                     download_count: extData.download_count || 0,

@@ -11,7 +11,7 @@ import { SocialUrlsInput } from '@/components/admin/SocialUrlsInput';
 import { detectGitProvider } from '@/utils/gitProviders';
 
 import { SharedAppForm } from '@/components/forms/SharedAppForm';
-import { getGroupsForApp, setAppGroups, syncAppCompatibility, fetchAllGroups } from '@/utils/compatSync';
+import { getGroupsForApp, setAppGroups, syncAppCompatibility, fetchAllGroups, getUnifiedCompatibleExtensionsForApp } from '@/utils/compatSync';
 
 function slugify(text: string): string {
     return text
@@ -118,12 +118,13 @@ export function AdminAppFormPage() {
                 const appData = data as any;
                 const loadedTutorials = Array.isArray(appData.tutorials) ? appData.tutorials : [];
                 
-                // Fetch groups
+                // Fetch groups & unified compatibility
                 const groupIds = await getGroupsForApp(appId);
                 const allGroups = await fetchAllGroups();
                 const selectedGroupNames = allGroups
                     .filter((g: any) => groupIds.includes(g.id))
                     .map((g: any) => g.name);
+                const unifiedCompat = await getUnifiedCompatibleExtensionsForApp(appId, appData.name, appData.slug);
 
                 setSlugManuallyEdited(true);
                 setForm({
@@ -131,6 +132,7 @@ export function AdminAppFormPage() {
                     ...appData,
                     _selectedGroupIds: groupIds,
                     _selectedGroupNames: selectedGroupNames,
+                    compatible_with: unifiedCompat,
                     name: appData.name || '',
                     slug: appData.slug || '',
                     short_description: appData.short_description || '',
@@ -200,6 +202,7 @@ export function AdminAppFormPage() {
                 tags: form.tags?.length ? form.tags : null,
                 // @ts-ignore
                 content_types: form.content_types?.length ? form.content_types : null,
+                compatible_with: form.compatible_with?.length ? form.compatible_with : null,
                 repo_url: form.repo_url || null,
                 download_url: form.download_url || null,
                 website_url: form.website_url || null,

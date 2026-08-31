@@ -396,8 +396,8 @@ export async function approveEditSuggestionRecord(
 
   if (updateError) throw updateError;
 
-  // Sync groups if provided
-  if (groupIds.length > 0 || manualCompat.length > 0) {
+  // Sync groups & compatibility
+  if (data._selectedGroupIds !== undefined || data.compatible_with !== undefined || groupIds.length > 0 || manualCompat.length > 0) {
     if (targetType === 'app') {
       await setAppGroups(targetId, groupIds);
       await syncAppCompatibility(targetId, (payload as any).name || data.name, groupIds, manualCompat);

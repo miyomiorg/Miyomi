@@ -27,25 +27,27 @@ export function ExtensionsPage({ onNavigate }: ExtensionsPageProps) {
   const { extensions: unifiedExtensions, loading } = useExtensions();
 
   const availableApps = useMemo(() => {
-    const appSet = new Set<string>();
-    defaultApps.filter(a => a !== 'All').forEach(a => appSet.add(a));
-    unifiedExtensions.forEach(ext => {
-      (ext.supportedApps || []).forEach(a => {
-        const matched = allApps.find(
-          app => app.name.toLowerCase() === a.toLowerCase() ||
-                 (app.slug && app.slug.toLowerCase() === a.toLowerCase()) ||
-                 app.id === a
-        );
-        if (matched) appSet.add(matched.name);
-        else if (a) appSet.add(a.charAt(0).toUpperCase() + a.slice(1));
-      });
-    });
+    const appMap = new Map<string, string>();
+    defaultApps.filter(a => a !== 'All').forEach(a => appMap.set(a.toLowerCase(), a));
+    
     allApps.forEach(app => {
-      if (app.supportedExtensions && app.supportedExtensions.length > 0) {
-        appSet.add(app.name);
+      if (app.name) {
+        appMap.set(app.name.toLowerCase(), app.name);
       }
     });
-    return ['All', ...Array.from(appSet).sort()];
+
+    unifiedExtensions.forEach(ext => {
+      (ext.supportedApps || []).forEach(a => {
+        if (!a) return;
+        const lower = a.toLowerCase();
+        if (!appMap.has(lower)) {
+          appMap.set(lower, a.charAt(0).toUpperCase() + a.slice(1));
+        }
+      });
+    });
+
+    const sortedNames = Array.from(appMap.values()).sort((a, b) => a.localeCompare(b));
+    return ['All', ...sortedNames];
   }, [unifiedExtensions, allApps]);
 
   const getInitialParam = (key: string, options: string[], defaultVal: string) => {
@@ -266,7 +268,7 @@ export function ExtensionsPage({ onNavigate }: ExtensionsPageProps) {
     });
 
     return filtered;
-  }, [unifiedExtensions, selectedApp, selectedType, selectedLanguage, searchQuery, sortBy, getLikeData]);
+  }, [unifiedExtensions, selectedApp, selectedType, selectedLanguage, searchQuery, sortBy, getLikeData, allApps]);
 
 
   useEffect(() => {
