@@ -1,6 +1,7 @@
 import { and, eq, sql } from 'drizzle-orm';
 import { Hono, type Context } from 'hono';
 import { createDb } from '../../lib/db.ts';
+import { notifyTelegram } from '../../lib/telegram.ts';
 import { rateLimit } from '../../lib/rate-limit.ts';
 import { verifyTurnstile } from '../../lib/turnstile.ts';
 import { clientIp, fail, isoNow, ok, type AppEnv } from '../../lib/http.ts';
@@ -69,6 +70,13 @@ submitRouter.post('/submissions', rateLimit(300, 5), async (c) => {
       createdAt: isoNow(),
       updatedAt: isoNow(),
     });
+    const dataName = typeof submitted.name === 'string' ? submitted.name : 'unknown';
+    c.executionCtx.waitUntil(notifyTelegram(db, [
+      `📦 New ${submissionType} submission`,
+      `Name: ${dataName}`,
+      `By: ${typeof body.submitterName === 'string' ? body.submitterName : 'anonymous'}`,
+      `Contact: ${typeof body.submitterContact === 'string' ? body.submitterContact : '—'}`,
+    ].join('\n')));
     return ok(c, { id }, 201);
   } catch (error) {
     console.error('[submissions] create failed:', error);
@@ -122,6 +130,13 @@ submitRouter.post('/reports', rateLimit(300, 5), async (c) => {
       createdAt: isoNow(),
       updatedAt: isoNow(),
     });
+    c.executionCtx.waitUntil(notifyTelegram(db, [
+      `🚩 New report`,
+      `Target: ${targetType}${targetId ? ` (${targetId})` : ''}`,
+      `Reason: ${reason}`,
+      `By: ${typeof body.reporterName === 'string' ? body.reporterName : 'anonymous'}`,
+      typeof body.message === 'string' && body.message ? `\n${body.message}` : '',
+    ].join('\n')));
     return ok(c, { id }, 201);
   } catch (error) {
     console.error('[reports] create failed:', error);
@@ -160,6 +175,12 @@ submitRouter.post('/feedback', rateLimit(300, 5), async (c) => {
       createdAt: isoNow(),
       updatedAt: isoNow(),
     });
+    c.executionCtx.waitUntil(notifyTelegram(db, [
+      `📝 New feedback${typeof body.feedbackType === 'string' ? ` (${body.feedbackType})` : ''}`,
+      `From: ${typeof body.userName === 'string' ? body.userName : 'anonymous'}`,
+      `Page: ${typeof body.pageUrl === 'string' ? body.pageUrl : '—'}`,
+      `\n${message}`,
+    ].join('\n')));
     return ok(c, { id }, 201);
   } catch (error) {
     console.error('[feedback] create failed:', error);
@@ -281,6 +302,13 @@ submitRouter.post('/edit-suggestions', rateLimit(300, 5), async (c) => {
       createdAt: isoNow(),
       updatedAt: isoNow(),
     });
+    const dataName = typeof submitted.name === 'string' ? submitted.name : 'unknown';
+    c.executionCtx.waitUntil(notifyTelegram(db, [
+      `✏️ Edit suggestion`,
+      `Target: ${targetType} (${targetId})`,
+      `Name: ${dataName}`,
+      `By: ${typeof body.submitterName === 'string' ? body.submitterName : 'anonymous'}`,
+    ].join('\n')));
     return ok(c, { id }, 201);
   } catch (error) {
     console.error('[edit-suggestions] create failed:', error);

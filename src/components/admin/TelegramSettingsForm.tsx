@@ -173,7 +173,8 @@ export function TelegramSettingsForm() {
                     )}
 
                     <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
-                        Feedback messages will be sent to all configured chat IDs
+                        Notifications are sent to all configured chat IDs for new submissions, reports,
+                        feedback, edit suggestions, and failed admin login attempts.
                     </p>
                 </div>
             </AdminFormField>

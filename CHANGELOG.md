@@ -22,6 +22,7 @@ Miyomi is a community-driven project — it will keep evolving. We use `v0.x` ve
 - **D1 database (Drizzle ORM)** — full schema + production data migration, scheduled cleanup cron, rate limiting
 - **Mandatory two-factor authentication** — TOTP (Google Authenticator compatible) required for every admin/moderator login; one-way (can't be disabled, only reset); QR + copyable secret setup in Settings; AES-GCM encrypted secrets; CLI recovery
 - **Admin analytics dashboard** — Cloudflare GraphQL visuals: traffic, **unique visitors**, requests by country, browsers, device types, OS, top pages, and threat pathing with 7/14/30-day ranges
+- **Telegram admin notifications** — new submissions, reports, feedback, edit suggestions, and failed admin logins are posted to the configured Telegram chat(s); managed from Admin → Settings → Telegram Integration (token + chat IDs + test button)
 - **Verification suites** — API end-to-end, 2FA circuit, analytics, cron, import, and content checks
 - **CONTRIBUTING.md** — contribution guidelines for the open-source repo
 

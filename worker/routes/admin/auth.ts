@@ -17,6 +17,7 @@ import {
 } from '../../lib/auth.ts';
 import { generateTotpSecret, otpauthUrl, verifyTotp } from '../../lib/totp.ts';
 import { createDb } from '../../lib/db.ts';
+import { notifyTelegram, sendTelegramText } from '../../lib/telegram.ts';
 import { verifyTurnstile } from '../../lib/turnstile.ts';
 import { clientIp, fail, isoNow, ok, type AppEnv } from '../../lib/http.ts';
 import {
@@ -75,6 +76,12 @@ async function recordFailedAttempt(c: Context<AppEnv>, email: string | null, dev
       city: typeof device.city === 'string' ? device.city : null,
       country: typeof device.country === 'string' ? device.country : null,
     });
+    // Security alert to the admin Telegram logs channel.
+    c.executionCtx.waitUntil(notifyTelegram(db, [
+      '⚠️ Failed admin login',
+      `Email: ${email || 'unknown'}`,
+      `IP: ${clientIp(c)}`,
+    ].join('\n')));
   } catch (error) {
     console.error('[auth] failed to record attempt:', error);
   }

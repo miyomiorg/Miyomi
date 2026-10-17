@@ -193,10 +193,11 @@
   Vite and the OG generator read `[vars]` from `wrangler.toml`. Secrets live
   only in `wrangler secret`. `.env` is now local tooling only (Drizzle creds).
   Local dev disables the widget with `VITE_DISABLE_TURNSTILE=true`.
-- Configure Telegram settings (`telegram_bot_token`, `telegram_chat_ids`) if
-  wanted. Only the admin test-message endpoint is implemented; automatic
-  submission/report/feedback notifications still need wiring. An `.env`
-  `TELEGRAM_BOT_TOKEN` alone is not consumed by this Worker.
+- ✅ **Telegram admin notifications re-added** (`worker/lib/telegram.ts`): new
+  submissions, reports, feedback, edit suggestions, and failed admin logins are
+  sent to the `telegram_bot_token` / `telegram_chat_ids` settings rows
+  (fire-and-forget via `waitUntil`; the test button reuses the same delivery
+  path). Configure them in Admin → Settings → Telegram Integration.
 - Port the GitHub metadata updater (the deleted `update-app-meta` workflow) to the
   Worker + a GitHub Action if that feature is still wanted.
 - Reduce the initial frontend bundle (currently ~1.94 MB JS, ~552 KB gzip) and

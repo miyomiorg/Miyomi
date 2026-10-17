@@ -3,6 +3,7 @@ import { Hono } from 'hono';
 import { createDb } from '../../lib/db.ts';
 import { fail, isoNow, ok, requireAdmin, requireMinRole, type AppEnv } from '../../lib/http.ts';
 import { adminLogs, donationSettings, settings } from '../../db/schema.ts';
+import { sendTelegramText } from '../../lib/telegram.ts';
 
 export const settingsRouter = new Hono<AppEnv>();
 
@@ -94,21 +95,8 @@ settingsRouter.post('/settings/telegram-test', requireAdmin(), requireMinRole('s
     if (typeof token !== 'string' || !token) return fail(c, 400, 'Telegram bot token is not configured');
     if (chatIds.length === 0) return fail(c, 400, 'No Telegram chat IDs configured');
 
-    const results = await Promise.all(
-      chatIds.map((chatId) =>
-        fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            chat_id: chatId,
-            text: 'This is a test message from Miyomi Admin Settings.',
-          }),
-        })
-          .then((r) => r.ok)
-          .catch(() => false),
-      ),
-    );
-    if (!results.some(Boolean)) return fail(c, 502, 'Failed to send Telegram test message');
+    const delivered = await sendTelegramText(db, 'This is a test message from Miyomi Admin Settings.');
+    if (!delivered) return fail(c, 502, 'Failed to send Telegram test message');
     return ok(c, null);
   } catch (error) {
     console.error('[settings] telegram test failed:', error);
