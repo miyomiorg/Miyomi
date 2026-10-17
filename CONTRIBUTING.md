@@ -29,7 +29,7 @@ npm run verify:worker             # API suite (needs a running local Worker)
 ## Guidelines
 
 - Follow the existing code style and the conventions in
-  [AGENTS.md](AGENTS.md) and `.agents/rules/`.
+  [AGENTS.md](AGENTS.md).
 - Never commit secrets: `.env`, `.dev.vars`, and database dumps are gitignored.
   Server secrets live in Cloudflare (`wrangler secret`).
 - Keep pull requests focused and small; describe what changed and why.

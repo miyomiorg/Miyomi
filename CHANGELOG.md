@@ -54,7 +54,7 @@ Miyomi is a community-driven project — it will keep evolving. We use `v0.x` ve
 - Local `supabase/` project folder (functions + migrations CLI repo)
 
 ### Documentation
-- New `AGENTS.md`, `PROGRESS.md`, rewritten `DEVELOPERS.md`, README tech-stack section, fixed CHANGELOG header
+- New `AGENTS.md`, rewritten `DEVELOPERS.md`, README tech-stack section, fixed CHANGELOG header
 
 ---
 

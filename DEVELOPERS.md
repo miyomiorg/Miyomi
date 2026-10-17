@@ -3,7 +3,6 @@
 Miyomi is a community-run directory for discovering Anime, Manga, and Light Novel **apps**, **extensions**, and **guides**. It does not host content — it organizes and presents public tools in a clean, searchable way.
 
 For a list of changes across versions, see [CHANGELOG.md](CHANGELOG.md).
-For current project status and what's left to do, see [PROGRESS.md](PROGRESS.md).
 If you are an AI agent, read [AGENTS.md](AGENTS.md) first.
 
 ---
@@ -218,9 +217,8 @@ refuse to run against any other host.
 
 ## ☁️ Deployment
 
-For the current launch blockers and ordered production cutover tasks, see
-[PROGRESS.md → What remains](PROGRESS.md#what-remains). The remote D1 database
-exists, but its Miyomi schema/data have not been imported yet.
+The production D1 database and Worker are live on `miyomi.app`; deployment is
+documented below.
 
 Single Worker deployment (after database and secrets are configured):
 
@@ -345,6 +343,30 @@ Use `npm run test:import` to verify the importer against disposable fixtures.
    records the contributor.
 
 ---
+
+## ⚠️ Known gotchas
+
+- **workerd/D1**: bound `LIKE`/`GLOB` patterns must be ≤ ~50 chars — user search
+  input is clamped to 48 (`worker/routes/admin/content-crud.ts` `searchCond`).
+- **One `wrangler dev` at a time** — two instances sharing the local D1 file
+  cause `SQLITE_BUSY` (and don't mix `wrangler d1 execute --local` with a
+  crashing dev session).
+- **API adapter contract**: `src/services/api/http.ts` snake_cases top-level row
+  keys (recursing into `items` arrays) but leaves nested objects untouched — so
+  Worker joins must emit snake_case keys *inside* nested objects. Aggregate DTOs
+  that keep camelCase (dashboard, likes stats, auth) opt out with
+  `{ preserveKeys: true }`.
+- **React types**: keep `@types/react` / `@types/react-dom` aligned with the
+  React 18 runtime; don't change runtime behavior just to satisfy types.
+- **Turnstile in dev**: verification is skipped when the Worker has no
+  `TURNSTILE_SECRET_KEY` (local `.dev.vars`), and the widget is skipped with
+  `VITE_DISABLE_TURNSTILE=true`. Production always verifies.
+- **OG images**: plain `npm run build` empties `dist/og` — it is restored from
+  `.og-cache/` automatically. Use `npm run build:release` to regenerate images.
+- **Rate limiter fails open**; some write paths use casts rather than full
+  runtime validation.
+- **Rejection notes**: `submissions` stores `admin_notes` (plural);
+  `public_edit_suggestions` and `reports` use `admin_note` (singular).
 
 ## 🔒 Security Notes
 

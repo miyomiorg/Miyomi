@@ -6,9 +6,7 @@ The stack is **React + Vite (frontend)** and **Cloudflare Workers + Hono + D1
 CDN — **not** R2/S3.
 
 Read this file before making changes. Also read:
-- [`PROGRESS.md`](PROGRESS.md) — current status, what's done, what's left, known gaps.
-- [`DEVELOPERS.md`](DEVELOPERS.md) — setup, architecture, deployment.
-- [`.agents/rules/database-schema-and-regression-prevention.md`](.agents/rules/database-schema-and-regression-prevention.md) — DB/data rules.
+- [`DEVELOPERS.md`](DEVELOPERS.md) — setup, architecture, deployment, known gotchas.
 
 ---
 
@@ -110,5 +108,5 @@ Local dev admin: `admin@miyomi.local` / `MiomiLocal123!`.
 
 1. Read `worker/db/schema.ts` for the data shape.
 2. Read `src/services/api/index.ts` for the intended API surface.
-3. Check `PROGRESS.md` "Known gaps" before assuming something is implemented.
+3. Check `DEVELOPERS.md` "Known gotchas" before assuming something is implemented.
 4. Prefer the smallest change that matches surrounding patterns.
