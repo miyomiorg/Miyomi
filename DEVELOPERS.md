@@ -199,6 +199,19 @@ npx wrangler secret put CF_API_TOKEN
 `CF_ZONE_ID` and the Turnstile site key are non-secret and live in
 `wrangler.toml [vars]`.
 
+### Admin CLI (production-capable)
+
+Two CLI tools **intentionally** write to the production D1 database and require
+`wrangler login` (or `CLOUDFLARE_API_TOKEN`):
+
+- `node scripts/create-admin.mjs <email> <password>` — create a new super admin
+- `node scripts/reset-admin-password.mjs <email>` — reset a password and clear
+  that account's two-factor secret (lost-authenticator recovery)
+
+Both escape their SQL string inputs and run only single INSERT/UPDATE
+statements. The verification suites (`verify-*`) are pinned to localhost and
+refuse to run against any other host.
+
 ---
 
 ## ☁️ Deployment

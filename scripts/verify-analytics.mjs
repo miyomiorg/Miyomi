@@ -13,12 +13,14 @@ import { execSync } from 'node:child_process';
 import { totpCode } from '../worker/lib/totp.ts';
 
 const base = process.env.WORKER_URL || 'http://127.0.0.1:8787';
+assert.ok(['localhost', '127.0.0.1', '[::1]'].includes(new URL(base).hostname), 'Use a local Worker — these checks must never run against production');
 const EMAIL = process.env.ADMIN_EMAIL || 'admin@miyomi.local';
 const PASSWORD = process.env.ADMIN_PASSWORD || 'MiomiLocal123!';
 
 const resetTotp = () => {
+  const safeEmail = EMAIL.replace(/'/g, "''");
   execSync(
-    `npx wrangler d1 execute miyomi-db --local --command "UPDATE admins SET totp_secret = NULL WHERE email = '${EMAIL}';"`,
+    `npx wrangler d1 execute miyomi-db --local --command "UPDATE admins SET totp_secret = NULL WHERE email = '${safeEmail}';"`,
     { stdio: 'ignore' },
   );
 };

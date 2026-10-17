@@ -18,6 +18,8 @@ if (!email || !email.includes('@') || !password || password.length < 8) {
   console.error('Usage: node scripts/create-admin.mjs <email> <password (min 8 chars)>');
   process.exit(1);
 }
+// Escape SQL string literals built from CLI input (defense in depth).
+const safeEmail = email.replace(/'/g, "''");
 
 const hash = await hashPassword(password);
 const id = crypto.randomUUID();
@@ -25,7 +27,7 @@ const now = new Date().toISOString();
 
 const sql = [
   `INSERT INTO admins (id, email, password_hash, is_active, created_at, updated_at)`,
-  `VALUES ('${id}', '${email}', '${hash}', 1, '${now}', '${now}');`,
+  `VALUES ('${id}', '${safeEmail}', '${hash}', 1, '${now}', '${now}');`,
   `INSERT INTO user_roles (id, user_id, role)`,
   `VALUES ('${crypto.randomUUID()}', '${id}', 'super_admin');`,
 ].join('\n');
