@@ -11,6 +11,51 @@ Miyomi is a community-driven project — it will keep evolving. We use `v0.x` ve
 
 ---
 
+## [v0.5] — The Cloudflare Migration ☁️
+**Development Period:** October 2026
+**Branch:** `cf-dev`
+
+> **Breaking Change:** The entire backend migrated from Supabase (PostgreSQL + Cloudflare Pages Functions) to a single **Cloudflare Worker (Hono)** with **D1 (SQLite)** via Drizzle ORM. The frontend now talks to a typed fetch API — no database SDK in the client.
+
+### Added
+- **Cloudflare Worker backend** — public `/api/*`, session-guarded `/api/admin/*`, SEO-rendered pages, and `/sitemap.xml` from one Worker
+- **D1 database (Drizzle ORM)** — full schema + production data migration, scheduled cleanup cron, rate limiting
+- **Mandatory two-factor authentication** — TOTP (Google Authenticator compatible) required for every admin/moderator login; one-way (can't be disabled, only reset); QR + copyable secret setup in Settings; AES-GCM encrypted secrets; CLI recovery
+- **Admin analytics dashboard** — Cloudflare GraphQL visuals: traffic, **unique visitors**, requests by country, browsers, device types, OS, top pages, and threat pathing with 7/14/30-day ranges
+- **Verification suites** — API end-to-end, 2FA circuit, analytics, cron, import, and content checks
+- **CONTRIBUTING.md** — contribution guidelines for the open-source repo
+
+### Changed
+- **Hosting & Data** — Cloudflare Workers + D1 replace Cloudflare Pages Functions + Supabase (see Version History)
+- **Frontend data layer** — typed fetch services (`src/services/api`) with a snake_case adapter; Supabase client removed entirely
+- **Configuration** — one source of truth: `wrangler.toml` (`[vars]`) + `wrangler secret`; no scattered `.env` values
+- **Build** — `npm run build` is Vite-only (development); `build:release` generates OG images, which are cached and auto-restored so rebuilds can't lose them
+- **Admin auth** — password login with bcrypt + JWT sessions; admin sections locked until 2FA enrolment
+
+### Fixed
+- Admin **Likes** page crash (aggregate response key casing)
+- Admin **dashboard** showing empty activity/contributions (adapter contract)
+- Production admin login failing with Node-generated password hashes (switched to bcrypt)
+- Social-preview images silently disappearing from deploys after plain builds
+- Several silent data/type mismatches across the admin API surface
+
+### Security
+- Mandatory, one-way TOTP 2FA for all admin accounts
+- Turnstile on login and public write endpoints (new Worker-scoped widget)
+- 2FA secrets encrypted at rest (AES-GCM keyed by `SESSION_SECRET`)
+- Out-of-band admin password reset (also clears 2FA) for lost authenticators
+
+### Removed
+- Supabase client, SDK dependency, and migration/restore scripts
+- Cloudflare Pages `functions/`, `_routes.json`, `public/donations.json`
+- Legacy utilities (`approvalUtils`, `compatSync`, `contributors`, `functionErrors`, `useSessionTracker`)
+- Local `supabase/` project folder (functions + migrations CLI repo)
+
+### Documentation
+- New `AGENTS.md`, `PROGRESS.md`, rewritten `DEVELOPERS.md`, README tech-stack section, fixed CHANGELOG header
+
+---
+
 ## [v0.4] — The Community Platform Update 🚀
 **Development Period:** June 2026
 
@@ -147,7 +192,8 @@ Miyomi is a community-driven project — it will keep evolving. We use `v0.x` ve
 | **v0.1** | Nov 2024 – Oct 2025 | VitePress | Markdown | Cloudflare Pages |
 | **v0.2** | Oct 2025 – Feb 2026 | React 18 + Vite | JSON files | Cloudflare Pages |
 | **v0.3** | Feb – May 2026 | React 18 + Vite | Supabase | Cloudflare Pages |
-| **v0.4** | June 2026+ | React 18 + Vite | Supabase | Cloudflare Pages |
+| **v0.4** | June 2026 | React 18 + Vite | Supabase | Cloudflare Pages |
+| **v0.5** | Oct 2026 | React 18 + Vite + Workers (Hono) | Cloudflare D1 | Cloudflare Workers |
 
 ## Contributors ❤️
 
