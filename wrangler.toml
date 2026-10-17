@@ -66,4 +66,4 @@ VITE_DISABLE_TURNSTILE = "false"
 CF_ZONE_ID = "5eee3237bd70720c0f476fdd25b658ab"
 # Global Telegram chat ids for admin notifications (comma-separated).
 # Admin profile chat ids are appended automatically.
-TELEGRAM_CHAT_IDS = ""
+TELEGRAM_CHAT_IDS = "-1002475434955"
