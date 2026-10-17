@@ -37,6 +37,7 @@ The directory grows almost entirely through community input. If you spot somethi
 - **Database** — Cloudflare D1 (SQLite) via Drizzle ORM
 - **Security** — admin password + mandatory TOTP two-factor auth, Turnstile on public write forms
 - **Analytics** — Cloudflare GraphQL zone analytics in the admin dashboard
+- **PWA** — installable on mobile & desktop (manifest + service worker + offline shell)
 
 Full local setup, architecture, and deployment: see [DEVELOPERS.md](/DEVELOPERS.md).
 

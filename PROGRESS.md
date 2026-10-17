@@ -74,6 +74,11 @@
   compat groups, users/admins, settings, logs, sessions, blog, guides, FAQs).
 - `LikeContext` migrated from the Supabase `like` edge function to `likesApi`.
 - Vite dev proxy: `/api` → `http://localhost:8787`.
+- **PWA support added** — `public/manifest.webmanifest` (now linked from
+  index.html) with maskable icons + generated `apple-touch-icon.png`;
+  `public/sw.js` service worker (offline app shell, cache-first hashed assets,
+  API bypass) registered in production only. Verified on miyomi.app: manifest,
+  SW activation, and offline shell all pass.
 - Fixed admin Likes navigation crash: aggregate stats opt out of top-level
   snake-casing with `http.get(..., { preserveKeys: true })`, preserving `byType`,
   `byBrowser`, `byOS`, and `byDeviceType`. Database row adaptation is unchanged.

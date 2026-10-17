@@ -1,7 +1,9 @@
 {
+  "id": "/",
   "name": "Miyomi",
   "short_name": "Miyomi",
   "description": "Community-driven hub for apps, extensions, and guides.",
+  "lang": "en",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
