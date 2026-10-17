@@ -37,4 +37,10 @@ export interface Bindings {
   CDN_BASE_URL?: string;
   /** Bearer token for the CDN upload API */
   CDN_API_KEY?: string;
+
+  // ── Telegram admin notifications ──
+  /** Bot token from @BotFather (secret). */
+  TELEGRAM_BOT_TOKEN?: string;
+  /** Comma-separated global chat ids; per-admin chat ids are appended. */
+  TELEGRAM_CHAT_IDS?: string;
 }

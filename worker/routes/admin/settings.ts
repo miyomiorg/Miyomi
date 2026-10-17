@@ -1,4 +1,4 @@
-﻿import { asc, eq, inArray } from 'drizzle-orm';
+﻿import { asc, eq } from 'drizzle-orm';
 import { Hono } from 'hono';
 import { createDb } from '../../lib/db.ts';
 import { fail, isoNow, ok, requireAdmin, requireMinRole, type AppEnv } from '../../lib/http.ts';
@@ -82,21 +82,13 @@ settingsRouter.put('/settings/:key', requireAdmin(), requireMinRole('admin'), as
 settingsRouter.post('/settings/telegram-test', requireAdmin(), requireMinRole('super_admin'), async (c) => {
   try {
     const db = createDb(c.env.DB);
-    const rows = await db
-      .select()
-      .from(settings)
-      .where(inArray(settings.key, ['telegram_bot_token', 'telegram_chat_ids']));
-    const token = rows.find((r) => r.key === 'telegram_bot_token')?.value;
-    const chatIdsRaw = rows.find((r) => r.key === 'telegram_chat_ids')?.value;
-    const chatIds = Array.isArray(chatIdsRaw)
-      ? chatIdsRaw.filter((v): v is string => typeof v === 'string')
-      : [];
-
-    if (typeof token !== 'string' || !token) return fail(c, 400, 'Telegram bot token is not configured');
-    if (chatIds.length === 0) return fail(c, 400, 'No Telegram chat IDs configured');
-
-    const delivered = await sendTelegramText(db, 'This is a test message from Miyomi Admin Settings.');
-    if (!delivered) return fail(c, 502, 'Failed to send Telegram test message');
+    if (!c.env.TELEGRAM_BOT_TOKEN) {
+      return fail(c, 400, 'TELEGRAM_BOT_TOKEN secret is not configured');
+    }
+    const delivered = await sendTelegramText(c.env, db, 'This is a test message from Miyomi Admin Settings.');
+    if (!delivered) {
+      return fail(c, 502, 'Failed to send Telegram test message (check TELEGRAM_BOT_TOKEN / TELEGRAM_CHAT_IDS)');
+    }
     return ok(c, null);
   } catch (error) {
     console.error('[settings] telegram test failed:', error);

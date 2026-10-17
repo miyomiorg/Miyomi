@@ -15,6 +15,13 @@
       "when": 1792260106896,
       "tag": "0001_wild_the_leader",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1792267887041,
+      "tag": "0002_short_unus",
+      "breakpoints": true
     }
   ]
 }

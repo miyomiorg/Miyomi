@@ -1,6 +1,7 @@
-import { inArray } from 'drizzle-orm';
+import { isNotNull } from 'drizzle-orm';
+import type { Bindings } from '../env';
 import type { createDb } from './db.ts';
-import { settings } from '../db/schema.ts';
+import { admins } from '../db/schema.ts';
 
 type Db = ReturnType<typeof createDb>;
 
@@ -11,23 +12,34 @@ function truncate(text: string): string {
 }
 
 /**
- * Send a plain-text message to every configured Telegram chat.
- * Reads `telegram_bot_token` + `telegram_chat_ids` from the `settings` table
- * (managed in Admin → Settings → Telegram Integration).
- * Returns true when at least one chat accepted the message.
+ * Resolve the full recipient list for a notification:
+ * the global `TELEGRAM_CHAT_IDS` env var plus every admin profile chat id
+ * (admins.telegram_chat_id), deduplicated.
  */
-export async function sendTelegramText(db: Db, text: string): Promise<boolean> {
+async function recipientChatIds(env: Bindings, db: Db): Promise<string[]> {
+  const global = (env.TELEGRAM_CHAT_IDS ?? '')
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean);
   const rows = await db
-    .select()
-    .from(settings)
-    .where(inArray(settings.key, ['telegram_bot_token', 'telegram_chat_ids']));
-  const token = rows.find((r) => r.key === 'telegram_bot_token')?.value;
-  const chatIdsRaw = rows.find((r) => r.key === 'telegram_chat_ids')?.value;
+    .select({ chatId: admins.telegramChatId })
+    .from(admins)
+    .where(isNotNull(admins.telegramChatId));
+  const personal = rows
+    .map((r) => r.chatId)
+    .filter((v): v is string => typeof v === 'string' && v.trim() !== '');
+  return [...new Set([...global, ...personal])];
+}
 
-  if (typeof token !== 'string' || !token) return false;
-  const chatIds = Array.isArray(chatIdsRaw)
-    ? chatIdsRaw.filter((v): v is string => typeof v === 'string')
-    : [];
+/**
+ * Send a plain-text message to the global Telegram chat ids plus every
+ * admin's personal chat id. Bot token comes from the TELEGRAM_BOT_TOKEN
+ * secret. Returns true when at least one chat accepted the message.
+ */
+export async function sendTelegramText(env: Bindings, db: Db, text: string): Promise<boolean> {
+  const token = env.TELEGRAM_BOT_TOKEN;
+  if (!token) return false;
+  const chatIds = await recipientChatIds(env, db);
   if (chatIds.length === 0) return false;
 
   const results = await Promise.allSettled(
@@ -46,10 +58,10 @@ export async function sendTelegramText(db: Db, text: string): Promise<boolean> {
  * Fire-and-forget admin notification (submissions, reports, feedback, edit
  * suggestions, failed logins). Never throws; suitable for c.executionCtx.waitUntil.
  */
-export function notifyTelegram(db: Db, text: string): Promise<boolean> {
-  return sendTelegramText(db, text)
+export function notifyTelegram(env: Bindings, db: Db, text: string): Promise<boolean> {
+  return sendTelegramText(env, db, text)
     .then((ok) => {
-      if (!ok) console.warn('[telegram] notification not delivered (check bot token / chat ids)');
+      if (!ok) console.warn('[telegram] notification not delivered (check TELEGRAM_BOT_TOKEN / TELEGRAM_CHAT_IDS)');
       return ok;
     })
     .catch((error) => {

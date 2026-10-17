@@ -139,6 +139,9 @@ export const authApi = {
     http.post<{ enrollToken: string; setup: TwoFactorSetup }>('/admin/auth/2fa/enroll', undefined, { preserveKeys: true }),
   verifyEnroll: (body: { enrollToken: string; code: string; currentPassword: string }) =>
     http.post<{ enabled: boolean }>('/admin/auth/2fa/enroll/verify', body, { preserveKeys: true }),
+  // Personal Telegram chat id for admin notifications (appended to the global list).
+  setTelegramChatId: (chatId: string | null) =>
+    http.patch<{ telegramChatId: string | null }>('/admin/auth/telegram-chat-id', { chatId }, { preserveKeys: true }),
 };
 
 // ── Admin: dashboard ────────────────────────────────────────────────

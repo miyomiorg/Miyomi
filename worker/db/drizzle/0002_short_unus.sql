@@ -1,0 +1,1 @@
+ALTER TABLE `admins` ADD `telegram_chat_id` text;

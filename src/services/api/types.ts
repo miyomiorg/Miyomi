@@ -16,6 +16,7 @@ export interface AdminUser {
   avatarUrl: string | null;
   isActive: boolean;
   totpEnabled: boolean;
+  telegramChatId: string | null;
 }
 
 export type AdminRole = 'super_admin' | 'admin' | 'moderator';

@@ -77,7 +77,7 @@ async function recordFailedAttempt(c: Context<AppEnv>, email: string | null, dev
       country: typeof device.country === 'string' ? device.country : null,
     });
     // Security alert to the admin Telegram logs channel.
-    c.executionCtx.waitUntil(notifyTelegram(db, [
+    c.executionCtx.waitUntil(notifyTelegram(c.env, db, [
       '⚠️ Failed admin login',
       `Email: ${email || 'unknown'}`,
       `IP: ${clientIp(c)}`,
@@ -113,6 +113,7 @@ function publicAdmin(a: {
   avatarUrl: string | null;
   isActive: boolean;
   totpSecret: string | null;
+  telegramChatId: string | null;
 }) {
   return {
     id: a.id,
@@ -121,6 +122,7 @@ function publicAdmin(a: {
     avatarUrl: a.avatarUrl,
     isActive: a.isActive,
     totpEnabled: Boolean(a.totpSecret),
+    telegramChatId: a.telegramChatId,
   };
 }
 
@@ -257,6 +259,30 @@ authRouter.post('/login', async (c) => {
 authRouter.post('/logout', (c) => {
   clearSessionCookie(c);
   return ok(c, null);
+});
+
+/**
+ * PATCH /telegram-chat-id { chatId } — set/clear the CURRENT admin's personal
+ * Telegram chat id. Notifications go to the global TELEGRAM_CHAT_IDS plus every
+ * admin's personal chat id (appended).
+ */
+authRouter.patch('/telegram-chat-id', requireAdmin(), async (c) => {
+  try {
+    const body = (await c.req.json().catch(() => null)) as Record<string, unknown> | null;
+    const raw = typeof body?.chatId === 'string' ? body.chatId.trim() : null;
+    if (raw !== null && raw.length > 100) return fail(c, 400, 'chatId must be at most 100 characters');
+
+    const db = createDb(c.env.DB);
+    const chatId = raw === null || raw === '' ? null : raw;
+    await db
+      .update(admins)
+      .set({ telegramChatId: chatId, updatedAt: isoNow() })
+      .where(eq(admins.id, c.get('adminId')!));
+    return ok(c, { telegramChatId: chatId });
+  } catch (error) {
+    console.error('[auth] telegram-chat-id failed:', error);
+    return fail(c, 500, 'Failed to update Telegram chat id');
+  }
 });
 
 /**

@@ -128,6 +128,7 @@ export type Database = {
           email: string
           id: string
           is_active: boolean
+          telegram_chat_id: string | null
           totp_secret: string | null
           updated_at: string
           user_id: string | null

@@ -129,13 +129,15 @@ never drift from the Worker's runtime config.
   credentials (`CLOUDFLARE_ACCOUNT_ID` + `CLOUDFLARE_D1_TOKEN`) and legacy
   Supabase migration scripts. It is not used at runtime or for the build.
 
-Secrets in use:
-
-```bash
-npx wrangler secret put SESSION_SECRET          # ≥32 char JWT signing key
-npx wrangler secret put TURNSTILE_SECRET_KEY    # matches VITE_TURNSTILE_SITE_KEY
-npx wrangler secret put CF_API_TOKEN            # Cloudflare API token (Analytics:Read + Zone:Read) for /api/stats
-```
+# Secrets in use:
+#   npx wrangler secret put SESSION_SECRET          # ≥32 char JWT signing key
+#   npx wrangler secret put TURNSTILE_SECRET_KEY    # matches VITE_TURNSTILE_SITE_KEY
+#   npx wrangler secret put CF_API_TOKEN            # Cloudflare API token (Analytics:Read + Zone:Read) for /api/stats
+#   npx wrangler secret put TELEGRAM_BOT_TOKEN      # @BotFather bot token for admin notifications
+#
+# Global Telegram chat ids live in wrangler.toml [vars] → TELEGRAM_CHAT_IDS
+# (comma-separated). Each admin can additionally set their own chat id in
+# Settings → Telegram Notifications; it is appended to the global list.
 
 `CF_ZONE_ID` (the `miyomi.app` zone id) is **not** a secret — it already lives in
 `wrangler.toml [vars]`. A `CF_API_TOKEN` is created in the Cloudflare dashboard

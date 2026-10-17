@@ -1,11 +1,9 @@
 import { TelegramSettingsForm } from '@/components/admin/TelegramSettingsForm';
 import { ChangePasswordForm } from '@/components/admin/ChangePasswordForm';
 import { TwoFactorSettings } from '@/components/admin/TwoFactorSettings';
-import { useAdmin } from '@/hooks/useAdmin';
 import { useAuth } from '@/hooks/useAuth';
 
 export function AdminSettingsPage() {
-  const { isSuperAdmin } = useAdmin();
   const { user } = useAuth();
   const totpEnabled = Boolean(user?.totpEnabled);
 
@@ -28,12 +26,10 @@ export function AdminSettingsPage() {
             <ChangePasswordForm />
           </div>
 
-          {/* Telegram Settings - Superadmin only */}
-          {isSuperAdmin && (
-            <div className="rounded-xl border p-6" style={{ background: 'var(--bg-surface)', borderColor: 'var(--divider)' }}>
-              <TelegramSettingsForm />
-            </div>
-          )}
+          {/* Telegram Notifications - All admins (global config lives in Cloudflare) */}
+          <div className="rounded-xl border p-6" style={{ background: 'var(--bg-surface)', borderColor: 'var(--divider)' }}>
+            <TelegramSettingsForm />
+          </div>
         </>
       )}
     </div>

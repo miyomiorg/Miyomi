@@ -94,6 +94,11 @@ export const admins = sqliteTable(
      * (encryptSecret/decryptSecret) and worker/lib/totp.ts.
      */
     totpSecret: text('totp_secret'),
+    /**
+     * Optional personal Telegram chat id — notifications are delivered to the
+     * global TELEGRAM_CHAT_IDS plus every admin's chat id (appended).
+     */
+    telegramChatId: text('telegram_chat_id'),
     /** Legacy Supabase auth user id (app-level link, not a DB FK in D1) */
     userId: text('user_id'),
     displayName: text('display_name'),

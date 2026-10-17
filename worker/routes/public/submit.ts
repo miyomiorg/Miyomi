@@ -71,7 +71,7 @@ submitRouter.post('/submissions', rateLimit(300, 5), async (c) => {
       updatedAt: isoNow(),
     });
     const dataName = typeof submitted.name === 'string' ? submitted.name : 'unknown';
-    c.executionCtx.waitUntil(notifyTelegram(db, [
+    c.executionCtx.waitUntil(notifyTelegram(c.env, db, [
       `📦 New ${submissionType} submission`,
       `Name: ${dataName}`,
       `By: ${typeof body.submitterName === 'string' ? body.submitterName : 'anonymous'}`,
@@ -130,7 +130,7 @@ submitRouter.post('/reports', rateLimit(300, 5), async (c) => {
       createdAt: isoNow(),
       updatedAt: isoNow(),
     });
-    c.executionCtx.waitUntil(notifyTelegram(db, [
+    c.executionCtx.waitUntil(notifyTelegram(c.env, db, [
       `🚩 New report`,
       `Target: ${targetType}${targetId ? ` (${targetId})` : ''}`,
       `Reason: ${reason}`,
@@ -175,7 +175,7 @@ submitRouter.post('/feedback', rateLimit(300, 5), async (c) => {
       createdAt: isoNow(),
       updatedAt: isoNow(),
     });
-    c.executionCtx.waitUntil(notifyTelegram(db, [
+    c.executionCtx.waitUntil(notifyTelegram(c.env, db, [
       `📝 New feedback${typeof body.feedbackType === 'string' ? ` (${body.feedbackType})` : ''}`,
       `From: ${typeof body.userName === 'string' ? body.userName : 'anonymous'}`,
       `Page: ${typeof body.pageUrl === 'string' ? body.pageUrl : '—'}`,
@@ -303,7 +303,7 @@ submitRouter.post('/edit-suggestions', rateLimit(300, 5), async (c) => {
       updatedAt: isoNow(),
     });
     const dataName = typeof submitted.name === 'string' ? submitted.name : 'unknown';
-    c.executionCtx.waitUntil(notifyTelegram(db, [
+    c.executionCtx.waitUntil(notifyTelegram(c.env, db, [
       `✏️ Edit suggestion`,
       `Target: ${targetType} (${targetId})`,
       `Name: ${dataName}`,

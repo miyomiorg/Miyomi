@@ -53,8 +53,10 @@ migrations_dir = "worker/db/drizzle"
 #   npx wrangler secret put <NAME>            (production)
 #   npx wrangler secret put --local <NAME>    (local dev → .dev.vars)
 # Secrets in use: SESSION_SECRET, TURNSTILE_SECRET_KEY, CF_API_TOKEN,
-#   and (optional) CDN_API_KEY. TELEGRAM bot token/chat ids live in the
-#   `settings` table, not here.
+#   TELEGRAM_BOT_TOKEN, and (optional) CDN_API_KEY. TELEGRAM_BOT_TOKEN and
+#   TELEGRAM_CHAT_IDS replace the old settings-table Telegram config; each
+#   admin's personal chat id (admins.telegram_chat_id) is appended to the
+#   global TELEGRAM_CHAT_IDS when notifying.
 [vars]
 SITE_URL = "https://miyomi.app"
 VITE_TURNSTILE_SITE_KEY = "0x4AAAAAAFZcAacXgE2d12i8"
@@ -62,3 +64,6 @@ VITE_DISABLE_TURNSTILE = "false"
 # Cloudflare zone id for miyomi.app — used by /api/stats (visitor analytics).
 # Not secret; the matching CF_API_TOKEN is a secret (see above).
 CF_ZONE_ID = "5eee3237bd70720c0f476fdd25b658ab"
+# Global Telegram chat ids for admin notifications (comma-separated).
+# Admin profile chat ids are appended automatically.
+TELEGRAM_CHAT_IDS = ""
