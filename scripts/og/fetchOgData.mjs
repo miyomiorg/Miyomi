@@ -1,64 +1,60 @@
-import { createClient } from '@supabase/supabase-js';
+/**
+ * Fetches approved content for OG image generation from the Miyomi Worker
+ * API — the same `/api` the SPA uses — instead of the retired Supabase DB.
+ *
+ * API base resolution:  OG_API_URL  →  SITE_URL  →  https://miyomi.app
+ *
+ * The Worker returns camelCase (Drizzle); this module snake_cases each row
+ * so the existing card templates (which still read snake_case) keep working.
+ */
 import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import fs from 'fs';
+import { parse } from 'smol-toml';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Load .env logic exactly like Vite does for consistency
+// Mirror Vite's env loading for consistency.
 const envPath = path.resolve(__dirname, '../../.env');
-if (fs.existsSync(envPath)) {
-  dotenv.config({ path: envPath });
-}
-
-// Ensure local overrides can also be loaded if needed (.env.local)
+if (fs.existsSync(envPath)) dotenv.config({ path: envPath });
 const envLocalPath = path.resolve(__dirname, '../../.env.local');
-if (fs.existsSync(envLocalPath)) {
-  dotenv.config({ path: envLocalPath, override: true });
-}
+if (fs.existsSync(envLocalPath)) dotenv.config({ path: envLocalPath, override: true });
 
-export function getSupabaseClient() {
-  const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
-  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_ANON_KEY;
-
-  if (!supabaseUrl || !supabaseKey) {
-    console.error('Missing SUPABASE_URL or SUPABASE_KEY (Anon or Service Role) in env.');
-    process.exit(1);
+/** camelCase (Worker) → snake_case (templates). Nested objects left as-is. */
+function snakeify(value) {
+  if (Array.isArray(value)) return value.map(snakeify);
+  if (value && typeof value === 'object' && !(value instanceof Date)) {
+    const out = {};
+    for (const [k, v] of Object.entries(value)) {
+      out[k.replace(/[A-Z]/g, (m) => `_${m.toLowerCase()}`)] = v;
+    }
+    return out;
   }
-
-  return createClient(supabaseUrl, supabaseKey, {
-    auth: { persistSession: false, autoRefreshToken: false }
-  });
+  return value;
 }
 
-export async function fetchApps(supabase) {
-  const { data, error } = await supabase
-    .from('apps')
-    .select('slug, name, description, short_description, icon_url, seo_title, seo_description, og_image_url, updated_at, status, download_count, likes_count, author')
-    .eq('status', 'approved');
-
-  if (error) throw error;
-  return data;
+export function getApiBase() {
+  let siteUrl = process.env.SITE_URL;
+  if (!siteUrl) {
+    try {
+      const doc = parse(fs.readFileSync(path.resolve(__dirname, '../../wrangler.toml'), 'utf8'));
+      siteUrl = typeof doc?.vars?.SITE_URL === 'string' ? doc.vars.SITE_URL : undefined;
+    } catch { /* fall through to default */ }
+  }
+  const base = process.env.OG_API_URL || siteUrl || 'https://miyomi.app';
+  return `${base.replace(/\/$/, '')}/api`;
 }
 
-export async function fetchExtensions(supabase) {
-  const { data, error } = await supabase
-    .from('extensions')
-    .select('slug, name, description, short_description, icon_url, seo_title, seo_description, og_image_url, updated_at, status, download_count, likes_count, author, language')
-    .eq('status', 'approved');
-
-  if (error) throw error;
-  return data;
+async function getList(pathname) {
+  const url = `${getApiBase()}${pathname}`;
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`GET ${url} → HTTP ${res.status}`);
+  const body = await res.json();
+  return Array.isArray(body?.data) ? body.data.map(snakeify) : [];
 }
 
-export async function fetchGuides(supabase) {
-  const { data, error } = await supabase
-    .from('guides')
-    .select('slug, title, description, content, content_html, author, author_name, seo_title, seo_description, og_image_url, updated_at, status, category')
-    .neq('status', 'draft');
-
-  if (error) throw error;
-  return data;
-}
+export const fetchApps = () => getList('/apps');
+export const fetchExtensions = () => getList('/extensions');
+export const fetchGuides = () => getList('/guides');

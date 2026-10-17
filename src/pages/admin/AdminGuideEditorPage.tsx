@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { supabase } from '@/integrations/supabase/client';
+import { adminGuidesApi } from '@/services/api';
+import { collectPages } from '@/services/api/pagination';
+import { invalidateTableCache } from '@/hooks/useAdminCache';
 import { AdminRichTextEditor } from '@/components/admin/AdminRichTextEditor';
 import { AdminInput, AdminButton, AdminSelect, AdminTextarea, AdminFormField, Label } from '@/components/admin/AdminFormElements';
 import { ArrowLeft, Save, AlertCircle, ChevronsUpDown, Check, PlusCircle, X, HelpCircle, Copy, ChevronDown, ChevronUp } from 'lucide-react';
@@ -90,13 +92,13 @@ Guidelines:
 
     useEffect(() => {
         async function fetchCategories() {
-            const { data } = await supabase.from('guides').select('category');
+            const data = await collectPages(adminGuidesApi.list);
             if (data) {
                 const unique = [...new Set(data.map(g => g.category).filter(Boolean))] as string[];
                 setExistingCategories(unique.sort());
             }
         }
-        fetchCategories();
+        fetchCategories().catch(error => console.error('Failed to load guide categories:', error));
     }, []);
 
     useEffect(() => {
@@ -104,12 +106,7 @@ Guidelines:
 
         async function fetchGuide() {
             try {
-                const { data, error } = await supabase.from('guides').select('*').eq('id', id).single();
-                if (error) {
-                    toast.error('Failed to load guide');
-                    navigate('/admin/guides');
-                    return;
-                }
+                const data = await adminGuidesApi.get(id);
                 setSlugTouched(true);
                 setForm({
                     title: data.title,
@@ -162,10 +159,10 @@ Guidelines:
             slug: finalSlug,
             status: form.status,
             tags: form.tags.length ? form.tags : null,
-            content_mode: form.content_mode,
-            author_name: form.author || null,
-            published_at: form.status === 'published' ? new Date().toISOString() : null,
-            updated_at: new Date().toISOString(),
+            contentMode: form.content_mode,
+            contentHtml: form.content_mode === 'html' ? form.content : null,
+            authorName: form.author || null,
+            publishedAt: form.status === 'published' ? new Date().toISOString() : null,
             metadata: {
                 ...form.metadata,
                 readTime: form.readTime || calculateReadTime(form.content || '')
@@ -174,13 +171,12 @@ Guidelines:
 
         try {
             if (id) {
-                const { data, error } = await supabase.from('guides').update(payload).eq('id', id).select();
-                if (error) throw error;
-                if (!data || data.length === 0) throw new Error('Update failed — check RLS policies.');
+                await adminGuidesApi.update(id, payload);
+                invalidateTableCache('guides');
                 toast.success('Guide saved!');
             } else {
-                const { data, error } = await supabase.from('guides').insert(payload).select();
-                if (error) throw error;
+                await adminGuidesApi.create(payload);
+                invalidateTableCache('guides');
                 toast.success('Guide created!');
                 navigate('/admin/guides');
             }

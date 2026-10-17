@@ -1,0 +1,1 @@
+ALTER TABLE `admins` ADD `totp_secret` text;

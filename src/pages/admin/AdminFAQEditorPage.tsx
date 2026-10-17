@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { supabase } from '@/integrations/supabase/client';
+import { adminFaqsApi } from '@/services/api';
+import { invalidateTableCache } from '@/hooks/useAdminCache';
 import { useAdminLogger } from '@/hooks/useAdminLogger';
 import { AdminRichTextEditor } from '@/components/admin/AdminRichTextEditor';
+import { AdminMarkdownEditor } from '@/components/admin/AdminMarkdownEditor';
 import { AdminInput, AdminButton, AdminFormField } from '@/components/admin/AdminFormElements';
 import { ArrowLeft, Save, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -28,12 +30,8 @@ export function AdminFAQEditorPage() {
 
         async function fetchFaq() {
             try {
-                const { data, error } = await supabase.from('faqs').select('*').eq('id', id).single();
-                if (error) {
-                    toast.error('Failed to load FAQ');
-                    navigate('/admin/faqs');
-                    return;
-                }
+                const data = (await adminFaqsApi.list()).find(row => row.id === id);
+                if (!data) throw new Error('FAQ not found');
                 setForm({
                     question: data.question,
                     answer: data.answer || '',
@@ -61,16 +59,16 @@ export function AdminFAQEditorPage() {
         setSaving(true);
         const payload = {
             question: form.question,
-            answer: form.answer || null,
+            answer: form.answer,
             category: form.category || null,
-            order_index: form.order_index,
-            content_format: form.content_format,
+            orderIndex: form.order_index,
+            contentFormat: form.content_format,
         };
 
         try {
             if (id) {
-                const { error } = await supabase.from('faqs').update(payload).eq('id', id);
-                if (error) throw error;
+                await adminFaqsApi.update(id, payload);
+                invalidateTableCache('faqs');
 
                 await logAction('update', 'faq', id, form.question).catch(err => {
                     console.error('Failed to log update action:', err);
@@ -78,8 +76,8 @@ export function AdminFAQEditorPage() {
 
                 toast.success('FAQ updated!');
             } else {
-                const { data, error } = await supabase.from('faqs').insert(payload).select().single();
-                if (error) throw error;
+                const data = await adminFaqsApi.create(payload);
+                invalidateTableCache('faqs');
 
                 if (data) {
                     await logAction('create', 'faq', data.id, form.question).catch(err => {
@@ -131,13 +129,20 @@ export function AdminFAQEditorPage() {
                         style={{ color: 'var(--text-primary)' }}
                     />
 
-                    <AdminRichTextEditor
+                    <label className="block text-sm text-[var(--text-secondary)]">
+                        Answer format
+                        <select value={form.content_format} onChange={e => setForm(f => ({ ...f, content_format: e.target.value as 'html' | 'markdown' }))} className="ml-3 bg-[var(--bg-surface)] rounded p-2">
+                            <option value="markdown">Markdown</option>
+                            <option value="html">HTML</option>
+                        </select>
+                    </label>
+                    {form.content_format === 'markdown' ? (
+                        <AdminMarkdownEditor value={form.answer} onChange={e => setForm(f => ({ ...f, answer: e.target.value }))} placeholder="Write the answer here..." />
+                    ) : <AdminRichTextEditor
                         value={form.answer}
                         onChange={answer => setForm(f => ({ ...f, answer }))}
-                        format={form.content_format}
-                        onFormatChange={content_format => setForm(f => ({ ...f, content_format }))}
                         placeholder="Write the answer here..."
-                    />
+                    />}
                 </div>
 
                 {/* Sidebar settings */}

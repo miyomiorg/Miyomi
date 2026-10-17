@@ -1,10 +1,12 @@
 import { useState } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { authApi } from '@/services/api';
+import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 import { Lock } from 'lucide-react';
 import { AdminButton, AdminFormField, AdminInput } from './AdminFormElements';
 
 export function ChangePasswordForm() {
+    const { signOut } = useAuth();
     const [currentPassword, setCurrentPassword] = useState('');
     const [newPassword, setNewPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
@@ -36,27 +38,7 @@ export function ChangePasswordForm() {
         setLoading(true);
 
         try {
-            const { data: { user } } = await supabase.auth.getUser();
-            if (!user?.email) {
-                throw new Error('User email not found');
-            }
-
-            const { error: signInError } = await supabase.auth.signInWithPassword({
-                email: user.email,
-                password: currentPassword,
-            });
-
-            if (signInError) {
-                toast.error('Current password is incorrect');
-                setLoading(false);
-                return;
-            }
-
-            const { error } = await supabase.auth.updateUser({
-                password: newPassword,
-            });
-
-            if (error) throw error;
+            await authApi.changePassword({ currentPassword, newPassword });
 
             toast.success('Password updated successfully! Logging out...');
 
@@ -64,9 +46,7 @@ export function ChangePasswordForm() {
             setNewPassword('');
             setConfirmPassword('');
 
-            setTimeout(async () => {
-                await supabase.auth.signOut();
-            }, 1500);
+            await signOut();
         } catch (error: any) {
             console.error('Password change error:', error);
             toast.error(error.message || 'Failed to update password');

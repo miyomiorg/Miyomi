@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useState, useMemo, useCallback, useRef, type PropsWithChildren } from 'react';
-import { supabase } from '@/integrations/supabase/client';
-import type { Tables, Json } from '@/integrations/supabase/types';
+import { themesApi, adminThemesApi } from '@/services/api';
+import type { Tables, Json } from '@/types/db';
 import { SEASONAL_CONFIG, isSeasonalActive } from '@/config/seasonal';
 
 // ── Types ──────────────────────────────────────────────────────────
@@ -199,24 +199,12 @@ export function useThemeEngine(colorMode: 'light' | 'dark' = 'light'): ThemeEngi
 
     const fetchThemes = useCallback(async () => {
         try {
-            if (!supabase) {
-                console.warn('[ThemeEngine] Supabase is not initialized. Using fallback themes.');
-                setThemes(FALLBACK_THEMES);
-                setIsLoading(false);
-                return;
-            }
-
-            const { data, error } = await supabase
-                .from('themes')
-                .select('*')
-                .order('name');
-
-            if (error || !data) {
-                console.warn('[ThemeEngine] Using fallback themes:', error?.message);
+            const data = await themesApi.list();
+            if (!data || data.length === 0) {
+                console.warn('[ThemeEngine] No themes returned; using fallbacks.');
                 setThemes(FALLBACK_THEMES);
                 return;
             }
-
             setThemes(data.map(mapTableToTheme));
         } catch (err) {
             console.warn('[ThemeEngine] Fetch failed, using fallbacks:', err);
@@ -227,26 +215,6 @@ export function useThemeEngine(colorMode: 'light' | 'dark' = 'light'): ThemeEngi
     }, []);
 
     useEffect(() => { fetchThemes(); }, [fetchThemes]);
-
-    useEffect(() => {
-        if (!supabase) return;
-
-        const channel = supabase
-            .channel('theme-engine-changes')
-            .on(
-                'postgres_changes',
-                { event: '*', schema: 'public', table: 'themes' },
-                () => {
-                    console.log('[ThemeEngine] Theme update detected, refetching...');
-                    fetchThemes();
-                }
-            )
-            .subscribe();
-
-        return () => {
-            supabase.removeChannel(channel);
-        };
-    }, [fetchThemes]);
 
     const activeTheme = useMemo(
         () => resolveActiveTheme(themes, themeMode),
@@ -306,19 +274,18 @@ export function useThemeEngine(colorMode: 'light' | 'dark' = 'light'): ThemeEngi
 
     const activateTheme = useCallback(async (themeId: string) => {
         setIsLoading(true);
-        if (supabase) {
-            await supabase.from('themes').update({ is_active: false }).eq('is_active', true);
-            await supabase.from('themes').update({ is_active: true }).eq('id', themeId);
-        }
-        await fetchThemes();
+        try {
+            await adminThemesApi.activate(themeId);
+            await fetchThemes();
+        } finally { setIsLoading(false); }
     }, [fetchThemes]);
 
     const deactivateTheme = useCallback(async (themeId: string) => {
         setIsLoading(true);
-        if (supabase) {
-            await supabase.from('themes').update({ is_active: false }).eq('id', themeId);
-        }
-        await fetchThemes();
+        try {
+            await adminThemesApi.update(themeId, { isActive: false });
+            await fetchThemes();
+        } finally { setIsLoading(false); }
     }, [fetchThemes]);
 
     const setThemeMode = useCallback(async (mode: ThemeMode) => {

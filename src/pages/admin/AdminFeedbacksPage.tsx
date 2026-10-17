@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { adminFeedbackApi } from '@/services/api';
+import { collectPages } from '@/services/api/pagination';
 import { useAdminLogger } from '@/hooks/useAdminLogger';
 import { MessageSquare, Check, Trash2 } from 'lucide-react';
 import { AdminButton, StatusBadge, EmptyState } from '@/components/admin/AdminFormElements';
@@ -16,14 +17,18 @@ export function AdminFeedbacksPage() {
   useEffect(() => { fetchData(); }, []);
 
   async function fetchData() {
-    const { data } = await (supabase as any).from('feedbacks').select('*').order('created_at', { ascending: false });
-    setFeedbacks(data || []);
-    setLoading(false);
+    try {
+      setFeedbacks(await collectPages(adminFeedbackApi.list));
+    } catch (err) {
+      console.error('Failed to load feedbacks:', err);
+    } finally {
+      setLoading(false);
+    }
   }
 
   async function handleAcknowledge(id: string) {
     try {
-      await (supabase as any).from('feedbacks').update({ status: 'acknowledged' }).eq('id', id);
+      await adminFeedbackApi.update(id, { status: 'acknowledged' });
       await logAction('acknowledge' as any, 'feedback' as any, id, 'Acknowledged feedback');
       toast.success('Feedback acknowledged.');
       fetchData();
@@ -34,9 +39,8 @@ export function AdminFeedbacksPage() {
 
   async function handleClearAll() {
     try {
-      const { error, count } = await (supabase as any).from('feedbacks').delete().neq('id', '00000000-0000-0000-0000-000000000000');
-      if (error) throw error;
-      await logAction('delete' as any, 'feedback' as any, 'bulk', 'Cleared all feedbacks', { count });
+      await adminFeedbackApi.clear();
+      await logAction('delete' as any, 'feedback' as any, 'bulk', 'Cleared all feedbacks');
       toast.success('All feedbacks cleared.');
       setShowClearConfirm(false);
       fetchData();

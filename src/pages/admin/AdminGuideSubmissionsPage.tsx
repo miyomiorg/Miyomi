@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { supabase } from '@/integrations/supabase/client';
+import { adminSubmissionsApi, adminEditSuggestionsApi } from '@/services/api';
+import { collectPages } from '@/services/api/pagination';
 import { useAdminLogger } from '@/hooks/useAdminLogger';
 import { Inbox, User, Check, X as XIcon, Eye, Trash2, AlertTriangle, RotateCcw, FileText, StickyNote } from 'lucide-react';
 import { AdminButton, StatusBadge, EmptyState } from '@/components/admin/AdminFormElements';
@@ -22,15 +23,14 @@ export function AdminGuideSubmissionsPage() {
   async function fetchData() {
     setLoading(true);
     try {
-      const { data: newSubs, error: err1 } = await supabase.from('submissions').select('*').eq('submission_type', 'guide').order('created_at', { ascending: false });
-      if (err1) throw err1;
-
-      const { data: editSubs, error: err2 } = await supabase.from('public_edit_suggestions').select('*').eq('target_type', 'guide').order('created_at', { ascending: false });
-      if (err2) throw err2;
+      const [newSubs, editSubs] = await Promise.all([
+        collectPages((p) => adminSubmissionsApi.list({ ...p, type: 'guide' })),
+        collectPages((p) => adminEditSuggestionsApi.list({ ...p, targetType: 'guide' })),
+      ]);
 
       const combined = [
-        ...(newSubs || []).map(s => ({ ...s, _type: 'new' })),
-        ...(editSubs || []).map(s => ({ ...s, _type: 'edit' }))
+        ...newSubs.map(s => ({ ...s, _type: 'new' })),
+        ...editSubs.map(s => ({ ...s, _type: 'edit' }))
       ].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
       setSubmissions(combined);
@@ -42,10 +42,6 @@ export function AdminGuideSubmissionsPage() {
     }
   }
 
-  function generateSlug(name: string): string {
-    return name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
-  }
-
   async function handleAction() {
     if (!actionTarget) return;
     try {
@@ -54,62 +50,26 @@ export function AdminGuideSubmissionsPage() {
         const submittedData = sub.submitted_data as any;
 
         if (actionTarget.type === 'new') {
-          // INSERT new guide
-          let slug = generateSlug(submittedData.title || '');
-          const payload: any = {
-            title: submittedData.title,
-            slug: slug,
-            category: submittedData.category,
-            description: submittedData.description || null,
-            content: submittedData.content,
-            author: sub.author || submittedData.author,
-          };
-
-          const { data: insertedData, error: insertError } = await supabase.from('guides').insert(payload).select().single();
-          if (insertError) {
-            if (insertError.code === '23505') {
-              // try appending random string
-              payload.slug = slug + '-' + Math.floor(Math.random() * 1000);
-              const { error: retryErr } = await supabase.from('guides').insert(payload);
-              if (retryErr) throw retryErr;
-            } else {
-              throw insertError;
-            }
-          }
-
-          await supabase.from('submissions').update({ status: 'approved' }).eq('id', sub.id);
+          const result = await adminSubmissionsApi.approve(sub.id);
           await logAction('approve', 'submission', sub.id, 'Guide submission', {
             approved_as: 'guides',
-            resource_name: payload.title
+            resource_name: result.name
           }).catch(console.error);
 
-          toast.success(`Published guide: ${payload.title}`);
+          toast.success(`Published guide: ${result.name}`);
         } else {
-          // UPDATE existing guide
-          const payload: any = {
-            title: submittedData.title,
-            category: submittedData.category,
-            description: submittedData.description,
-            content: submittedData.content,
-            author: submittedData.author,
-          };
-
-          if (submittedData.slug) {
-             payload.slug = submittedData.slug;
-          }
-
-          const { error: updateError } = await supabase.from('guides').update(payload).eq('id', sub.target_id);
-          if (updateError) throw updateError;
-
-          await supabase.from('public_edit_suggestions').update({ status: 'approved' }).eq('id', sub.id);
+          const result = await adminEditSuggestionsApi.approve(sub.id);
           await logAction('approve', 'guide', sub.id, 'Guide edit suggestion').catch(console.error);
-          toast.success(`Updated guide: ${payload.title}`);
+          toast.success(`Updated guide: ${result.name || submittedData.title}`);
         }
       } else {
         // Reject
-        const table = actionTarget.type === 'new' ? 'submissions' : 'public_edit_suggestions';
-        await supabase.from(table).update({ status: 'rejected' }).eq('id', actionTarget.id);
-        
+        if (actionTarget.type === 'new') {
+          await adminSubmissionsApi.reject(actionTarget.id);
+        } else {
+          await adminEditSuggestionsApi.reject(actionTarget.id);
+        }
+
         await logAction('reject', 'guide', actionTarget.id, 'Rejected guide submission', {
           reason: 'Rejected by admin'
         }).catch(console.error);

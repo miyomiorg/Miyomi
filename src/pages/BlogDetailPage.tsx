@@ -4,7 +4,7 @@ import { useBlogPost } from '@/hooks/useBlogPost';
 import { useBlogPosts } from '@/hooks/useBlogPosts';
 import { BackButton } from '../components/BackButton';
 import { Globe, Clock, Eye, Calendar, UserCircle, Share, Flag, Sparkles, ChevronRight, ThumbsUp, ThumbsDown, ExternalLink, MessageCircle, Bookmark, Heart, Pin, ArrowUp, Youtube, Github } from 'lucide-react';
-import { SITE_NAME } from '../../functions/_lib/seo';
+import { SITE_NAME } from '../config/site';
 import DOMPurify from 'dompurify';
 import { ReportModal } from '../components/ReportModal';
 import { FeedbackPanel } from '../components/FeedbackPanel';

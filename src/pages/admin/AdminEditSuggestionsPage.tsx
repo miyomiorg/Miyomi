@@ -1,13 +1,13 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { supabase } from '@/integrations/supabase/client';
+import { adminEditSuggestionsApi } from '@/services/api';
+import { collectPages } from '@/services/api/pagination';
 import { useAdminLogger } from '@/hooks/useAdminLogger';
 import { PenTool, User, Check, X as XIcon, Eye, Trash2, RotateCcw, Package, Puzzle, FileText, StickyNote } from 'lucide-react';
 import { AdminButton, StatusBadge, EmptyState } from '@/components/admin/AdminFormElements';
 import { ConfirmDialog } from '@/components/admin/ConfirmDialog';
 import { EndpointToggle } from '@/components/admin/EndpointToggle';
 import { toast } from 'sonner';
-import { approveEditSuggestionRecord } from '@/utils/approvalUtils';
 import { getFieldDiff } from '@/utils/diffUtils';
 
 export function AdminEditSuggestionsPage() {
@@ -27,15 +27,7 @@ export function AdminEditSuggestionsPage() {
   async function fetchData() {
     setLoading(true);
     try {
-      try {
-        await supabase.rpc('cleanup_old_rejected' as any);
-      } catch (rpcErr) {
-        console.error('Cleanup RPC failed:', rpcErr);
-      }
-
-      const { data, error } = await (supabase as any).from('public_edit_suggestions').select('*').order('created_at', { ascending: false });
-      if (error) throw error;
-      setSuggestions(data || []);
+      setSuggestions(await collectPages(adminEditSuggestionsApi.list));
     } catch (err) {
       console.error(err);
     }
@@ -62,16 +54,9 @@ export function AdminEditSuggestionsPage() {
   async function handleBulkDelete() {
     if (!bulkDeleteTarget) return;
     try {
-      let query = (supabase as any).from('public_edit_suggestions').delete();
-      if (bulkDeleteTarget === 'all') {
-        query = query.neq('id', '00000000-0000-0000-0000-000000000000');
-      } else {
-        query = query.eq('status', bulkDeleteTarget);
-      }
-      const { error, count } = await query;
-      if (error) throw error;
-      await logAction('delete' as any, 'edit_suggestion' as any, 'bulk', `Bulk delete ${bulkDeleteTarget}`, { count, target: bulkDeleteTarget });
-      toast.success(`Cleared ${bulkDeleteTarget} edit suggestions (${count || 0} removed)`);
+      await adminEditSuggestionsApi.clear(bulkDeleteTarget);
+      await logAction('delete' as any, 'edit_suggestion' as any, 'bulk', `Bulk delete ${bulkDeleteTarget}`, { target: bulkDeleteTarget });
+      toast.success(`Cleared ${bulkDeleteTarget} edit suggestions`);
       setBulkDeleteTarget(null);
       fetchData();
     } catch (err: any) {
@@ -82,7 +67,7 @@ export function AdminEditSuggestionsPage() {
 
   async function handleRestore(sub: any) {
     try {
-      await (supabase as any).from('public_edit_suggestions').update({ status: 'pending' }).eq('id', sub.id);
+      await adminEditSuggestionsApi.update(sub.id, 'pending');
       await logAction('restore' as any, 'edit_suggestion' as any, sub.id, 'Restored to pending');
       toast.success('Restored to pending.');
       fetchData();
@@ -96,21 +81,15 @@ export function AdminEditSuggestionsPage() {
     try {
       if (actionTarget.action === 'approve' && actionTarget.suggestion) {
         const sub = actionTarget.suggestion;
-        const result = await approveEditSuggestionRecord(sub);
-
-        if (!result.success) {
-          toast.error(result.error || 'Approval failed');
-          return;
-        }
+        const result = await adminEditSuggestionsApi.approve(sub.id);
 
         await logAction('approve' as any, 'edit_suggestion' as any, sub.id, `${sub.target_type} edit suggestion`).catch(console.error);
         toast.success(`Updated ${result.name}!`);
       } else {
-        const rejectPayload: any = { status: 'rejected' };
-        if (rejectReason.trim()) {
-          rejectPayload.admin_note = rejectReason.trim();
-        }
-        await (supabase as any).from('public_edit_suggestions').update(rejectPayload).eq('id', actionTarget.id);
+        await adminEditSuggestionsApi.reject(
+          actionTarget.id,
+          rejectReason.trim() || undefined,
+        );
         await logAction('reject' as any, 'edit_suggestion' as any, actionTarget.id, rejectReason.trim() || 'Rejected').catch(console.error);
         setRejectReason('');
         toast.success('Rejected.');

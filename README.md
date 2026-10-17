@@ -31,6 +31,15 @@ Finding the right app or extension when they're scattered across different platf
 
 The directory grows almost entirely through community input. If you spot something missing, outdated, or broken, please submit a request.
 
+## Tech Stack
+- **Frontend** — React + TypeScript + Vite (Tailwind CSS, Radix UI, TipTap, Recharts, Motion)
+- **Backend** — Cloudflare Workers (Hono): one Worker serves the API, SEO-rendered pages, and static assets
+- **Database** — Cloudflare D1 (SQLite) via Drizzle ORM
+- **Security** — admin password + mandatory TOTP two-factor auth, Turnstile on public write forms
+- **Analytics** — Cloudflare GraphQL zone analytics in the admin dashboard
+
+Full local setup, architecture, and deployment: see [DEVELOPERS.md](/DEVELOPERS.md).
+
 ## Contributing
 ### Submit an entry or report an issue
 If you find a broken link, an outdated reference, or want to submit a new entry:

@@ -3,6 +3,7 @@ import { motion } from 'motion/react';
 import { useState, useEffect, type ReactNode } from 'react';
 import { FeedbackPanel } from '../components/FeedbackPanel';
 import { dataService } from '../services/dataService';
+import type { GuideCategoryData } from '../types/data';
 import { Link, useLocation } from 'react-router-dom';
 import { useSeasonalAsset } from '../hooks/useSeasonalAsset';
 import { DiscordIcon } from '../components/DiscordIcon';
@@ -87,17 +88,17 @@ export function AboutPage() {
           fetch('/api/stats').catch(() => null),
           dataService.getApps().catch(() => []),
           dataService.getExtensions().catch(() => []),
-          dataService.getGuideCategories().catch(() => [])
+          dataService.getGuideCategories().catch((): GuideCategoryData[] => [])
         ]);
 
         let visitors = 0;
         if (visitorsRes && visitorsRes.ok) {
           const visitorsData = await visitorsRes.json();
-          visitors = visitorsData.monthlyVisitors || 0;
+          visitors = visitorsData.data?.monthlyVisitors || 0;
         }
 
         const resourcesIndexed = apps.length + extensions.length;
-        const guidesListings = guideCategories.reduce((acc: number, cat: any) => acc + cat.guides.length, 0);
+        const guidesListings = guideCategories.reduce((acc, cat) => acc + cat.guides.length, 0);
 
         setStats({
           monthlyVisitors: visitors,

@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { getDeviceFingerprint } from '../utils/deviceFingerprint';
 import { voteStorage, type VoteRegistry } from '../utils/voteStorage';
+import { likesApi } from '@/services/api';
 
 export interface LikeData {
     count: number;
@@ -38,20 +39,9 @@ export function LikeProvider({ children }: { children: React.ReactNode }) {
                 const { fingerprint } = await getDeviceFingerprint();
                 fingerprintRef.current = fingerprint;
 
-                const res = await fetch(
-                    `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/like?fingerprint=${fingerprint}`,
-                    {
-                        headers: {
-                            'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-                        },
-                    }
-                );
-
-                if (res.ok) {
-                    const data: VoteRegistry = await res.json();
-                    setRegistry(data);
-                    voteStorage.set(data);
-                }
+                const data = await likesApi.registry(fingerprint);
+                setRegistry(data);
+                voteStorage.set(data);
             } catch (error) {
                 console.error('Failed to fetch like registry:', error);
             } finally {
@@ -96,28 +86,14 @@ export function LikeProvider({ children }: { children: React.ReactNode }) {
                     fingerprintRef.current = fingerprint;
                 }
 
-                const res = await fetch(
-                    `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/like`,
-                    {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-                        },
-                        body: JSON.stringify({
-                            itemId,
-                            itemType,
-                            fingerprint: fingerprintRef.current,
-                        }),
-                    }
-                );
+                const res = await likesApi.like({
+                    itemId,
+                    itemType: itemType === 'extension' ? 'extension' : 'app',
+                    fingerprint: fingerprintRef.current,
+                });
 
-                if (!res.ok) throw new Error('Like request failed');
-
-                const data = await res.json();
-
-                const serverCount = typeof data.count === 'number' ? data.count : optimisticCount;
-                const serverLoved = typeof data.loved === 'boolean' ? data.loved : newLoved;
+                const serverCount = typeof res.count === 'number' ? res.count : optimisticCount;
+                const serverLoved = typeof res.loved === 'boolean' ? res.loved : newLoved;
 
                 setRegistry(prev => {
                     const updated = { ...prev, [itemId]: { count: serverCount, loved: serverLoved } };

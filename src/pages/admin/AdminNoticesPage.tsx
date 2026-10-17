@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo } from 'react';
-import { supabase } from '@/integrations/supabase/client';
-import type { Tables } from '@/integrations/supabase/types';
+import { adminNoticesApi } from '@/services/api';
+import type { Tables } from '@/types/db';
 import { Plus, Pencil, Trash2, Bell } from 'lucide-react';
 import { AdminSearchBar } from '@/components/admin/AdminSearchBar';
 import { AdminModal } from '@/components/admin/AdminModal';
@@ -22,9 +22,13 @@ export function AdminNoticesPage() {
   useEffect(() => { fetchData(); }, []);
 
   async function fetchData() {
-    const { data } = await supabase.from('notices').select('*').order('priority', { ascending: false });
-    setNotices(data || []);
-    setLoading(false);
+    try {
+      setNotices(await adminNoticesApi.list());
+    } catch (error) {
+      console.error('Failed to load notices:', error);
+    } finally {
+      setLoading(false);
+    }
   }
 
   const filtered = useMemo(() =>
@@ -49,24 +53,24 @@ export function AdminNoticesPage() {
     const payload = {
       title: form.title, message: form.message, type: form.type, active: form.active,
       dismissible: form.dismissible, priority: form.priority,
-      start_date: form.start_date || null, end_date: form.end_date || null,
+      startDate: form.start_date || null, endDate: form.end_date || null,
     };
     if (editingId) {
-      await supabase.from('notices').update(payload).eq('id', editingId);
+      await adminNoticesApi.update(editingId, payload);
     } else {
-      await supabase.from('notices').insert(payload);
+      await adminNoticesApi.create(payload);
     }
     setSaving(false); setModalOpen(false); fetchData();
   }
 
   async function toggleActive(id: string, active: boolean) {
-    await supabase.from('notices').update({ active: !active }).eq('id', id);
+    await adminNoticesApi.update(id, { active: !active });
     fetchData();
   }
 
   async function handleDelete() {
     if (!deleteTarget) return;
-    await supabase.from('notices').delete().eq('id', deleteTarget.id);
+    await adminNoticesApi.remove(deleteTarget.id);
     setDeleteTarget(null); fetchData();
   }
 

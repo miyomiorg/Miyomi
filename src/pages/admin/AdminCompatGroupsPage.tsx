@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { adminGroupsApi, adminAppsApi, adminExtensionsApi } from '@/services/api';
+import { collectPages } from '@/services/api/pagination';
 import { useAdminLogger } from '@/hooks/useAdminLogger';
 import { Layers, Plus, Trash2, Edit2, Save, X, Puzzle, Package } from 'lucide-react';
 import { AdminButton, EmptyState, Label } from '@/components/admin/AdminFormElements';
@@ -16,6 +17,8 @@ interface CompatGroup {
     color: string;
     icon_url: string;
     created_at: string;
+    app_ids?: string[];
+    extension_ids?: string[];
     app_count?: number;
     ext_count?: number;
 }
@@ -54,57 +57,39 @@ export function AdminCompatGroupsPage() {
 
     async function fetchData() {
         setLoading(true);
+        try {
+            const groupsData = await adminGroupsApi.list();
+            setGroups(groupsData.map((g: any) => ({
+                ...g,
+                app_count: (g.app_ids || []).length,
+                ext_count: (g.extension_ids || []).length,
+            })));
 
-        // Fetch groups
-        const { data: groupsData, error } = await (supabase as any)
-            .from('compatibility_groups')
-            .select('*')
-            .order('name');
-        if (error) { toast.error('Failed to load groups'); setLoading(false); return; }
-
-        // Fetch membership counts
-        const { data: appMemberships } = await (supabase as any).from('app_group_memberships').select('group_id');
-        const { data: extMemberships } = await (supabase as any).from('extension_group_memberships').select('group_id');
-
-        const appCounts: Record<string, number> = {};
-        const extCounts: Record<string, number> = {};
-        (appMemberships || []).forEach((m: any) => { appCounts[m.group_id] = (appCounts[m.group_id] || 0) + 1; });
-        (extMemberships || []).forEach((m: any) => { extCounts[m.group_id] = (extCounts[m.group_id] || 0) + 1; });
-
-        const enriched = (groupsData || []).map((g: any) => ({
-            ...g,
-            app_count: appCounts[g.id] || 0,
-            ext_count: extCounts[g.id] || 0,
-        }));
-        setGroups(enriched);
-
-        // Fetch app and extension options
-        const { data: apps } = await (supabase as any).from('apps').select('id, name').order('name');
-        const { data: exts } = await (supabase as any).from('extensions').select('id, name').order('name');
-
-        setAppOptions((apps || []).map((a: any) => ({ value: a.id, label: a.name })));
-        setExtOptions((exts || []).map((e: any) => ({ value: e.id, label: e.name })));
-
-        setLoading(false);
+            // Options for the smart selects (all statuses, not just approved)
+            const [apps, exts] = await Promise.all([
+                collectPages(adminAppsApi.list),
+                collectPages(adminExtensionsApi.list),
+            ]);
+            setAppOptions(apps.map((a: any) => ({ value: a.id, label: a.name })));
+            setExtOptions(exts.map((e: any) => ({ value: e.id, label: e.name })));
+        } catch (err: any) {
+            toast.error('Failed to load groups: ' + (err?.message || ''));
+        } finally {
+            setLoading(false);
+        }
     }
 
     async function openEditForm(groupId: string) {
         const group = groups.find(g => g.id === groupId);
         if (!group) return;
 
-        // Fetch current memberships
-        const [{ data: appMems }, { data: extMems }] = await Promise.all([
-            (supabase as any).from('app_group_memberships').select('app_id').eq('group_id', groupId),
-            (supabase as any).from('extension_group_memberships').select('extension_id').eq('group_id', groupId),
-        ]);
-
         setForm({
             name: group.name,
             description: group.description || '',
             color: group.color || '#6366F1',
             icon_url: group.icon_url || '',
-            app_ids: (appMems || []).map((m: any) => m.app_id),
-            ext_ids: (extMems || []).map((m: any) => m.extension_id),
+            app_ids: group.app_ids || [],
+            ext_ids: group.extension_ids || [],
         });
         setEditingId(groupId);
         setShowForm(true);
@@ -124,66 +109,30 @@ export function AdminCompatGroupsPage() {
 
         setSaving(true);
         try {
-            let groupId = editingId;
+            const groupFields = {
+                name: form.name,
+                description: form.description,
+                color: form.color,
+                iconUrl: form.icon_url,
+            };
 
             if (editingId) {
-                // Update group
-                const { error } = await (supabase as any)
-                    .from('compatibility_groups')
-                    .update({ name: form.name, description: form.description, color: form.color, icon_url: form.icon_url })
-                    .eq('id', editingId);
-                if (error) throw error;
+                // Update group + rebuild memberships (compat sync is server-side)
+                await adminGroupsApi.update(editingId, {
+                    ...groupFields,
+                    appIds: form.app_ids,
+                    extensionIds: form.ext_ids,
+                });
             } else {
-                // Create group
-                const { data, error } = await (supabase as any)
-                    .from('compatibility_groups')
-                    .insert({ name: form.name, description: form.description, color: form.color, icon_url: form.icon_url })
-                    .select('id')
-                    .single();
-                if (error) throw error;
-                groupId = data.id;
+                // Create then attach memberships
+                const { id } = await adminGroupsApi.create(groupFields);
+                await adminGroupsApi.update(id, {
+                    appIds: form.app_ids,
+                    extensionIds: form.ext_ids,
+                });
             }
 
-            // Update app memberships
-            await (supabase as any).from('app_group_memberships').delete().eq('group_id', groupId);
-            if (form.app_ids.length > 0) {
-                await (supabase as any).from('app_group_memberships').insert(
-                    form.app_ids.map(aid => ({ app_id: aid, group_id: groupId }))
-                );
-            }
-
-            // Update extension memberships
-            await (supabase as any).from('extension_group_memberships').delete().eq('group_id', groupId);
-            if (form.ext_ids.length > 0) {
-                await (supabase as any).from('extension_group_memberships').insert(
-                    form.ext_ids.map(eid => ({ extension_id: eid, group_id: groupId }))
-                );
-            }
-
-            // Sync compatible_with arrays bidirectionally
-            // For each app in the group, update their compatible_with to include all extensions in the group
-            if (form.app_ids.length > 0 && form.ext_ids.length > 0) {
-                const extNames = extOptions.filter(e => form.ext_ids.includes(e.value)).map(e => e.label);
-                const appNames = appOptions.filter(a => form.app_ids.includes(a.value)).map(a => a.label);
-
-                // Update each app's compatible_with
-                for (const appId of form.app_ids) {
-                    const { data: appData } = await (supabase as any).from('apps').select('compatible_with').eq('id', appId).single();
-                    const currentCompat: string[] = appData?.compatible_with || [];
-                    const merged = [...new Set([...currentCompat, ...extNames])];
-                    await (supabase as any).from('apps').update({ compatible_with: merged }).eq('id', appId);
-                }
-
-                // Update each extension's compatible_with
-                for (const extId of form.ext_ids) {
-                    const { data: extData } = await (supabase as any).from('extensions').select('compatible_with').eq('id', extId).single();
-                    const currentCompat: string[] = extData?.compatible_with || [];
-                    const merged = [...new Set([...currentCompat, ...appNames])];
-                    await (supabase as any).from('extensions').update({ compatible_with: merged }).eq('id', extId);
-                }
-            }
-
-            await logAction(editingId ? 'update' as any : 'create' as any, 'app' as any, groupId, `${editingId ? 'Updated' : 'Created'} compatibility group: ${form.name}`);
+            await logAction(editingId ? 'update' as any : 'create' as any, 'app' as any, editingId || form.name, `${editingId ? 'Updated' : 'Created'} compatibility group: ${form.name}`);
             toast.success(editingId ? 'Group updated!' : 'Group created!');
             setShowForm(false);
             fetchData();
@@ -198,8 +147,7 @@ export function AdminCompatGroupsPage() {
         if (!deleteTarget) return;
         try {
             const group = groups.find(g => g.id === deleteTarget);
-            const { error } = await (supabase as any).from('compatibility_groups').delete().eq('id', deleteTarget);
-            if (error) throw error;
+            await adminGroupsApi.remove(deleteTarget);
             await logAction('delete' as any, 'app' as any, deleteTarget, `Deleted compatibility group: ${group?.name}`);
             toast.success('Group deleted');
             fetchData();

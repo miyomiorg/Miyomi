@@ -5,7 +5,8 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
-import { getSupabaseClient, fetchApps, fetchExtensions, fetchGuides } from './og/fetchOgData.mjs';
+import { parse } from 'smol-toml';
+import { getApiBase, fetchApps, fetchExtensions, fetchGuides } from './og/fetchOgData.mjs';
 import { renderCardTemplate } from './og/templates.mjs';
 import { renderToPng } from './og/renderOgImage.mjs';
 
@@ -43,7 +44,14 @@ const __dirname = path.dirname(__filename);
 const ROOT_DIR = path.resolve(__dirname, '..');
 const DIST_DIR = path.resolve(ROOT_DIR, 'dist', 'og');
 
-const SITE_URL = (process.env.SITE_URL || 'https://miyomi.app').replace(/\/$/, '');
+const SITE_URL = ((() => {
+  if (process.env.SITE_URL) return process.env.SITE_URL;
+  try {
+    const doc = parse(fs.readFileSync(path.resolve(ROOT_DIR, 'wrangler.toml'), 'utf8'));
+    if (typeof doc?.vars?.SITE_URL === 'string') return doc.vars.SITE_URL;
+  } catch { /* use default */ }
+  return 'https://miyomi.app';
+})()).replace(/\/$/, '');
 const PUBLIC_HOST = SITE_URL.replace(/^https?:\/\//, '');
 
 function toDataUri(filePath) {
@@ -178,13 +186,13 @@ async function main() {
   ensureDir(path.join(DIST_DIR, 'extensions'));
   ensureDir(path.join(DIST_DIR, 'guides'));
 
-  const supabase = getSupabaseClient();
+  console.log(`Using content API: ${getApiBase()}`);
 
   try {
     const [apps, extensions, guides] = await Promise.all([
-      fetchApps(supabase),
-      fetchExtensions(supabase),
-      fetchGuides(supabase),
+      fetchApps(),
+      fetchExtensions(),
+      fetchGuides(),
     ]);
 
     console.log(`Fetched ${apps.length} apps, ${extensions.length} extensions, ${guides.length} guides.`);
@@ -237,9 +245,17 @@ async function main() {
     }
 
     console.log('🎉 OG image generation completed.');
+    // Cache so a later plain `vite build` (which empties dist/) can restore
+    // the images via scripts/restore-og.mjs.
+    try {
+      fs.cpSync(DIST_DIR, path.resolve(ROOT_DIR, '.og-cache'), { recursive: true });
+      console.log('💾 Cached OG images to .og-cache/');
+    } catch (e) {
+      console.warn('⚠️  Could not cache OG images:', e?.message || e);
+    }
   } catch (err) {
-    console.error('❌ Failed fetching data for OG image generation:', err);
-    process.exit(1);
+    console.error(`⚠️  Skipping OG image generation — could not fetch content from ${getApiBase()}:`, err?.message || err);
+    console.error('    Set OG_API_URL (or SITE_URL) to a reachable Worker, or SKIP_OG_IMAGES=true to silence this.');
   }
 }
 

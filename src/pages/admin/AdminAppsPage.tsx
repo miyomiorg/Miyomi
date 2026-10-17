@@ -1,8 +1,8 @@
 import { useState, useMemo } from 'react';
 import { Filter } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { supabase } from '@/integrations/supabase/client';
-import type { Tables } from '@/integrations/supabase/types';
+import { adminAppsApi } from '@/services/api';
+import type { Tables } from '@/types/db';
 import { Plus, Pencil, Trash2, AppWindow } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
@@ -238,16 +238,14 @@ export function AdminAppsPage() {
           updateCacheOptimistically((prev) => prev.filter((a) => a.id !== deleteTarget.id));
           setDeleteTarget(null);
 
-          const { error } = await supabase.from("apps").delete().eq("id", deleteTarget.id);
-
-          if (error) {
+          try {
+            await adminAppsApi.remove(deleteTarget.id);
+            toast.success("App deleted");
+            await invalidateCache();
+          } catch {
             // Revert on error
             updateCacheOptimistically(() => prevApps);
             toast.error("Failed to delete app");
-          } else {
-            toast.success("App deleted");
-            // Invalidate cache to ensure consistency
-            invalidateCache();
           }
         }}
         title="Delete App"

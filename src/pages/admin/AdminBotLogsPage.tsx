@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { adminBotLogsApi } from '@/services/api';
 import { useAdmin } from '@/hooks/useAdmin';
 import { EmptyState } from '@/components/admin/AdminFormElements';
 import { Bot, Trash2 } from 'lucide-react';
@@ -29,18 +29,8 @@ export function AdminBotLogsPage() {
     async function fetchLogs() {
         setLoading(true);
         try {
-            // @ts-ignore
-            const { data, error } = await supabase
-                .from('bot_attack_logs')
-                .select('*')
-                .order('created_at', { ascending: false })
-                .limit(100);
-
-            if (error) {
-                console.error('Error fetching bot logs:', error);
-            } else {
-                setLogs((data as any) || []);
-            }
+            const data = await adminBotLogsApi.list(100);
+            setLogs(data as unknown as BotLog[]);
         } catch (error) {
             console.error('Error fetching bot logs:', error);
         } finally {
@@ -72,9 +62,7 @@ export function AdminBotLogsPage() {
 
                                 setLoading(true);
                                 try {
-                                    // @ts-ignore
-                                    const { error } = await supabase.from('bot_attack_logs').delete().neq('id', '00000000-0000-0000-0000-000000000000');
-                                    if (error) throw error;
+                                    await adminBotLogsApi.clear();
                                     fetchLogs();
                                 } catch (error) {
                                     console.error('Error clearing bot logs:', error);

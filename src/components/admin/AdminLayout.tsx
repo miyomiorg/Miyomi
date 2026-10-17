@@ -5,7 +5,7 @@ import { ThemeToggle } from '@/components/ThemeToggle';
 import {
   LayoutDashboard, AppWindow, Puzzle, BookOpen, HelpCircle,
   Inbox, Heart, Bell, Palette, Settings, Users, LogOut, Menu, X, ScrollText, Shield, DollarSign,
-  PenTool, Flag, MessageSquare, Layers, Bot, FileText, UserCircle, ChevronDown
+  PenTool, Flag, MessageSquare, Layers, Bot, FileText, UserCircle, ChevronDown, BarChart3
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 
@@ -26,6 +26,7 @@ const navSections: NavSection[] = [
     label: '',
     items: [
       { path: '/admin/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+      { path: '/admin/analytics', label: 'Analytics', icon: BarChart3 },
     ]
   },
   {
@@ -207,8 +208,8 @@ export function AdminLayout() {
 
         <div className="p-3 border-t border-[var(--divider)] flex-shrink-0">
           <div className="flex items-center gap-3 px-3 py-2 mb-1">
-            {user?.user_metadata?.avatar_url ? (
-              <img src={user.user_metadata.avatar_url} alt="" className="w-8 h-8 rounded-full border border-[var(--divider)] flex-shrink-0" />
+            {user?.avatarUrl ? (
+              <img src={user.avatarUrl} alt="" className="w-8 h-8 rounded-full border border-[var(--divider)] flex-shrink-0" />
             ) : (
               <div className="w-8 h-8 rounded-full bg-[var(--brand)]/20 flex items-center justify-center text-[var(--brand)] font-bold flex-shrink-0">
                 {user?.email?.charAt(0).toUpperCase()}
@@ -216,7 +217,7 @@ export function AdminLayout() {
             )}
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium text-[var(--text-primary)] truncate">
-                {user?.user_metadata?.full_name || 'Admin'}
+                {user?.displayName || 'Admin'}
               </p>
               <p className="text-xs text-[var(--text-secondary)] truncate">{user?.email}</p>
             </div>

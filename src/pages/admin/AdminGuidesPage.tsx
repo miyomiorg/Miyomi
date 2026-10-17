@@ -1,9 +1,10 @@
 import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { supabase } from '@/integrations/supabase/client';
+import { adminGuidesApi, adminSettingsApi } from '@/services/api';
+import { toast } from 'sonner';
 import { useAdminLogger } from '@/hooks/useAdminLogger';
 import { useAdminCache } from '@/hooks/useAdminCache';
-import type { Tables } from '@/integrations/supabase/types';
+import type { Tables } from '@/types/db';
 import { Plus, Pencil, Trash2, BookOpen } from 'lucide-react';
 import { AdminSearchBar } from '@/components/admin/AdminSearchBar';
 import { AdminModal } from '@/components/admin/AdminModal';
@@ -29,8 +30,9 @@ export function AdminGuidesPage() {
   const fetchSettings = async () => {
     setSettingsLoading(true);
     try {
-      const { data: enabledData } = await supabase.from('settings').select('value').eq('key', 'guide_notice_enabled').single();
-      const { data: contentData } = await supabase.from('settings').select('value').eq('key', 'guide_notice_content').single();
+      const settings = await adminSettingsApi.list();
+      const enabledData = settings.find(row => row.key === 'guide_notice_enabled');
+      const contentData = settings.find(row => row.key === 'guide_notice_content');
       
       setNoticeEnabled(enabledData?.value === 'true' || enabledData?.value === true);
       setNoticeContent(contentData?.value || '');
@@ -44,10 +46,10 @@ export function AdminGuidesPage() {
   const saveSettings = async () => {
     setSettingsLoading(true);
     try {
-      await supabase.from('settings').upsert([
-        { key: 'guide_notice_enabled', value: noticeEnabled },
-        { key: 'guide_notice_content', value: noticeContent }
-      ], { onConflict: 'key' });
+      await Promise.all([
+        adminSettingsApi.upsert('guide_notice_enabled', { value: noticeEnabled }),
+        adminSettingsApi.upsert('guide_notice_content', { value: noticeContent }),
+      ]);
       await logAction('update' as any, 'system' as any, 'guide_settings', 'Updated guide notice settings');
       toast.success('Guide settings saved successfully');
     } catch (err: any) {
@@ -74,14 +76,18 @@ export function AdminGuidesPage() {
 
   async function handleDelete() {
     if (!deleteTarget) return;
-    await supabase.from('guides').delete().eq('id', deleteTarget.id);
+    try {
+    await adminGuidesApi.remove(deleteTarget.id);
 
     // Log delete action
     await logAction('delete', 'guide', deleteTarget.id, deleteTarget.name).catch(err => {
       console.error('Failed to log delete action:', err);
     });
 
-    setDeleteTarget(null); invalidateCache();
+    setDeleteTarget(null); await invalidateCache();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to delete guide');
+    }
   }
 
   return (

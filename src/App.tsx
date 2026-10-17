@@ -27,6 +27,7 @@ import { AdminLoginPage } from './pages/admin/AdminLoginPage';
 import { UnauthorizedPage } from './pages/UnauthorizedPage';
 import { PrivacyPolicyPage } from './pages/PrivacyPolicyPage';
 import { AdminDashboardPage } from './pages/admin/AdminDashboardPage';
+import { AdminAnalyticsPage } from './pages/admin/AdminAnalyticsPage';
 import { AdminAppsPage } from './pages/admin/AdminAppsPage';
 import { AdminAppFormPage } from './pages/admin/AdminAppFormPage';
 import { AdminExtensionsPage } from './pages/admin/AdminExtensionsPage';
@@ -144,6 +145,7 @@ function AppContent() {
           <Route path="/admin" element={<AdminLoginPage />} />
           <Route path="/admin/*" element={<ProtectedRoute><AdminLayout /></ProtectedRoute>}>
             <Route path="dashboard" element={<AdminDashboardPage />} />
+            <Route path="analytics" element={<AdminAnalyticsPage />} />
             <Route path="apps" element={<AdminAppsPage />} />
             <Route path="apps/new" element={<AdminAppFormPage />} />
             <Route path="apps/:id/edit" element={<AdminAppFormPage />} />

@@ -3,10 +3,9 @@ import { Flag, X, Loader2, CheckCircle2, AlertTriangle } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { toast } from 'sonner';
 import Turnstile from 'react-turnstile';
-import { supabase } from '@/integrations/supabase/client';
+import { settingsApi, submitApi } from '@/services/api';
 import { getDeviceFingerprint } from '@/utils/deviceFingerprint';
 import { collectDeviceInfo } from '@/utils/deviceInfo';
-import { extractFunctionError } from '@/utils/functionErrors';
 
 interface ReportModalProps {
   isOpen: boolean;
@@ -42,11 +41,11 @@ export function ReportModal({ isOpen, onClose, targetType, targetId, targetName,
   useEffect(() => {
     async function checkStatus() {
       try {
-        const { data: enabledData } = await supabase.from('settings').select('value').eq('key', 'reports_enabled').single();
-        const { data: reasonData } = await supabase.from('settings').select('value').eq('key', 'reports_disabled_reason').single();
-        if (enabledData && (enabledData.value === 'false' || enabledData.value === false)) {
+        const settings = await settingsApi.public();
+        const enabledVal = settings.reports_enabled;
+        if (enabledVal === 'false' || enabledVal === false) {
           setEnabled(false);
-          setDisabledReason(reasonData?.value || 'Reporting is currently disabled.');
+          setDisabledReason(settings.reports_disabled_reason || 'Reporting is currently disabled.');
         }
       } catch (err) {
         // Assume enabled if fetch fails
@@ -73,12 +72,10 @@ export function ReportModal({ isOpen, onClose, targetType, targetId, targetName,
 
     setSubmitting(true);
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-
       const fingerprintData = await getDeviceFingerprint();
       const deviceInfo = collectDeviceInfo();
 
-      const payload = {
+      await submitApi.report({
         targetType,
         targetId,
         targetName,
@@ -87,32 +84,22 @@ export function ReportModal({ isOpen, onClose, targetType, targetId, targetName,
         message,
         reporterName,
         reporterContact,
-        reporterUserId: user?.id,
-        turnstileToken,
-        device_fingerprint: fingerprintData.fingerprint,
+        token: turnstileToken,
+        deviceFingerprint: fingerprintData.fingerprint,
         anonymousId: deviceInfo.anonymous_id,
         browser: deviceInfo.browser,
         os: deviceInfo.os,
-        device_type: deviceInfo.device_type,
-        screen_resolution: deviceInfo.screen_resolution,
+        deviceType: deviceInfo.device_type,
+        screenResolution: deviceInfo.screen_resolution,
         timezone: deviceInfo.timezone,
-        language: deviceInfo.language
-      };
-
-      const { data, error } = await supabase.functions.invoke('report-content', {
-        body: payload
+        language: deviceInfo.language,
       });
-
-      if (error || !data?.success) {
-        const errorMsg = await extractFunctionError(error, data, 'Failed to submit report');
-        throw new Error(errorMsg);
-      }
 
       setSubmitted(true);
       toast.success('Thanks! Your report was submitted and will be reviewed.');
     } catch (err: any) {
       console.error(err);
-      toast.error(err.message || 'Submission failed');
+      toast.error(err?.message || 'Submission failed');
     } finally {
       setSubmitting(false);
     }

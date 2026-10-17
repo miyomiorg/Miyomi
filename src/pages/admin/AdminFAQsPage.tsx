@@ -1,9 +1,10 @@
 import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { supabase } from '@/integrations/supabase/client';
+import { adminFaqsApi } from '@/services/api';
+import { toast } from 'sonner';
 import { useAdminLogger } from '@/hooks/useAdminLogger';
 import { useAdminCache } from '@/hooks/useAdminCache';
-import type { Tables } from '@/integrations/supabase/types';
+import type { Tables } from '@/types/db';
 import { Plus, Pencil, Trash2, HelpCircle } from 'lucide-react';
 import { AdminSearchBar } from '@/components/admin/AdminSearchBar';
 import { ConfirmDialog } from '@/components/admin/ConfirmDialog';
@@ -23,13 +24,17 @@ export function AdminFAQsPage() {
 
   async function handleDelete() {
     if (!deleteTarget) return;
-    await supabase.from('faqs').delete().eq('id', deleteTarget.id);
+    try {
+    await adminFaqsApi.remove(deleteTarget.id);
 
     await logAction('delete', 'faq', deleteTarget.id, deleteTarget.name).catch(err => {
       console.error('Failed to log delete action:', err);
     });
 
-    setDeleteTarget(null); invalidateCache();
+    setDeleteTarget(null); await invalidateCache();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to delete FAQ');
+    }
   }
 
   return (

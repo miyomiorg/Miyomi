@@ -1,7 +1,7 @@
-import { supabaseDataService } from './supabaseDataService';
+import { apiDataService } from './apiDataService';
 import type { AppData, ExtensionData, FAQData, GuideCategoryData, GuideData } from '../types/data';
 
-const service = supabaseDataService;
+const service = apiDataService;
 
 export const dataService = {
   getApps: (): Promise<AppData[]> => service.getApps(),

@@ -31,7 +31,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { useState } from 'react';
 import { useDonations } from '../hooks/useDonations';
 import type { Donator } from '../hooks/useDonations';
-import { type PaymentMethod } from '@/integrations/supabase/types';
+import type { PaymentMethod } from '@/types/donations';
 
 /* ───── brand colors per payment provider ───── */
 const BRAND_COLORS: Record<string, { bg: string; accent: string; text: string }> = {

@@ -4,7 +4,7 @@ import { useNotices } from '../hooks/useNotices';
 import { BlogCard } from '../components/BlogCard';
 import { BlogSortDropdown, SortMode } from '../components/BlogSortDropdown';
 import { FileText, ChevronRight, Search, Clock, Pin, ChevronDown, Sparkles, Info, AlertTriangle, AlertCircle, BookOpen, Smartphone, Puzzle, Package, Heart, Search as SearchIcon, Megaphone, Wrench, Newspaper, PenTool, LucideIcon, Eye, MessageCircle, Youtube, Github } from 'lucide-react';
-import { SITE_NAME } from '../../functions/_lib/seo';
+import { SITE_NAME } from '../config/site';
 import { FeedbackPanel } from '../components/FeedbackPanel';
 import { DiscordIcon } from '../components/DiscordIcon';
 import { TelegramIcon } from '../components/TelegramIcon';
@@ -288,7 +288,7 @@ export function BlogPage({ onNavigate }: { onNavigate: (path: string) => void })
                                 <Sparkles className="w-4 h-4 text-[var(--brand)]" />
                                 <h3 className="text-sm font-bold text-[var(--text-primary)] font-['Poppins',sans-serif]">Pinned Notices</h3>
                             </div>
-                            <div className="divide-y" style={{ divideColor: 'var(--divider)' }}>
+                            <div className="divide-y divide-[var(--divider)]">
                                 {notices.slice(0, 4).map(notice => {
                                     const noticeIconMap: Record<string, typeof Info> = {
                                         info: Info,

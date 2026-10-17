@@ -6,6 +6,7 @@ import { extractColorFromImage } from '@/utils/extractColorFromImage';
 import { toast } from 'sonner';
 import { SocialUrlsInput } from '@/components/admin/SocialUrlsInput';
 import { InstallUrlsInput, type InstallUrlEntry } from '@/components/admin/InstallUrlsInput';
+import { appsApi } from '@/services/api';
 
 const PLATFORM_OPTIONS = ['Android', 'iOS', 'Windows', 'macOS', 'Linux', 'Web'];
 const CONTENT_TYPE_OPTIONS = ['Anime', 'Manga', 'Light Novel', 'Multi'];
@@ -39,8 +40,12 @@ export function SubmissionEditForm({ type, data, onChange }: SubmissionEditFormP
 
     useEffect(() => {
         async function fetchApps() {
-            const { data: apps } = await (await import('@/integrations/supabase/client')).supabase.from('apps').select('name').order('name');
-            if (apps) setAppOptions(apps.map((a: any) => a.name));
+            try {
+                const apps = await appsApi.list();
+                setAppOptions(apps.map((a) => a.name));
+            } catch (e) {
+                console.error('Failed to load apps', e);
+            }
         }
         if (type === 'extension') fetchApps();
     }, [type]);

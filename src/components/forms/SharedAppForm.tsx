@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { guidesApi, groupsApi, extensionsApi } from '@/services/api';
 import { AdminFormField, AdminInput, AdminTextarea, AdminSelect, AdminButton, Label } from '@/components/admin/AdminFormElements';
 import { AdminSmartSelect } from '@/components/admin/AdminSmartSelect';
 import { SocialUrlsInput } from '@/components/admin/SocialUrlsInput';
@@ -48,8 +48,8 @@ export function SharedAppForm({
     }, [form.icon_url]);
 
     useEffect(() => {
-        fetchGuides();
-        fetchCompatData();
+        fetchGuides().catch(error => console.error('Failed to load guides:', error));
+        fetchCompatData().catch(error => console.error('Failed to load compatibility options:', error));
     }, []);
 
     useEffect(() => {
@@ -71,7 +71,7 @@ export function SharedAppForm({
     }, [form.repo_url, manuallySelectedProvider, form.git_provider, setForm]);
 
     async function fetchGuides() {
-        const { data } = await supabase.from('guides').select('title, slug').order('title');
+        const data = (await guidesApi.list()).sort((a, b) => a.title.localeCompare(b.title));
         if (data) {
             setGuidesData(data);
             setGuideOptions(data.map(g => g.title));
@@ -79,10 +79,10 @@ export function SharedAppForm({
     }
 
     async function fetchCompatData() {
-        const { data: groups } = await (supabase as any).from('compatibility_groups').select('*').order('name');
+        const groups = await groupsApi.list();
         setCompatGroups(groups || []);
 
-        const { data: exts } = await (supabase as any).from('extensions').select('name').order('name');
+        const exts = (await extensionsApi.list()).sort((a, b) => a.name.localeCompare(b.name));
         setExtOptions((exts || []).map((e: any) => e.name));
     }
 

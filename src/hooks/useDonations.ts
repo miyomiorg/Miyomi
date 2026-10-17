@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
-import { type PaymentMethod, type TransparencyItem, type DonationGoal } from '@/integrations/supabase/types';
+import { donationsApi } from '@/services/api';
+import type { PaymentMethod, TransparencyItem, DonationGoal } from '@/types/donations';
 
 export interface Donator {
   id?: string;
@@ -35,9 +35,7 @@ interface UseDonationsReturn {
 const DEFAULT_GOAL: DonationGoal = { title: '', description: '', targetAmount: 0, currentAmount: 0, currency: 'USD' };
 
 /**
- * Fully database-driven hook.
- * Fetches all donation data from Supabase on every mount (no stale cache).
- * Falls back to local/GitHub JSON ONLY for donators if DB returns zero rows.
+ * Fully database-driven hook (reads donation_settings + donations via the API).
  */
 export function useDonations(): UseDonationsReturn {
   const [data, setData] = useState<UseDonationsReturn>({
@@ -66,13 +64,11 @@ export function useDonations(): UseDonationsReturn {
       let showGoal = false;
       let lastUpdated = '';
 
-      let jsonFallbackUsed = false;
       try {
-        const { data: settings, error: settingsError } = await supabase
-          .from('donation_settings')
-          .select('*');
-
-        if (settingsError) throw settingsError;
+        const [settings, rows] = await Promise.all([
+          donationsApi.settings(),
+          donationsApi.list(),
+        ]);
 
         if (settings) {
           for (const s of settings) {
@@ -89,14 +85,6 @@ export function useDonations(): UseDonationsReturn {
             if (s.key === 'currencies' && Array.isArray(val)) currencies = val;
           }
         }
-
-        const { data: rows, error: rowsError } = await supabase
-          .from('donations')
-          .select('*')
-          .eq('is_public', true)
-          .order('created_at', { ascending: false });
-
-        if (rowsError) throw rowsError;
 
         if (rows && rows.length > 0) {
           donators = rows.map((r: any) => {
@@ -120,47 +108,16 @@ export function useDonations(): UseDonationsReturn {
 
         if (goal.autoCalc && donators.length > 0) {
           goal = {
-            ...goal, currentAmount: donators.reduce((sum, d) => {
+            ...goal,
+            currentAmount: donators.reduce((sum, d) => {
               const rate = currencies.find(c => c.code === d.currency)?.rate || 1;
               return sum + (d.amount / rate);
-            }, 0)
+            }, 0),
           };
           goal.currentAmount = Math.round(goal.currentAmount * 100) / 100;
         }
       } catch (e) {
-        console.warn("Using JSON fallback for donations due to Supabase error", e);
-        jsonFallbackUsed = true;
-      }
-
-      if (jsonFallbackUsed || donators.length === 0) {
-        try {
-          let r = await fetch('/donations.json');
-          if (!r.ok) {
-            r = await fetch('/donators.json');
-          }
-
-          if (r.ok) {
-            const json = await r.json();
-
-            if (jsonFallbackUsed) {
-              if (json.goal) goal = json.goal;
-              if (json.paymentMethods) methods = json.paymentMethods;
-              if (json.transparencyItems) transparency = json.transparencyItems;
-              if (json.whereFundsGoItems) whereFundsGo = json.whereFundsGoItems;
-              if (json.display) {
-                showAmounts = json.display.showDonationAmounts ?? true;
-                showGoal = json.display.showGoal ?? false;
-                lastUpdated = json.display.transparencyLastUpdated ?? '';
-              }
-            }
-
-            if (json.donators) {
-              donators = json.donators
-                .filter((d: any) => d.isPublic !== false)
-                .map((d: any) => ({ ...d, id: undefined }));
-            }
-          }
-        } catch { /* skip */ }
+        console.warn('Failed to load donations:', e);
       }
 
       if (!cancelled) {

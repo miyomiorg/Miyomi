@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { adminLikesApi } from '@/services/api';
+import type { LikesStats } from '@/services/api/types';
 import { Heart, TrendingUp, Search, Download, User, Monitor } from 'lucide-react';
 import { AdminSearchBar } from '@/components/admin/AdminSearchBar';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
@@ -20,18 +21,10 @@ interface LikeData {
     language: string | null;
 }
 
-interface LikeStats {
-    total: number;
-    byType: Record<string, number>;
-    byBrowser: Record<string, number>;
-    byOS: Record<string, number>;
-    byDeviceType: Record<string, number>;
-}
-
 export function AdminLikesPage() {
     const [likes, setLikes] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
-    const [stats, setStats] = useState<LikeStats>({
+    const [stats, setStats] = useState<LikesStats>({
         total: 0,
         byType: {},
         byBrowser: {},
@@ -46,28 +39,17 @@ export function AdminLikesPage() {
     const [page, setPage] = useState(1);
     const [rowsPerPage, setRowsPerPage] = useState(50);
 
-    // Fetch latest 100 likes and global stats via RPC
+    // Fetch latest 100 likes and global stats via the API
     useEffect(() => {
         const fetchLikesAndStats = async () => {
             setLoading(true);
             try {
                 // Fetch the latest 100 likes for the table
-                const { data: latestLikes, error: likesError } = await supabase
-                    .from('likes')
-                    .select('*')
-                    .order('liked_at', { ascending: false })
-                    .limit(100);
+                const latestLikes = await adminLikesApi.list({ limit: 100 });
+                setLikes(latestLikes.items);
 
-                if (likesError) throw likesError;
-                setLikes(latestLikes || []);
-
-                const { data: statsData, error: statsError } = await (supabase.rpc as any)('get_likes_stats');
-
-                if (statsError) {
-                    console.error("Failed to fetch likes stats via RPC:", statsError);
-                } else if (statsData) {
-                    setStats(statsData as LikeStats);
-                }
+                const statsData = await adminLikesApi.stats();
+                setStats(statsData);
             } catch (err) {
                 console.error("Failed to fetch likes or stats", err);
             } finally {

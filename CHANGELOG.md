@@ -1,4 +1,4 @@
-# 📋 Changelog
+# Changelog
 
 All notable changes to **Miyomi** are documented in this file.
 

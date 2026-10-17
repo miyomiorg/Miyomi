@@ -1,17 +1,14 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { supabase } from '@/integrations/supabase/client';
+import { adminSubmissionsApi, adminEditSuggestionsApi } from '@/services/api';
 import { useAdminLogger } from '@/hooks/useAdminLogger';
 import { ArrowLeft, Save, Loader2, Check, X as XIcon, RotateCcw, User, StickyNote, AlertTriangle, FileText } from 'lucide-react';
 import { AdminButton, StatusBadge } from '@/components/admin/AdminFormElements';
 import { useAdmin } from '@/hooks/useAdmin';
-import { getGroupsForApp, setAppGroups, syncAppCompatibility, getGroupsForExtension, setExtensionGroups, syncExtensionCompatibility, fetchAllGroups } from '@/utils/compatSync';
 import { ConfirmDialog } from '@/components/admin/ConfirmDialog';
 import { SharedAppForm } from '@/components/forms/SharedAppForm';
 import { SharedExtensionForm } from '@/components/forms/SharedExtensionForm';
 import { toast } from 'sonner';
-import { upsertContributor } from '@/utils/contributors';
-import { approveSubmissionRecord, approveEditSuggestionRecord } from '@/utils/approvalUtils';
 import { getFieldDiff } from '@/utils/diffUtils';
 
 interface ReviewPageProps {
@@ -94,8 +91,9 @@ export function AdminReviewPage({ mode }: ReviewPageProps) {
 
     async function fetchRecord() {
         try {
-            const { data, error } = await (supabase as any).from(tableName).select('*').eq('id', id).single();
-            if (error) throw error;
+            const data = mode === 'submission'
+                ? await adminSubmissionsApi.get(id!)
+                : await adminEditSuggestionsApi.get(id!);
             setRecord(data);
         } catch (err: any) {
             toast.error('Failed to load: ' + err.message);
@@ -123,8 +121,11 @@ export function AdminReviewPage({ mode }: ReviewPageProps) {
         if (!record || !editedData) return;
         setSaving(true);
         try {
-            const dataField = mode === 'submission' ? 'submitted_data' : 'submitted_data';
-            await (supabase as any).from(tableName).update({ [dataField]: editedData }).eq('id', record.id);
+            if (mode === 'submission') {
+                await adminSubmissionsApi.update(record.id, { submittedData: editedData });
+            } else {
+                await adminEditSuggestionsApi.updateData(record.id, editedData);
+            }
             toast.success('Changes saved!');
             fetchRecord();
         } catch (err: any) {
@@ -137,7 +138,11 @@ export function AdminReviewPage({ mode }: ReviewPageProps) {
     async function handleRestore() {
         if (!record) return;
         try {
-            await (supabase as any).from(tableName).update({ status: 'pending' }).eq('id', record.id);
+            if (mode === 'submission') {
+                await adminSubmissionsApi.update(record.id, { status: 'pending' });
+            } else {
+                await adminEditSuggestionsApi.update(record.id, 'pending');
+            }
             await logAction('restore' as any, (mode === 'submission' ? 'submission' : 'edit_suggestion') as any, record.id, 'Restored to pending');
             toast.success('Restored to pending.');
             fetchRecord();
@@ -152,39 +157,21 @@ export function AdminReviewPage({ mode }: ReviewPageProps) {
         try {
             if (actionTarget.action === 'approve') {
                 if (mode === 'submission') {
-                    const result = await approveSubmissionRecord(record, editedData);
-                    if (!result.success) {
-                        toast.error(result.error || 'Approval failed');
-                        setActionTarget(null);
-                        return;
-                    }
+                    const result = await adminSubmissionsApi.approve(record.id, editedData);
                     await logAction('approve', 'submission', record.id, `${record.submission_type} submission`).catch(console.error);
                     toast.success(`Published ${result.name}!`);
                 } else {
-                    const result = await approveEditSuggestionRecord(record, editedData);
-                    if (!result.success) {
-                        toast.error(result.error || 'Approval failed');
-                        setActionTarget(null);
-                        return;
-                    }
+                    const result = await adminEditSuggestionsApi.approve(record.id, editedData);
                     await logAction('approve', 'edit_suggestion' as any, record.id, `${record.target_type} edit suggestion`).catch(console.error);
                     toast.success(`Updated ${result.name}!`);
                 }
             } else {
-                // Reject — use correct column name per table (admin_notes vs admin_note)
+                // Reject — the worker maps adminNotes/adminNote per table
                 if (mode === 'submission') {
-                    const rejectPayload: any = { status: 'rejected' };
-                    if (rejectReason.trim()) {
-                        rejectPayload.admin_notes = rejectReason.trim();
-                    }
-                    await (supabase as any).from('submissions').update(rejectPayload).eq('id', record.id);
+                    await adminSubmissionsApi.reject(record.id, rejectReason.trim() || undefined);
                     await logAction('reject', 'submission', record.id, rejectReason.trim() || 'Rejected').catch(console.error);
                 } else {
-                    const rejectPayload: any = { status: 'rejected' };
-                    if (rejectReason.trim()) {
-                        rejectPayload.admin_note = rejectReason.trim();
-                    }
-                    await (supabase as any).from('public_edit_suggestions').update(rejectPayload).eq('id', record.id);
+                    await adminEditSuggestionsApi.reject(record.id, rejectReason.trim() || undefined);
                     await logAction('reject', 'edit_suggestion' as any, record.id, rejectReason.trim() || 'Rejected').catch(console.error);
                 }
                 setRejectReason('');

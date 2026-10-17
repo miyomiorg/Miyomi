@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { supabase } from '@/integrations/supabase/client';
+import { appsApi, extensionsApi, settingsApi, submitApi } from '@/services/api';
 import { AdminFormField, AdminInput, AdminTextarea, AdminButton } from '@/components/admin/AdminFormElements';
 import { UploadCloud, CheckCircle2, AlertCircle, FileText, ArrowRight, ArrowLeft, Github, LayoutGrid, Type, AlertTriangle, ExternalLink, RefreshCw, Layers, Terminal, Lock, Globe, Server, Hash, FileJson, Link, Search, Loader2, MessageSquare, StickyNote, Puzzle, Smartphone } from 'lucide-react';
 import { toast } from 'sonner';
@@ -11,9 +11,7 @@ import { SharedExtensionForm } from '@/components/forms/SharedExtensionForm';
 import { emptyApp } from '@/pages/admin/AdminAppFormPage';
 import { emptyExt } from '@/pages/admin/AdminExtensionFormPage';
 import { InstallUrlEntry } from '@/components/admin/InstallUrlsInput';
-import { extractFunctionError } from '@/utils/functionErrors';
 import { detectGitProvider } from '@/utils/gitProviders';
-import { getUnifiedCompatibleExtensionsForApp, getUnifiedCompatibleAppsForExtension } from '@/utils/compatSync';
 
 export function SubmitPage() {
   const navigate = useNavigate();
@@ -41,11 +39,14 @@ export function SubmitPage() {
       try {
         const isEdit = urlMode === 'edit';
         const keyPrefix = isEdit ? 'edit_suggestions' : 'submissions';
-        const { data: enabledData } = await supabase.from('settings').select('value').eq('key', `${keyPrefix}_enabled`).single();
-        const { data: reasonData } = await supabase.from('settings').select('value').eq('key', `${keyPrefix}_disabled_reason`).single();
-        if (enabledData && (enabledData.value === 'false' || enabledData.value === false)) {
+        const settings = await settingsApi.public();
+        const enabledVal = settings[`${keyPrefix}_enabled`];
+        if (enabledVal === 'false' || enabledVal === false) {
           setEnabled(false);
-          setDisabledReason(reasonData?.value || (isEdit ? 'Edit suggestions are currently disabled.' : 'Submissions are currently disabled.'));
+          setDisabledReason(
+            settings[`${keyPrefix}_disabled_reason`] ||
+              (isEdit ? 'Edit suggestions are currently disabled.' : 'Submissions are currently disabled.'),
+          );
         }
       } catch (err) {
         // Assume enabled if fetch fails
@@ -87,15 +88,12 @@ export function SubmitPage() {
       if (urlMode === 'edit' && type && urlId) {
         setLoadingInitial(true);
         try {
-          const table = type === 'app' ? 'apps' : 'extensions';
-          const { data: rawData, error } = await supabase.from(table).select('*').eq('id', urlId).single();
-          if (error) throw error;
-          const data = rawData as any;
+          const data = (type === 'app' ? await appsApi.get(urlId) : await extensionsApi.get(urlId)) as any;
           if (data) {
             if (type === 'app') {
               const meta = data.metadata as any;
               const detectedProvider = data.repo_url ? detectGitProvider(data.repo_url).toLowerCase() : 'github';
-              const unifiedCompat = await getUnifiedCompatibleExtensionsForApp(urlId, data.name, data.slug);
+              const unifiedCompat = await appsApi.compatible(urlId);
               const normalized = {
                 ...emptyApp,
                 ...data,
@@ -126,7 +124,7 @@ export function SubmitPage() {
                 if (data.manual_url) loadedInstallUrls.push({ label: 'Copy URL', url: data.manual_url, type: 'copy' });
               }
 
-              const unifiedCompat = await getUnifiedCompatibleAppsForExtension(urlId, data.name, data.slug);
+              const unifiedCompat = await extensionsApi.compatible(urlId);
               const normalized = {
                 ...emptyExt,
                 ...data,
@@ -183,46 +181,27 @@ export function SubmitPage() {
     setSearchParams(params, { replace: false });
   }
 
-  // Duplicate check: by name (live tables + submissions)
+  // Duplicate check: by name (live tables)
   useEffect(() => {
     const currentName = type === 'app' ? appForm.name : extForm.name;
     if (!currentName) {
       setNameError(null);
-      setSubmissionDuplicate(null);
       return;
     }
 
     const timeoutId = setTimeout(async () => {
       try {
-        // Check live apps table
-        const { data: appData } = await (supabase.from('apps') as any)
-          .select('id, name, slug')
-          .ilike('name', currentName.trim())
-          .maybeSingle();
-
-        if (appData && appData.id !== urlId) {
+        const result = await submitApi.checkDuplicate({ type: type ?? undefined, name: currentName.trim() });
+        const match = result.name_match;
+        if (match && match.id !== urlId) {
           setNameError({
-            message: 'This app name already exists.',
-            url: `/software/${appData.slug || appData.id}`
+            message: `This ${match.kind} name already exists.`,
+            url: `/${match.kind === 'app' ? 'software' : 'extensions'}/${match.slug || match.id}`,
           });
         } else {
-          // Check live extensions table
-          const { data: extData } = await (supabase.from('extensions') as any)
-            .select('id, name, slug')
-            .ilike('name', currentName.trim())
-            .maybeSingle();
-
-          if (extData && extData.id !== urlId) {
-            setNameError({
-              message: 'This extension name already exists.',
-              url: `/extensions/${extData.slug || extData.id}`
-            });
-          } else {
-            setNameError(null);
-          }
+          setNameError(null);
         }
-
-        } catch (err) {
+      } catch (err) {
         console.error("Duplicate check failed", err);
       }
     }, 500);
@@ -230,7 +209,7 @@ export function SubmitPage() {
     return () => clearTimeout(timeoutId);
   }, [type === 'app' ? appForm.name : extForm.name]);
 
-  // Duplicate check: by repo URL (live tables + submissions)
+  // Duplicate check: by repo URL (live tables)
   useEffect(() => {
     const currentRepoUrl = type === 'app' ? appForm.repo_url : extForm.repo_url;
     if (!currentRepoUrl || !currentRepoUrl.trim()) {
@@ -240,35 +219,16 @@ export function SubmitPage() {
 
     const timeoutId = setTimeout(async () => {
       try {
-        // Check live apps
-        const { data: appMatch } = await (supabase.from('apps') as any)
-          .select('id, name, slug')
-          .ilike('repo_url', currentRepoUrl.trim())
-          .maybeSingle();
-
-        if (appMatch && appMatch.id !== urlId) {
+        const result = await submitApi.checkDuplicate({ type: type ?? undefined, repoUrl: currentRepoUrl.trim() });
+        const match = result.repo_match;
+        if (match && match.id !== urlId) {
           setRepoError({
-            message: `An app with this repository URL already exists: ${appMatch.name}`,
-            url: `/software/${appMatch.slug || appMatch.id}`
+            message: `An ${match.kind} with this repository URL already exists: ${match.name}`,
+            url: `/${match.kind === 'app' ? 'software' : 'extensions'}/${match.slug || match.id}`,
           });
-          return;
+        } else {
+          setRepoError(null);
         }
-
-        // Check live extensions
-        const { data: extMatch } = await (supabase.from('extensions') as any)
-          .select('id, name, slug')
-          .ilike('repo_url', currentRepoUrl.trim())
-          .maybeSingle();
-
-        if (extMatch && extMatch.id !== urlId) {
-          setRepoError({
-            message: `An extension with this repository URL already exists: ${extMatch.name}`,
-            url: `/extensions/${extMatch.slug || extMatch.id}`
-          });
-          return;
-        }
-
-        setRepoError(null);
       } catch (err) {
         console.error("Repo URL duplicate check failed", err);
       }
@@ -289,28 +249,29 @@ export function SubmitPage() {
 
     const timeoutId = setTimeout(async () => {
       try {
-        const { data: subMatches } = await (supabase.rpc as any)('check_submission_duplicate', {
-          p_type: type,
-          p_name: currentName || null,
-          p_repo_url: currentRepoUrl ? currentRepoUrl.trim() : null
+        const result = await submitApi.checkDuplicate({
+          type: type ?? undefined,
+          name: currentName || undefined,
+          repoUrl: currentRepoUrl ? currentRepoUrl.trim() : undefined,
         });
 
-        if (subMatches && subMatches.length > 0) {
-          const match = subMatches[0];
-          if (match.status === 'pending') {
-            setSubmissionDuplicate({
-              message: `This ${type} is already submitted and waiting for review.`,
-              status: 'pending',
-              blocking: true,
-            });
-          } else if (match.status === 'rejected') {
-            setSubmissionDuplicate({
-              message: `This ${type} was previously submitted but rejected.`,
-              status: 'rejected',
-              reason: match.admin_notes || undefined,
-              blocking: false,
-            });
-          }
+        const matches = result.submissions || [];
+        const pending = matches.find((m) => m.status === 'pending');
+        const rejected = matches.find((m) => m.status === 'rejected');
+
+        if (pending) {
+          setSubmissionDuplicate({
+            message: `This ${type} is already submitted and waiting for review.`,
+            status: 'pending',
+            blocking: true,
+          });
+        } else if (rejected) {
+          setSubmissionDuplicate({
+            message: `This ${type} was previously submitted but rejected.`,
+            status: 'rejected',
+            reason: rejected.admin_notes || undefined,
+            blocking: false,
+          });
         } else {
           setSubmissionDuplicate(null);
         }
@@ -440,39 +401,29 @@ export function SubmitPage() {
         };
       }
 
-      let invokeFn = 'submit-content';
-      let payload: any = {
-        submissionType: type,
-        submittedData,
-        turnstileToken,
-        submitterName: submitterForm.submitter_name,
-        submitterContact: submitterForm.submitter_contact,
-        submitterNotes: submitterForm.submitter_notes,
-      };
+      const isEditSuggestion = urlMode === 'edit' && urlId && originalDataSnapshot;
 
-      if (urlMode === 'edit' && urlId && originalDataSnapshot) {
-        invokeFn = 'edit-suggestion';
-        payload = {
+      if (isEditSuggestion) {
+        await submitApi.editSuggestion({
           targetType: type,
           targetId: urlId,
           originalDataSnapshot,
           submittedData,
-          turnstileToken,
+          token: turnstileToken,
           submitterName: submitterForm.submitter_name,
           submitterContact: submitterForm.submitter_contact,
           submitterNotes: submitterForm.submitter_notes,
-          submitterUserId: undefined,
-        };
-      }
-
-      const { data, error } = await supabase.functions.invoke(invokeFn, {
-        body: payload
-      });
-
-      if (error || !data?.success) {
-        const errorMsg = await extractFunctionError(error, data, "Submission failed");
-        const detailMsg = data?.details ? ` (${JSON.stringify(data.details)})` : '';
-        throw new Error(errorMsg + detailMsg);
+        });
+      } else {
+        await submitApi.submission({
+          submissionType: type,
+          submittedData,
+          token: turnstileToken,
+          submitterName: submitterForm.submitter_name,
+          submitterContact: submitterForm.submitter_contact,
+          submitterNotes: submitterForm.submitter_notes,
+          author: form.author || null,
+        });
       }
 
       goTo(3);

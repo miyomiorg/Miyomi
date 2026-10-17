@@ -2,9 +2,20 @@ node_modules
 dist
 build
 .env
+.dev.vars
 .wrangler
 bun.lockb
 backups/
 .env.production
 .env.local
 supabase
+
+# Generated / local-only artifacts
+tmp-*.sql
+app-meta.json
+# OG image cache restored into dist/og after vite builds
+.og-cache
+
+# Database dumps containing real data — never commit
+*.backup
+*.dump

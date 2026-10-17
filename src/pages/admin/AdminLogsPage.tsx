@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { adminLogsApi } from '@/services/api';
 import { useAdmin } from '@/hooks/useAdmin';
 import { EmptyState } from '@/components/admin/AdminFormElements';
 import { FileText, Filter, Trash2 } from 'lucide-react';
@@ -35,27 +35,12 @@ export function AdminLogsPage() {
     async function fetchLogs() {
         setLoading(true);
         try {
-            let query = supabase
-                .from('admin_logs')
-                .select('*, admins(email, display_name)')
-                .order('created_at', { ascending: false })
-                .limit(100);
-
-            if (filter !== 'all') {
-                query = query.eq('action', filter);
-            }
-
-            if (resourceFilter !== 'all') {
-                query = query.eq('resource_type', resourceFilter);
-            }
-
-            const { data, error } = await query;
-
-            if (error) {
-                console.error('Error fetching logs:', error);
-            } else {
-                setLogs((data as any) || []);
-            }
+            const data = await adminLogsApi.list({
+                action: filter !== 'all' ? filter : undefined,
+                resourceType: resourceFilter !== 'all' ? resourceFilter : undefined,
+                limit: 100,
+            });
+            setLogs(data as unknown as AdminLog[]);
         } catch (error) {
             console.error('Error fetching logs:', error);
         } finally {
@@ -98,11 +83,7 @@ export function AdminLogsPage() {
 
                                 setLoading(true);
                                 try {
-                                    const { error } = await supabase.rpc('clear_admin_data', {
-                                        target_table: 'logs'
-                                    });
-
-                                    if (error) throw error;
+                                    await adminLogsApi.clear();
                                     fetchLogs();
                                 } catch (error) {
                                     console.error('Error clearing logs:', error);

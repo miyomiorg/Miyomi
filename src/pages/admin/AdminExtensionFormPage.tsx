@@ -1,6 +1,9 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { supabase } from '@/integrations/supabase/client';
+import { adminExtensionsApi, adminGroupsApi } from '@/services/api';
+import { collectPages } from '@/services/api/pagination';
+import { contentPayload } from '@/services/api/contentPayload';
+import { invalidateTableCache } from '@/hooks/useAdminCache';
 import { useAdminLogger } from '@/hooks/useAdminLogger';
 import { AdminFormField, AdminInput, AdminTextarea, AdminSelect, AdminButton, Label } from '@/components/admin/AdminFormElements';
 import { AdminSmartSelect } from '@/components/admin/AdminSmartSelect';
@@ -12,7 +15,6 @@ import { detectGitProvider } from '@/utils/gitProviders';
 import { InstallUrlsInput, type InstallUrlEntry } from '@/components/admin/InstallUrlsInput';
 import { FlagDisplay } from '@/components/FlagDisplay';
 import { SharedExtensionForm } from '@/components/forms/SharedExtensionForm';
-import { getGroupsForExtension, setExtensionGroups, syncExtensionCompatibility, fetchAllGroups, getUnifiedCompatibleAppsForExtension } from '@/utils/compatSync';
 
 function slugify(text: string): string {
     return text
@@ -24,7 +26,7 @@ function slugify(text: string): string {
         .replace(/^-+|-+$/g, '');
 }
 
-export const emptyExt = {
+const extensionDefaults = {
     name: '', slug: '', short_description: '', description: '', author: '', category: '', language: '',
     status: 'approved', platforms: [] as string[], tags: [] as string[],
     types: [] as string[],
@@ -38,6 +40,12 @@ export const emptyExt = {
     dev_status: 'active',
     metadata: {} as any
 };
+export type ExtensionFormState = typeof extensionDefaults & {
+    git_provider?: string;
+    _selectedGroupIds?: string[];
+    _selectedGroupNames?: string[];
+};
+export const emptyExt: ExtensionFormState = extensionDefaults;
 export function AdminExtensionFormPage() {
     const { id } = useParams();
     const navigate = useNavigate();
@@ -92,8 +100,7 @@ export function AdminExtensionFormPage() {
 
     async function fetchExt(extId: string) {
         try {
-            const { data, error } = await (supabase.from('extensions') as any).select('*').eq('id', extId).single();
-            if (error) throw error;
+            const data = await adminExtensionsApi.get(extId);
             if (data) {
                 const extData = data as any;
                 const loadedTutorials = Array.isArray(extData.tutorials) ? extData.tutorials : [];
@@ -107,12 +114,12 @@ export function AdminExtensionFormPage() {
                     if (extData.manual_url) loadedInstallUrls.push({ label: 'Copy URL', url: extData.manual_url, type: 'copy' });
                 }
                 // Fetch groups
-                const groupIds = await getGroupsForExtension(extId);
-                const allGroups = await fetchAllGroups();
+                const allGroups = await adminGroupsApi.list();
+                const groupIds = allGroups.filter(g => g.extension_ids.includes(extId)).map(g => g.id);
                 const selectedGroupNames = allGroups
                     .filter((g: any) => groupIds.includes(g.id))
                     .map((g: any) => g.name);
-                const unifiedCompat = await getUnifiedCompatibleAppsForExtension(extId, extData.name, extData.slug);
+                const unifiedCompat = extData.compatible_with || [];
 
                 setSlugManuallyEdited(true);
                 setForm({
@@ -144,10 +151,8 @@ export function AdminExtensionFormPage() {
 
     async function checkDuplicate(field: 'name' | 'slug' | 'repo_url', value: string) {
         if (!value) return false;
-        let query = (supabase.from('extensions') as any).select('id, name').eq(field, value);
-        if (id) query = query.neq('id', id);
-        const { data } = await query.maybeSingle();
-        return data;
+        const rows = await collectPages(adminExtensionsApi.list);
+        return rows.find(row => row.id !== id && row[field] === value);
     }
 
     async function handleSave() {
@@ -211,8 +216,7 @@ export function AdminExtensionFormPage() {
             let savedId = id;
 
             if (id) {
-                const { error } = await (supabase.from('extensions') as any).update(payload).eq('id', id);
-                if (error) throw error;
+                await adminExtensionsApi.update(id, contentPayload(payload, form._selectedGroupIds || []));
 
                 // Log update action
                 await logAction('update', 'extension', id, form.name).catch(err => {
@@ -221,8 +225,7 @@ export function AdminExtensionFormPage() {
 
                 toast.success('Extension updated successfully');
             } else {
-                const { data, error } = await (supabase.from('extensions') as any).insert(payload).select().single();
-                if (error) throw error;
+                const data = await adminExtensionsApi.create(contentPayload(payload, form._selectedGroupIds || []));
 
                 // Log create action
                 if (data) {
@@ -235,13 +238,8 @@ export function AdminExtensionFormPage() {
                 toast.success('Extension created successfully');
             }
 
-            // Sync groups and compatibility
-            if (savedId) {
-                const groupIds = form._selectedGroupIds || [];
-                const manualApps = form.compatible_with || [];
-                await setExtensionGroups(savedId, groupIds);
-                await syncExtensionCompatibility(savedId, form.name, groupIds, manualApps);
-            }
+            invalidateTableCache('extensions');
+            invalidateTableCache('apps');
 
             if (!id) {
                 navigate(`/admin/extensions/${savedId}`, { replace: true });

@@ -1,98 +1,91 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
-import { supabase, REMEMBER_SESSION } from '@/integrations/supabase/client';
-import { useSessionTracker } from './useSessionTracker';
-import type { Session, User } from '@supabase/supabase-js';
+import { useEffect, useSyncExternalStore } from 'react';
+import { authApi } from '@/services/api';
+import type { LoginResult, SessionInfo } from '@/services/api/types';
+import { ApiError } from '@/services/api/http';
+import { invalidateAllAdminCaches } from './useAdminCache';
 
-const SESSION_ACTIVE_KEY = 'miyomi_session_active';
+export type { AdminRole } from '@/services/api/types';
 
+let snapshot: { session: SessionInfo | null; loading: boolean } = { session: null, loading: true };
+const listeners = new Set<() => void>();
+let restoration: Promise<void> | undefined;
+let revision = 0;
+const subscribe = (listener: () => void) => {
+  listeners.add(listener);
+  return () => { listeners.delete(listener); };
+};
+const getSnapshot = () => snapshot;
+function publish(session: SessionInfo | null) {
+  snapshot = { session, loading: false };
+  listeners.forEach(listener => listener());
+}
+
+function restoreSession() {
+  if (restoration || !snapshot.loading) return;
+  const started = revision;
+  restoration = authApi.me().then(session => {
+    if (started === revision) publish(session);
+  }).catch(error => {
+    if (!(error instanceof ApiError && error.status === 401)) console.error('Failed to restore session:', error);
+    if (started === revision) publish(null);
+  });
+}
+
+/**
+ * Password step. If the account has 2FA configured, the server returns
+ * { loginStage: '2fa_required', pendingToken } and the caller finishes with
+ * completeLogin. Accounts without 2FA get a session immediately
+ * (totpEnabled:false) and are redirected to Settings to enrol.
+ */
+async function signInWithEmail(email: string, password: string, remember = false, turnstileToken?: string) {
+  const started = ++revision;
+  const result: LoginResult = await authApi.login({ email, password, remember, turnstileToken });
+  if ('loginStage' in result) return result;
+  if (started === revision) {
+    invalidateAllAdminCaches();
+    publish(result);
+  }
+  return result;
+}
+
+/** Finish a staged login with the 6-digit TOTP code. */
+async function completeLogin(pendingToken: string, code: string, remember = false) {
+  const started = ++revision;
+  const session = await authApi.completeLogin({ pendingToken, code, remember });
+  if (started === revision) {
+    invalidateAllAdminCaches();
+    publish(session);
+  }
+  return session;
+}
+
+/** Re-pull the current session (e.g. after enabling/disabling 2FA). */
+async function refreshSession() {
+  const started = ++revision;
+  const session = await authApi.me();
+  if (started === revision) publish(session);
+  return session;
+}
+
+async function signOut() {
+  await authApi.logout();
+  ++revision;
+  invalidateAllAdminCaches();
+  publish(null);
+}
+
+/** All consumers subscribe to the same cookie-backed session. */
 export function useAuth() {
-  const [session, setSession] = useState<Session | null>(null);
-  const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
-  const { trackSession } = useSessionTracker();
-  const trackSessionRef = useRef(trackSession);
-  trackSessionRef.current = trackSession;
-  const isInitialLoad = useRef(true);
-
-  useEffect(() => {
-    supabase.auth.getSession().then(async ({ data: { session: restored } }) => {
-      const isOAuthCallback = localStorage.getItem('auth_start') === 'true';
-
-      if (!REMEMBER_SESSION && restored && !sessionStorage.getItem(SESSION_ACTIVE_KEY) && !isOAuthCallback) {
-        await supabase.auth.signOut();
-        setSession(null);
-        setUser(null);
-        setLoading(false);
-        return;
-      }
-
-      setSession(restored);
-      setUser(restored?.user ?? null);
-      setLoading(false);
-    });
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      setLoading(false);
-
-      if (event === 'SIGNED_IN' && session) {
-        sessionStorage.setItem(SESSION_ACTIVE_KEY, 'true');
-
-        if (isInitialLoad.current) {
-          isInitialLoad.current = false;
-        }
-
-        const isAuthStart = localStorage.getItem('auth_start');
-        if (isAuthStart) {
-          localStorage.removeItem('auth_start');
-          trackSessionRef.current('login').catch(err => {
-            console.error('Failed to track login session:', err);
-          });
-        }
-      }
-
-      if (event === 'SIGNED_OUT') {
-        sessionStorage.removeItem(SESSION_ACTIVE_KEY);
-      }
-    });
-
-    return () => subscription.unsubscribe();
-  }, []);
-
-  const signInWithEmail = useCallback(async (email: string, password: string, captchaToken?: string) => {
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-      options: captchaToken ? { captchaToken } : undefined,
-    });
-    if (error) throw error;
-    await trackSessionRef.current('login').catch(console.error);
-  }, []);
-
-  const signInWithGoogle = useCallback(async () => {
-    localStorage.setItem('auth_start', 'true');
-
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: {
-        redirectTo: `${window.location.origin}/admin/dashboard`,
-      },
-    });
-    if (error) {
-      console.error('Google sign-in error:', error);
-      localStorage.removeItem('auth_start');
-    }
-  }, []);
-
-  const signOut = useCallback(async () => {
-    await trackSessionRef.current('logout').catch(err => {
-      console.error('Failed to track logout session:', err);
-    });
-
-    sessionStorage.removeItem(SESSION_ACTIVE_KEY);
-    await supabase.auth.signOut();
-  }, []);
-
-  return { session, user, loading, signInWithEmail, signInWithGoogle, signOut };
+  const { session, loading } = useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
+  useEffect(restoreSession, []);
+  return {
+    user: session?.admin ?? null,
+    role: session?.role ?? null,
+    permissions: session?.permissions ?? [],
+    loading,
+    signInWithEmail,
+    completeLogin,
+    refreshSession,
+    signOut,
+  };
 }

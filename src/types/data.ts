@@ -71,6 +71,7 @@ export interface ExtensionData {
     logoUrl?: string;
     types: readonly ContentType[];
     language: string;
+    region?: string;
     accentColor?: string;
     autoUrl: string;
     manualUrl: string;
@@ -122,6 +123,7 @@ export interface GuideTopicData {
     title: string;
     slug: string;
     summary?: string;
+    readTime?: string;
     keywords?: readonly string[];
     relatedAppIds?: readonly string[];
     relatedExtensionIds?: readonly string[];

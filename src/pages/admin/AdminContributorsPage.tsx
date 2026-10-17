@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { adminContributorsApi } from '@/services/api';
 import { Trash2, Loader2, Pencil, Search, Users, ExternalLink } from 'lucide-react';
 import { AdminModal } from '@/components/admin/AdminModal';
 import { ConfirmDialog } from '@/components/admin/ConfirmDialog';
@@ -36,13 +36,8 @@ export function AdminContributorsPage() {
   async function fetchData() {
     setLoading(true);
     try {
-      const { data, error } = await (supabase as any)
-        .from('contributors')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      setContributors(data || []);
+      const data = await adminContributorsApi.list();
+      setContributors(data as unknown as Contributor[]);
     } catch (err: any) {
       console.error(err);
       toast.error('Failed to fetch contributors');
@@ -56,8 +51,7 @@ export function AdminContributorsPage() {
     if (!deleteTarget) return;
     setDeleteLoading(true);
     try {
-      const { error } = await (supabase as any).from('contributors').delete().eq('id', deleteTarget.id);
-      if (error) throw error;
+      await adminContributorsApi.remove(deleteTarget.id);
 
       toast.success(`Deleted contributor: ${deleteTarget.name}`);
       setContributors(prev => prev.filter(c => c.id !== deleteTarget.id));
@@ -86,16 +80,11 @@ export function AdminContributorsPage() {
 
     setEditSaving(true);
     try {
-      const { error } = await (supabase as any)
-        .from('contributors')
-        .update({
-          name: editForm.name,
-          email: editForm.email || null,
-          contact: editForm.contact || null
-        })
-        .eq('id', editTarget.id);
-
-      if (error) throw error;
+      await adminContributorsApi.update(editTarget.id, {
+        name: editForm.name,
+        email: editForm.email || null,
+        contact: editForm.contact || null,
+      });
 
       toast.success('Contributor updated');
       setContributors(prev => prev.map(c => 

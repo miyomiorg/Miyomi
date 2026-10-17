@@ -1,9 +1,9 @@
 import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { supabase } from '@/integrations/supabase/client';
+import { adminBlogApi } from '@/services/api';
 import { useAdminLogger } from '@/hooks/useAdminLogger';
 import { useAdminCache } from '@/hooks/useAdminCache';
-import type { Tables } from '@/integrations/supabase/types';
+import type { Tables } from '@/types/db';
 import { Plus, Pencil, Trash2, FileText } from 'lucide-react';
 import { AdminSearchBar } from '@/components/admin/AdminSearchBar';
 import { ConfirmDialog } from '@/components/admin/ConfirmDialog';
@@ -33,8 +33,7 @@ export function AdminBlogPostsPage() {
   async function handleDelete() {
     if (!deleteTarget) return;
     try {
-      const { error } = await supabase.from('blog_posts').delete().eq('id', deleteTarget.id);
-      if (error) throw error;
+      await adminBlogApi.remove(deleteTarget.id);
 
       await logAction('delete', 'blog_post' as any, deleteTarget.id, deleteTarget.title).catch(err => {
         console.error('Failed to log delete action:', err);
@@ -69,7 +68,7 @@ export function AdminBlogPostsPage() {
                 <th className="px-6 py-4 font-semibold whitespace-nowrap text-right">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y" style={{ divideColor: 'var(--divider)' }}>
+            <tbody className="divide-y divide-[var(--divider)]">
               {loading ? (
                 <tr>
                   <td colSpan={4} className="px-6 py-8 text-center text-[var(--text-secondary)]">Loading posts...</td>

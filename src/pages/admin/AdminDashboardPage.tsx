@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { dashboardApi } from '@/services/api';
 import { useAdmin } from '@/hooks/useAdmin';
 import { AppWindow, Puzzle, Inbox, Bell, Heart, BookOpen, TrendingUp, Clock, Award, Activity } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
@@ -29,119 +29,46 @@ export function AdminDashboardPage() {
 
   useEffect(() => {
     async function fetchMetrics() {
-      const [apps, extensions, guides, submissions, notices, likes] = await Promise.all([
-        supabase.from('apps').select('id', { count: 'exact', head: true }).eq('status', 'approved'),
-        supabase.from('extensions').select('id', { count: 'exact', head: true }).eq('status', 'approved'),
-        supabase.from('guides').select('id', { count: 'exact', head: true }).in('status', ['approved', 'published']),
-        supabase.from('submissions').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
-        supabase.from('notices').select('id', { count: 'exact', head: true }).eq('active', true),
-        supabase.from('likes').select('id', { count: 'exact', head: true }),
-      ]);
+      try {
+        const data = await dashboardApi.get();
 
-      setMetrics({
-        apps: apps.count || 0,
-        extensions: extensions.count || 0,
-        guides: guides.count || 0,
-        pendingSubmissions: submissions.count || 0,
-        activeNotices: notices.count || 0,
-        totalLikes: likes.count || 0,
-      });
+        setMetrics({
+          apps: data.counts.approvedApps,
+          extensions: data.counts.approvedExtensions,
+          guides: data.counts.publishedGuides,
+          pendingSubmissions: data.counts.pendingSubmissions,
+          activeNotices: data.counts.activeNotices,
+          totalLikes: data.counts.totalLikes,
+        });
 
-      // Recent activity
-      const [recentApps, recentExts] = await Promise.all([
-        supabase.from('apps').select('name, updated_at').order('updated_at', { ascending: false }).limit(3),
-        supabase.from('extensions').select('name, updated_at').order('updated_at', { ascending: false }).limit(3),
-      ]);
+        const activity = [
+          ...data.recentApps.map(a => ({ type: 'App', name: a.name, date: a.updatedAt })),
+          ...data.recentExtensions.map(e => ({ type: 'Extension', name: e.name, date: e.updatedAt })),
+        ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).slice(0, 5);
 
-      const activity = [
-        ...(recentApps.data || []).map(a => ({ type: 'App', name: a.name, date: a.updated_at })),
-        ...(recentExts.data || []).map(e => ({ type: 'Extension', name: e.name, date: e.updated_at })),
-      ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).slice(0, 5);
+        setRecentActivity(activity);
 
-      setRecentActivity(activity);
-
-      // Contribution stats
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        // Get current admin
-        const { data: adminData } = await supabase.from('admins').select('id, email').eq('user_id', user.id).single();
-
-        if (adminData) {
-          // Total actions for current admin
-          const { count: totalCount } = await supabase
-            .from('admin_logs')
-            .select('id', { count: 'exact', head: true })
-            .eq('admin_id', adminData.id);
-
-          // Action breakdown for current admin
-          const { data: logs } = await supabase
-            .from('admin_logs')
-            .select('action')
-            .eq('admin_id', adminData.id);
-
-          const breakdown = (logs || []).reduce((acc: Record<string, number>, log) => {
-            acc[log.action] = (acc[log.action] || 0) + 1;
-            return acc;
-          }, {});
-
-          const actionBreakdown = Object.entries(breakdown).map(([action, count]) => ({ action, count: count as number }));
-
-          // Recent logs (if superadmin, get all; otherwise get own)
-          const logsQuery = supabase
-            .from('admin_logs')
-            .select('id, action, resource_type, resource_name, created_at, admins!inner(email)')
-            .order('created_at', { ascending: false })
-            .limit(10);
-
-          if (!isSuperAdmin) {
-            logsQuery.eq('admin_id', adminData.id);
-          }
-
-          const { data: recentLogsData } = await logsQuery;
-
-          const recentLogs = (recentLogsData || []).map(log => ({
+        setContributionStats({
+          totalActions: data.stats.totalActions,
+          actionBreakdown: data.stats.actionBreakdown,
+          recentLogs: data.stats.recentLogs.map(log => ({
             id: log.id,
             action: log.action,
-            resource_type: log.resource_type,
-            resource_name: log.resource_name || '',
-            created_at: log.created_at,
-            admin_name: (log.admins as any)?.email || 'Unknown',
-          }));
-
-          // Top contributors (superadmin only)
-          let topContributors: Array<{ admin_name: string; total_actions: number }> = [];
-          if (isSuperAdmin) {
-            const { data: allLogs } = await supabase
-              .from('admin_logs')
-              .select('admin_id, admins!inner(email)');
-
-            if (allLogs) {
-              const contributorMap = (allLogs || []).reduce((acc: Record<string, { name: string; count: number }>, log) => {
-                const adminName = (log.admins as any)?.email || 'Unknown';
-                if (!acc[log.admin_id]) {
-                  acc[log.admin_id] = { name: adminName, count: 0 };
-                }
-                acc[log.admin_id].count++;
-                return acc;
-              }, {});
-
-              topContributors = Object.values(contributorMap)
-                .map(c => ({ admin_name: c.name, total_actions: c.count }))
-                .sort((a, b) => b.total_actions - a.total_actions)
-                .slice(0, 5);
-            }
-          }
-
-          setContributionStats({
-            totalActions: totalCount || 0,
-            actionBreakdown,
-            recentLogs,
-            topContributors,
-          });
-        }
+            resource_type: log.resourceType,
+            resource_name: log.resourceName || '',
+            created_at: log.createdAt,
+            admin_name: log.adminEmail,
+          })),
+          topContributors: data.stats.topContributors.map(c => ({
+            admin_name: c.adminEmail,
+            total_actions: c.totalActions,
+          })),
+        });
+      } catch (error) {
+        console.error('Failed to load dashboard metrics:', error);
+      } finally {
+        setLoading(false);
       }
-
-      setLoading(false);
     }
     fetchMetrics();
   }, [isSuperAdmin]);

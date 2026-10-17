@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { adminSettingsApi } from '@/services/api';
 import { toast } from 'sonner';
 import { Plus, X, Send } from 'lucide-react';
 import { useAdmin } from '@/hooks/useAdmin';
@@ -23,24 +23,13 @@ export function TelegramSettingsForm() {
     async function loadSettings() {
         setLoading(true);
         try {
-            // Fetch bot token
-            const { data: tokenData } = await supabase
-                .from('settings')
-                .select('value')
-                .eq('key', 'telegram_bot_token')
-                .single();
-
+            const all = await adminSettingsApi.list();
+            const tokenData = all.find((s) => s.key === 'telegram_bot_token');
             if (tokenData?.value) {
                 setBotToken(tokenData.value as string);
             }
 
-            // Fetch chat IDs
-            const { data: chatIdsData } = await supabase
-                .from('settings')
-                .select('value')
-                .eq('key', 'telegram_chat_ids')
-                .single();
-
+            const chatIdsData = all.find((s) => s.key === 'telegram_chat_ids');
             if (chatIdsData?.value && Array.isArray(chatIdsData.value)) {
                 setChatIds(chatIdsData.value as string[]);
             }
@@ -57,17 +46,8 @@ export function TelegramSettingsForm() {
 
         setSaving(true);
         try {
-            // Update bot token
-            await supabase
-                .from('settings')
-                .update({ value: botToken })
-                .eq('key', 'telegram_bot_token');
-
-            // Update chat IDs
-            await supabase
-                .from('settings')
-                .update({ value: chatIds })
-                .eq('key', 'telegram_chat_ids');
+            await adminSettingsApi.upsert('telegram_bot_token', { value: botToken });
+            await adminSettingsApi.upsert('telegram_chat_ids', { value: chatIds });
 
             toast.success('Telegram settings saved successfully');
         } catch (error) {
@@ -86,31 +66,11 @@ export function TelegramSettingsForm() {
 
         setTesting(true);
         try {
-            const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-            const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-
-            const response = await fetch(`${supabaseUrl}/functions/v1/feedback`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'apikey': supabaseAnonKey,
-                },
-                body: JSON.stringify({
-                    type: 'other',
-                    message: 'This is a test message from Miyomi Admin Settings.',
-                    page: 'Admin Settings',
-                    timestamp: new Date().toISOString(),
-                }),
-            });
-
-            if (response.ok) {
-                toast.success('Test message sent successfully!');
-            } else {
-                toast.error('Failed to send test message');
-            }
-        } catch (error) {
+            await adminSettingsApi.telegramTest();
+            toast.success('Test message sent successfully!');
+        } catch (error: any) {
             console.error('Error sending test message:', error);
-            toast.error('Failed to send test message');
+            toast.error(error?.message || 'Failed to send test message');
         } finally {
             setTesting(false);
         }

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { adminSettingsApi } from '@/services/api';
 import { useAdminLogger } from '@/hooks/useAdminLogger';
 import { Power, Settings2, Save } from 'lucide-react';
 import { toast } from 'sonner';
@@ -24,23 +24,15 @@ export function EndpointToggle({ endpointKey, title, description }: EndpointTogg
   async function fetchSettings() {
     setLoading(true);
     try {
-      const { data: enabledData } = await supabase
-        .from('settings')
-        .select('value')
-        .eq('key', `${endpointKey}_enabled`)
-        .single();
-      
-      const { data: reasonData } = await supabase
-        .from('settings')
-        .select('value')
-        .eq('key', `${endpointKey}_disabled_reason`)
-        .single();
+      const all = await adminSettingsApi.list();
+      const enabledData = all.find((s) => s.key === `${endpointKey}_enabled`);
+      const reasonData = all.find((s) => s.key === `${endpointKey}_disabled_reason`);
 
       if (enabledData) {
         setEnabled(enabledData.value === 'true' || enabledData.value === true);
       }
-      if (reasonData) {
-        setReason(reasonData.value || '');
+      if (reasonData && reasonData.value != null) {
+        setReason(String(reasonData.value));
       }
     } catch (error) {
       console.error('Error fetching endpoint settings:', error);
@@ -64,12 +56,12 @@ export function EndpointToggle({ endpointKey, title, description }: EndpointTogg
   async function saveSetting(key: string, value: string, logMsg: string) {
     setSaving(true);
     try {
-      const { error } = await supabase
-        .from('settings')
-        .upsert({ key, value, category: 'endpoints', description: `Auto-generated setting for ${key}` }, { onConflict: 'key' });
+      await adminSettingsApi.upsert(key, {
+        value,
+        category: 'endpoints',
+        description: `Auto-generated setting for ${key}`,
+      });
 
-      if (error) throw error;
-      
       await logAction('update' as any, 'settings' as any, key, logMsg);
       toast.success('Settings saved');
     } catch (error: any) {

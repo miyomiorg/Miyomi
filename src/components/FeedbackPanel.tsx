@@ -3,7 +3,7 @@ import { X, Send, Smile, AlertTriangle } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { toast } from 'sonner';
 import Turnstile from 'react-turnstile';
-import { supabase } from '@/integrations/supabase/client';
+import { settingsApi, submitApi } from '@/services/api';
 
 interface FeedbackPanelProps {
   page: string;
@@ -22,11 +22,11 @@ export function FeedbackPanel({ page, onClose }: FeedbackPanelProps) {
   useEffect(() => {
     async function checkStatus() {
       try {
-        const { data: enabledData } = await supabase.from('settings').select('value').eq('key', 'feedback_enabled').single();
-        const { data: reasonData } = await supabase.from('settings').select('value').eq('key', 'feedback_disabled_reason').single();
-        if (enabledData && (enabledData.value === 'false' || enabledData.value === false)) {
+        const settings = await settingsApi.public();
+        const enabledVal = settings.feedback_enabled;
+        if (enabledVal === 'false' || enabledVal === false) {
           setEnabled(false);
-          setDisabledReason(reasonData?.value || 'Feedback is currently disabled.');
+          setDisabledReason(settings.feedback_disabled_reason || 'Feedback is currently disabled.');
         }
       } catch (err) {
         // Assume enabled if fetch fails
@@ -50,39 +50,25 @@ export function FeedbackPanel({ page, onClose }: FeedbackPanelProps) {
     setIsSubmitting(true);
 
     try {
-      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-      const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-
-      const response = await fetch(`${supabaseUrl}/functions/v1/feedback`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'apikey': supabaseAnonKey,
-        },
-        body: JSON.stringify({
-          message: message.trim(),
-          page,
-          timestamp: new Date().toISOString(),
-          turnstileToken,
-        }),
+      await submitApi.feedback({
+        message: message.trim(),
+        pageUrl: page,
+        token: turnstileToken,
       });
 
-      if (response.ok) {
-        setIsSuccess(true);
-        setTimeout(() => {
-          setIsSuccess(false);
-          setMessage('');
-          onClose();
-        }, 3000);
-      } else if (response.status === 429) {
+      setIsSuccess(true);
+      setTimeout(() => {
+        setIsSuccess(false);
+        setMessage('');
+        onClose();
+      }, 3000);
+    } catch (error: any) {
+      console.error('Feedback submission error:', error);
+      if (error?.status === 429) {
         toast.error('Too many requests. Please try again later.');
       } else {
-        const data = await response.json().catch(() => ({}));
-        toast.error(data.error || 'Failed to send feedback. Please try again.');
+        toast.error(error?.message || 'Failed to send feedback. Please try again.');
       }
-    } catch (error) {
-      console.error('Feedback submission error:', error);
-      toast.error('Failed to send feedback. Please try again.');
     } finally {
       setIsSubmitting(false);
     }

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { adminSessionsApi } from '@/services/api';
 import { useAdmin } from '@/hooks/useAdmin';
 import { Shield, LogIn, LogOut, MapPin, Monitor, AlertTriangle, Filter, Trash2 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
@@ -38,39 +38,15 @@ export function AdminSessionsPage() {
     async function fetchSessions() {
         setLoading(true);
         try {
-            const { data: { user } } = await supabase.auth.getUser();
-            if (!user) return;
+            // The worker scopes non-super-admins to their own sessions.
+            const data = await adminSessionsApi.list({
+                sessionType: filter !== 'all' ? filter : undefined,
+                limit: 100,
+            });
 
-            const { data: adminData } = await supabase.from('admins').select('id').eq('user_id', user.id).single();
-            if (!adminData) return;
-
-            // Build query
-            let query = supabase
-                .from('admin_sessions')
-                .select('*, admins!inner(email)')
-                .order('created_at', { ascending: false })
-                .limit(100);
-
-            // Filter by session type
-            if (filter !== 'all') {
-                query = query.eq('session_type', filter);
-            }
-
-            // Regular admins only see their own sessions (RLS handles this, but explicit for clarity)
-            if (!isSuperAdmin) {
-                query = query.eq('admin_id', adminData.id);
-            }
-
-            const { data, error } = await query;
-
-            if (error) {
-                console.error('Error fetching sessions:', error);
-                return;
-            }
-
-            const sessionsData: AdminSession[] = (data || []).map(session => ({
+            const sessionsData: AdminSession[] = (data as unknown as Array<AdminSession & { admins?: { email?: string } }>).map(session => ({
                 ...session,
-                admin_email: (session.admins as any)?.email || 'Unknown',
+                admin_email: session.admins?.email || 'Unknown',
             }) as AdminSession);
 
             setSessions(sessionsData);
@@ -137,11 +113,7 @@ export function AdminSessionsPage() {
 
                                 setLoading(true);
                                 try {
-                                    const { error } = await supabase.rpc('clear_admin_data', {
-                                        target_table: 'sessions'
-                                    });
-
-                                    if (error) throw error;
+                                    await adminSessionsApi.clear();
                                     fetchSessions();
                                 } catch (error) {
                                     console.error('Error clearing sessions:', error);

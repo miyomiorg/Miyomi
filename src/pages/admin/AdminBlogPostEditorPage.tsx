@@ -1,6 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { supabase } from '@/integrations/supabase/client';
+import { adminBlogApi } from '@/services/api';
+import { collectPages } from '@/services/api/pagination';
+import { invalidateTableCache } from '@/hooks/useAdminCache';
+import { ApiError } from '@/services/api/http';
 import { AdminRichTextEditor } from '@/components/admin/AdminRichTextEditor';
 import { AdminInput, AdminButton, AdminSelect, AdminTextarea, AdminFormField, Label, AdminToggle } from '@/components/admin/AdminFormElements';
 import { ArrowLeft, Save, AlertCircle, Trash2, Globe, FileText, Check, Plus, Search, ChevronDown, ChevronUp } from 'lucide-react';
@@ -50,7 +53,7 @@ export function AdminBlogPostEditorPage() {
 
     useEffect(() => {
         async function fetchCategories() {
-            const { data } = await supabase.from('blog_posts').select('category');
+            const data = await collectPages(adminBlogApi.list);
             if (data) {
                 const fetched = data.map(p => p.category).filter(Boolean);
                 const unique = [...new Set([...DEFAULT_CATEGORIES, ...fetched])] as string[];
@@ -59,19 +62,14 @@ export function AdminBlogPostEditorPage() {
                 setExistingCategories([...DEFAULT_CATEGORIES].sort());
             }
         }
-        fetchCategories();
+        fetchCategories().catch(() => setExistingCategories([...DEFAULT_CATEGORIES].sort()));
     }, []);
 
     useEffect(() => {
         if (!routeId) return;
         async function fetchPost() {
             try {
-                const { data, error } = await supabase.from('blog_posts').select('*').eq('id', routeId).single();
-                if (error) {
-                    toast.error('Failed to load blog post');
-                    navigate('/admin/blog-posts');
-                    return;
-                }
+                const data = await adminBlogApi.get(routeId);
                 setSlugTouched(true);
                 setForm({
                     title: data.title || '',
@@ -121,32 +119,29 @@ export function AdminBlogPostEditorPage() {
                 slug: finalSlug,
                 excerpt: form.excerpt,
                 content: form.content,
-                content_format: 'html',
+                contentFormat: 'html',
                 category: form.category || 'Updates',
                 tags: form.tags,
                 status: finalStatus,
-                is_pinned: form.is_pinned,
-                author_id: form.author_id || null,
-                author_name: form.author_name || null,
-                author_avatar_url: form.author_avatar_url || null,
-                author_role: form.author_role || null,
-                thumbnail_url: form.thumbnail_url || null,
-                thumbnail_alt: form.thumbnail_alt || null,
-                seo_title: form.seo_title || null,
-                seo_description: form.seo_description || null,
-                og_image_url: form.og_image_url || null,
-                updated_at: new Date().toISOString(),
-                ...(finalStatus === 'published' && !form.published_at ? { published_at: new Date().toISOString() } : {})
+                isPinned: form.is_pinned,
+                authorId: form.author_id || null,
+                authorName: form.author_name || null,
+                authorAvatarUrl: form.author_avatar_url || null,
+                authorRole: form.author_role || null,
+                thumbnailUrl: form.thumbnail_url || null,
+                thumbnailAlt: form.thumbnail_alt || null,
+                seoTitle: form.seo_title || null,
+                seoDescription: form.seo_description || null,
+                ogImageUrl: form.og_image_url || null,
+                ...(finalStatus === 'published' && !form.published_at ? { publishedAt: new Date().toISOString() } : {})
             };
 
             let returnedId = activeId;
 
             if (activeId) {
-                const { error } = await supabase.from('blog_posts').update(payload).eq('id', activeId);
-                if (error) throw error;
+                await adminBlogApi.update(activeId, payload);
             } else {
-                const { data, error } = await supabase.from('blog_posts').insert([payload]).select('id').single();
-                if (error) throw error;
+                const data = await adminBlogApi.create(payload);
                 if (data) {
                     setInsertedId(data.id);
                     if (!isAutoSave) {
@@ -156,6 +151,7 @@ export function AdminBlogPostEditorPage() {
                 }
             }
 
+            invalidateTableCache('blog_posts');
             setLastSaved(new Date());
             if (!isAutoSave) {
                 setForm(prev => ({ ...prev, slug: finalSlug, status: finalStatus, published_at: finalStatus === 'published' && !prev.published_at ? new Date().toISOString() : prev.published_at }));
@@ -163,7 +159,7 @@ export function AdminBlogPostEditorPage() {
             }
         } catch (error: any) {
             console.error('Save error:', error);
-            if (error.code === '23505') {
+            if (error instanceof ApiError && error.status === 409) {
                 if(!isAutoSave) toast.error('This slug is already used by another post. Please choose a different one.');
                 setSlugError('Slug already exists');
             } else {

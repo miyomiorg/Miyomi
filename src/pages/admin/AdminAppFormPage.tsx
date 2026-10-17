@@ -1,6 +1,9 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { supabase } from '@/integrations/supabase/client';
+import { adminAppsApi, adminGroupsApi } from '@/services/api';
+import { collectPages } from '@/services/api/pagination';
+import { contentPayload } from '@/services/api/contentPayload';
+import { invalidateTableCache } from '@/hooks/useAdminCache';
 import { useAdminLogger } from '@/hooks/useAdminLogger';
 import { AdminFormField, AdminInput, AdminTextarea, AdminSelect, AdminButton, Label } from '@/components/admin/AdminFormElements';
 import { AdminSmartSelect } from '@/components/admin/AdminSmartSelect';
@@ -11,7 +14,6 @@ import { SocialUrlsInput } from '@/components/admin/SocialUrlsInput';
 import { detectGitProvider } from '@/utils/gitProviders';
 
 import { SharedAppForm } from '@/components/forms/SharedAppForm';
-import { getGroupsForApp, setAppGroups, syncAppCompatibility, fetchAllGroups, getUnifiedCompatibleExtensionsForApp } from '@/utils/compatSync';
 
 function slugify(text: string): string {
     return text
@@ -23,7 +25,7 @@ function slugify(text: string): string {
         .replace(/^-+|-+$/g, '');
 }
 
-export const emptyApp = {
+const appDefaults = {
     name: '', slug: '', description: '', short_description: '', author: '', category: '', version: '',
     status: 'approved', platforms: [] as string[], tags: [] as string[],
     content_types: [] as string[],
@@ -33,6 +35,14 @@ export const emptyApp = {
     download_count: 0, likes_count: 0, last_release_date: '',
     dev_status: 'active', metadata: {} as any
 };
+
+export type AppFormState = typeof appDefaults & {
+    compatible_with?: string[];
+    git_provider?: string;
+    _selectedGroupIds?: string[];
+    _selectedGroupNames?: string[];
+};
+export const emptyApp: AppFormState = appDefaults;
 
 export function AdminAppFormPage() {
     const { id } = useParams();
@@ -112,19 +122,18 @@ export function AdminAppFormPage() {
 
     async function fetchApp(appId: string) {
         try {
-            const { data, error } = await (supabase.from('apps') as any).select('*').eq('id', appId).single();
-            if (error) throw error;
+            const data = await adminAppsApi.get(appId);
             if (data) {
                 const appData = data as any;
                 const loadedTutorials = Array.isArray(appData.tutorials) ? appData.tutorials : [];
                 
                 // Fetch groups & unified compatibility
-                const groupIds = await getGroupsForApp(appId);
-                const allGroups = await fetchAllGroups();
+                const allGroups = await adminGroupsApi.list();
+                const groupIds = allGroups.filter(g => g.app_ids.includes(appId)).map(g => g.id);
                 const selectedGroupNames = allGroups
                     .filter((g: any) => groupIds.includes(g.id))
                     .map((g: any) => g.name);
-                const unifiedCompat = await getUnifiedCompatibleExtensionsForApp(appId, appData.name, appData.slug);
+                const unifiedCompat = appData.compatible_with || [];
 
                 setSlugManuallyEdited(true);
                 setForm({
@@ -167,10 +176,8 @@ export function AdminAppFormPage() {
 
     async function checkDuplicate(field: 'name' | 'slug' | 'repo_url' | 'website_url', value: string) {
         if (!value) return false;
-        let query = supabase.from('apps').select('id, name').eq(field, value);
-        if (id) query = query.neq('id', id);
-        const { data } = await query.maybeSingle();
-        return data;
+        const rows = await collectPages(adminAppsApi.list);
+        return rows.find(row => row.id !== id && row[field] === value);
     }
 
     async function handleSave() {
@@ -226,8 +233,7 @@ export function AdminAppFormPage() {
             let savedId = id;
 
             if (id) {
-                const { error } = await (supabase.from('apps') as any).update(payload).eq('id', id);
-                if (error) throw error;
+                await adminAppsApi.update(id, contentPayload(payload, form._selectedGroupIds || []));
 
                 await logAction('update', 'app', id, form.name).catch(err => {
                     console.error('Failed to log update action:', err);
@@ -235,8 +241,7 @@ export function AdminAppFormPage() {
 
                 toast.success('App updated successfully');
             } else {
-                const { data, error } = await (supabase.from('apps') as any).insert(payload).select().single();
-                if (error) throw error;
+                const data = await adminAppsApi.create(contentPayload(payload, form._selectedGroupIds || []));
 
                 if (data) {
                     savedId = data.id;
@@ -248,13 +253,8 @@ export function AdminAppFormPage() {
                 toast.success('App created successfully');
             }
 
-            // Sync groups and compatibility
-            if (savedId) {
-                const groupIds = form._selectedGroupIds || [];
-                const manualExts = form.compatible_with || [];
-                await setAppGroups(savedId, groupIds);
-                await syncAppCompatibility(savedId, form.name, groupIds, manualExts);
-            }
+            invalidateTableCache('apps');
+            invalidateTableCache('extensions');
 
             if (!id) {
                 navigate(`/admin/apps/${savedId}`, { replace: true });

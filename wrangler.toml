@@ -1,15 +1,64 @@
-# wrangler.toml
+# ════════════════════════════════════════════════════════════════════
+#  Miyomi — Cloudflare Worker (Hono + D1)
+# ════════════════════════════════════════════════════════════════════
+#  Dev:      npm run dev          (Vite SPA on :8080, proxies /api → :8787)
+#            npm run dev:worker   (Worker + D1 on :8787)
+#  Deploy:   npm run build:release && npm run deploy:worker
+#
+#  One Worker serves the API (/api/*), SEO-injected HTML, /sitemap.xml,
+#  and the Vite build output through the ASSETS binding.
+#  The old Cloudflare Pages `functions/` directory was removed — its
+#  logic now lives in worker/routes/pages/* and worker/routes/public/*.
+# ════════════════════════════════════════════════════════════════════
+
 name = "miyomi"
-pages_build_output_dir = "dist"
+main = "worker/index.ts"
+compatibility_date = "2025-09-01"
 
-[vars]
-VITE_SUPABASE_PROJECT_ID="qijruodreazuicbcyhvk"
-VITE_SUPABASE_URL="https://miyomi-api.supabase.co"
-VITE_SUPABASE_PUBLISHABLE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFpanJ1b2RyZWF6dWljYmN5aHZrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA3MDkwMjUsImV4cCI6MjA4NjI4NTAyNX0.vV3oEwvZrQdCmgMRT9EVZrSP9sU3g0XcSmojThx0opE"
-VITE_SUPABASE_ANON_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFpanJ1b2RyZWF6dWljYmN5aHZrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA3MDkwMjUsImV4cCI6MjA4NjI4NTAyNX0.vV3oEwvZrQdCmgMRT9EVZrSP9sU3g0XcSmojThx0opE"
-VITE_TURNSTILE_SITE_KEY="0x4AAAAAACd-NdaHLXAncMhD"
+# Scheduled maintenance (rate-limit windows + stale rejected records)
+[triggers]
+crons = [ "0 */12 * * *" ]
 
+# ── Static assets ──────────────────────────────────────────────────
+# Vite build output, served by the same Worker through the ASSETS
+# binding. Exact-file matches are served by Cloudflare directly;
+# cache misses (SPA routes) fall through to the Hono app.
+[assets]
+directory = "./dist"
+binding = "ASSETS"
+
+# ── D1 — serverless SQLite ─────────────────────────────────────────
 [[d1_databases]]
-binding = "DB" 
+binding = "DB"
 database_name = "miyomi-db"
 database_id = "0d70949a-e439-41fc-a0a1-78b99d17b9af"
+# Drizzle Kit output directory (see drizzle.config.ts → `out`)
+migrations_dir = "worker/db/drizzle"
+# Local dev persistence (used by `wrangler dev`) lives automatically in
+# .wrangler/state/v3/d1/ — drizzle-kit is pointed at the same file in
+# drizzle.config.ts, so both tools share one local database.
+
+# ── Media storage ──────────────────────────────────────────────────
+# No R2 binding. Miyomi scrapes content from source, so it hosts no
+# media itself. If uploads are ever needed, use the external self-hosted
+# Google Drive CDN — see worker/lib/cdn.ts and DEVELOPERS.md → "Media / CDN".
+# That needs the CDN_BASE_URL + CDN_API_KEY secrets (not a storage binding).
+
+# ── Config ──────────────────────────────────────────────────────────
+# ONE PLACE RULE: All non-secret configuration lives here in [vars].
+# The frontend build (Vite) and the OG generator read these values from
+# THIS file — there is no separate .env for VITE_* keys.
+#
+# Secrets are NOT stored here. Set them per environment with:
+#   npx wrangler secret put <NAME>            (production)
+#   npx wrangler secret put --local <NAME>    (local dev → .dev.vars)
+# Secrets in use: SESSION_SECRET, TURNSTILE_SECRET_KEY, CF_API_TOKEN,
+#   and (optional) CDN_API_KEY. TELEGRAM bot token/chat ids live in the
+#   `settings` table, not here.
+[vars]
+SITE_URL = "https://miyomi.app"
+VITE_TURNSTILE_SITE_KEY = "0x4AAAAAAFZcAacXgE2d12i8"
+VITE_DISABLE_TURNSTILE = "false"
+# Cloudflare zone id for miyomi.app — used by /api/stats (visitor analytics).
+# Not secret; the matching CF_API_TOKEN is a secret (see above).
+CF_ZONE_ID = "5eee3237bd70720c0f476fdd25b658ab"

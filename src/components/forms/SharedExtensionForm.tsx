@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { appsApi, guidesApi, groupsApi } from '@/services/api';
 import { AdminFormField, AdminInput, AdminTextarea, AdminSelect, AdminButton, Label } from '@/components/admin/AdminFormElements';
 import { AdminSmartSelect } from '@/components/admin/AdminSmartSelect';
 import { SocialUrlsInput } from '@/components/admin/SocialUrlsInput';
@@ -51,9 +51,9 @@ export function SharedExtensionForm({
     }, [form.icon_url]);
 
     useEffect(() => {
-        fetchAppOptions();
-        fetchGuides();
-        fetchCompatData();
+        fetchAppOptions().catch(error => console.error('Failed to load apps:', error));
+        fetchGuides().catch(error => console.error('Failed to load guides:', error));
+        fetchCompatData().catch(error => console.error('Failed to load compatibility options:', error));
     }, []);
 
     useEffect(() => {
@@ -75,7 +75,7 @@ export function SharedExtensionForm({
     }, [form.repo_url, manuallySelectedProvider, form.git_provider, setForm]);
 
     async function fetchAppOptions() {
-        const { data } = await supabase.from('apps').select('name, fork_of').order('name');
+        const data = (await appsApi.list()).sort((a, b) => a.name.localeCompare(b.name));
         if (data) {
             setAppsData(data);
             setAppOptions(data.map((a: any) => a.name));
@@ -83,12 +83,12 @@ export function SharedExtensionForm({
     }
 
     async function fetchCompatData() {
-        const { data: groups } = await (supabase as any).from('compatibility_groups').select('*').order('name');
+        const groups = await groupsApi.list();
         setCompatGroups(groups || []);
     }
 
     async function fetchGuides() {
-        const { data } = await supabase.from('guides').select('title, slug').order('title');
+        const data = (await guidesApi.list()).sort((a, b) => a.title.localeCompare(b.title));
         if (data) {
             setGuidesData(data);
             setGuideOptions(data.map(g => g.title));

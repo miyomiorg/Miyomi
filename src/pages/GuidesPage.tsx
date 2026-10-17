@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { dataService } from '../services/dataService';
 import type { GuideCategoryData } from '../types/data';
 import { DevBanner } from '@/components/DevBanner';
-import { supabase } from '@/integrations/supabase/client';
+import { settingsApi } from '@/services/api';
 
 interface GuidesPageProps {
   onNavigate?: (path: string) => void;
@@ -45,12 +45,10 @@ export function GuidesPage({ onNavigate }: GuidesPageProps) {
         setGuideCategories(categories);
 
         // Fetch notice settings
-        const { data: enabledData } = await supabase.from('settings').select('value').eq('key', 'guide_notice_enabled').single();
-        const { data: contentData } = await supabase.from('settings').select('value').eq('key', 'guide_notice_content').single();
-
-        if (enabledData?.value === 'true' || enabledData?.value === true) {
+        const settings = await settingsApi.public();
+        if (settings.guide_notice_enabled === 'true' || settings.guide_notice_enabled === true) {
           setNoticeEnabled(true);
-          setNoticeContent(contentData?.value || '');
+          setNoticeContent(settings.guide_notice_content || '');
         }
 
         if (navigationType === 'POP' && location.state?.activeCategoryId) {

@@ -4,10 +4,9 @@ import { FileText, Save, ArrowLeft, Loader2, User, HelpCircle } from 'lucide-rea
 import { motion } from 'motion/react';
 import { toast } from 'sonner';
 import Turnstile from 'react-turnstile';
-import { supabase } from '../integrations/supabase/client';
+import { guidesApi, submitApi } from '../services/api';
 import { dataService } from '../services/dataService';
 import { AdminRichTextEditor } from '../components/admin/AdminRichTextEditor';
-import { extractFunctionError } from '../utils/functionErrors';
 
 interface SubmitGuidePageProps {
   onNavigate?: (path: string) => void;
@@ -43,7 +42,7 @@ export function SubmitGuidePage({ onNavigate }: SubmitGuidePageProps) {
         if (catData) setCategories(catData.map(c => ({ id: c.id, name: c.id })));
 
         if (isEdit) {
-          const { data: guide } = await supabase.from('guides').select('*').eq('id', editId).single();
+          const guide = await guidesApi.get(editId!);
           if (guide) {
             setTitle(guide.title || '');
             setCategory(guide.category || '');
@@ -84,37 +83,26 @@ export function SubmitGuidePage({ onNavigate }: SubmitGuidePageProps) {
         name: title, // for edge function duplicate check
       };
 
-      let invokeFn = 'submit-content';
-      let payload: any = {
-        submissionType: 'guide',
-        submittedData,
-        turnstileToken,
-        submitterName,
-        submitterContact,
-        submitterNotes,
-      };
-
       if (isEdit && originalDataSnapshot) {
-        invokeFn = 'edit-suggestion';
-        payload = {
+        await submitApi.editSuggestion({
           targetType: 'guide',
           targetId: editId,
           originalDataSnapshot,
           submittedData,
-          turnstileToken,
+          token: turnstileToken,
           submitterName,
           submitterContact,
           submitterNotes,
-        };
-      }
-
-      const { data, error } = await supabase.functions.invoke(invokeFn, {
-        body: payload
-      });
-
-      if (error || !data?.success) {
-        const errorMsg = await extractFunctionError(error, data, "Submission failed");
-        throw new Error(errorMsg);
+        });
+      } else {
+        await submitApi.submission({
+          submissionType: 'guide',
+          submittedData,
+          token: turnstileToken,
+          submitterName,
+          submitterContact,
+          submitterNotes,
+        });
       }
 
       toast.success(isEdit ? "Edit suggestion submitted successfully!" : "Guide submitted successfully!");

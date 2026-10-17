@@ -1,5 +1,6 @@
 import { useEffect, useState, useMemo } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { adminReportsApi } from '@/services/api';
+import { collectPages } from '@/services/api/pagination';
 import { useAdminLogger } from '@/hooks/useAdminLogger';
 import { Flag, Check, Trash2, Eye, ShieldAlert, Monitor, User, Globe, Hash } from 'lucide-react';
 import { AdminButton, StatusBadge, EmptyState } from '@/components/admin/AdminFormElements';
@@ -48,33 +49,14 @@ export function AdminReportsPage() {
 
   async function fetchData() {
     setLoading(true);
-    const { data: reportsData, error } = await (supabase as any).from('reports').select('*').order('created_at', { ascending: false });
-    
-    if (error) {
-        toast.error('Failed to load reports');
-        setLoading(false);
-        return;
+    try {
+      const reportsData = await collectPages(adminReportsApi.list);
+      setReports(reportsData as unknown as ReportData[]);
+    } catch {
+      toast.error('Failed to load reports');
+    } finally {
+      setLoading(false);
     }
-
-    const appIds = reportsData.filter((r: any) => r.target_type === 'app').map((r: any) => r.target_id);
-    const extIds = reportsData.filter((r: any) => r.target_type === 'extension').map((r: any) => r.target_id);
-
-    const [appsRes, extsRes] = await Promise.all([
-        appIds.length > 0 ? (supabase as any).from('apps').select('id, name').in('id', appIds) : { data: [] },
-        extIds.length > 0 ? (supabase as any).from('extensions').select('id, name').in('id', extIds) : { data: [] }
-    ]);
-
-    const titleMap: Record<string, string> = {};
-    (appsRes.data || []).forEach((a: any) => { titleMap[a.id] = a.name; });
-    (extsRes.data || []).forEach((e: any) => { titleMap[e.id] = e.name; });
-
-    const enriched = reportsData.map((r: any) => ({
-        ...r,
-        target_name: titleMap[r.target_id] || 'Unknown Target'
-    }));
-
-    setReports(enriched);
-    setLoading(false);
   }
 
   // Calculate Trust Scores (total reports by anonymous_id)
@@ -99,13 +81,11 @@ export function AdminReportsPage() {
 
     try {
       if (action === 'complete') {
-        const { error } = await (supabase as any).from('reports').update({ status: 'completed' }).eq('id', id);
-        if (error) throw error;
+        await adminReportsApi.update(id, { status: 'completed' });
         await logAction('resolve' as any, 'report' as any, id, 'Completed report');
         toast.success('Report marked as completed.');
       } else if (action === 'delete') {
-        const { error } = await (supabase as any).from('reports').delete().eq('id', id);
-        if (error) throw error;
+        await adminReportsApi.remove(id);
         await logAction('delete' as any, 'report' as any, id, 'Deleted report entirely');
         toast.success('Report deleted permanently.');
       }

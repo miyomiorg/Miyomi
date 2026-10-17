@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { adminDonationsApi, adminSettingsApi } from '@/services/api';
 import { Plus, Pencil, Trash2, Heart, Settings, DollarSign, CreditCard, Users, Eye, EyeOff, Coins, RefreshCw } from 'lucide-react';
 import { AdminSearchBar } from '@/components/admin/AdminSearchBar';
 import { AdminModal } from '@/components/admin/AdminModal';
@@ -80,13 +80,16 @@ export function AdminDonationsPage() {
 
   /* ─── data fetchers ─── */
   async function fetchDonations() {
-    const { data } = await supabase.from('donations').select('*').order('created_at', { ascending: false });
-    setDonations((data as DonationRow[]) || []);
-    setLoadingD(false);
+    try {
+      setDonations(await adminDonationsApi.list());
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to load donations');
+    } finally { setLoadingD(false); }
   }
 
   async function fetchSettings() {
-    const { data } = await supabase.from('donation_settings').select('*');
+    try {
+    const data = await adminSettingsApi.donationSettings();
     if (data) {
       for (const s of data) {
         const v = s.value as any;
@@ -98,7 +101,9 @@ export function AdminDonationsPage() {
         if (s.key === 'currencies' && Array.isArray(v)) setCurrencies(v);
       }
     }
-    setLoadingS(false);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to load donation settings');
+    } finally { setLoadingS(false); }
   }
 
   /* ─── donation CRUD ─── */
@@ -121,33 +126,53 @@ export function AdminDonationsPage() {
 
   async function handleSaveDonor() {
     setSaving(true);
-    const payload = { ...form, amount: Number(form.amount) };
-    if (editingId) {
-      await supabase.from('donations').update(payload).eq('id', editingId);
-      toast.success('Donor updated');
-    } else {
-      await supabase.from('donations').insert(payload);
-      toast.success('Donor added');
-    }
-    setSaving(false); setModalOpen(false); fetchDonations();
+    try {
+      const payload = {
+        donorName: form.donor_name, amount: Number(form.amount), currency: form.currency,
+        message: form.message, paymentMethod: form.payment_method, date: form.date,
+        isPublic: form.is_public, showAmount: form.show_amount,
+      };
+      if (editingId) await adminDonationsApi.update(editingId, payload);
+      else await adminDonationsApi.create(payload);
+      toast.success(editingId ? 'Donor updated' : 'Donor added');
+      setModalOpen(false);
+      await fetchDonations();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to save donor');
+    } finally { setSaving(false); }
   }
 
   async function togglePublic(id: string, current: boolean) {
-    await supabase.from('donations').update({ is_public: !current }).eq('id', id);
-    fetchDonations();
+    try {
+      await adminDonationsApi.setPublic(id, !current);
+      await fetchDonations();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to update visibility');
+    }
   }
 
   async function handleDeleteDonor() {
     if (!deleteTarget) return;
-    await supabase.from('donations').delete().eq('id', deleteTarget.id);
-    setDeleteTarget(null); fetchDonations(); toast.success('Donor removed');
+    try {
+      await adminDonationsApi.remove(deleteTarget.id);
+      setDeleteTarget(null);
+      await fetchDonations();
+      toast.success('Donor removed');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to remove donor');
+    }
   }
 
   /* ─── settings save helpers ─── */
   async function saveSetting(key: string, value: any) {
     setSavingS(true);
-    await supabase.from('donation_settings').upsert({ key, value, updated_at: new Date().toISOString() }, { onConflict: 'key' });
-    setSavingS(false); toast.success(`${key} settings saved`);
+    try {
+      await adminSettingsApi.upsertDonationSetting(key, value);
+      toast.success(`${key} settings saved`);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to save settings');
+      await fetchSettings();
+    } finally { setSavingS(false); }
   }
 
   /* ─── method helpers ─── */

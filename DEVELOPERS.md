@@ -1,10 +1,10 @@
 # Developer Guide — Miyomi
 
-This document helps contributors understand how Miyomi works and how to get involved.
+Miyomi is a community-run directory for discovering Anime, Manga, and Light Novel **apps**, **extensions**, and **guides**. It does not host content — it organizes and presents public tools in a clean, searchable way.
 
-Miyomi is an open-source platform for discovering Anime, Manga, and Light Novel **apps**, **extensions**, and **guides**. It does not host content — it organizes and presents public tools in a clean, searchable way.
-
-For a full list of changes across versions, see [CHANGELOG.md](CHANGELOG.md).
+For a list of changes across versions, see [CHANGELOG.md](CHANGELOG.md).
+For current project status and what's left to do, see [PROGRESS.md](PROGRESS.md).
+If you are an AI agent, read [AGENTS.md](AGENTS.md) first.
 
 ---
 
@@ -16,12 +16,17 @@ For a full list of changes across versions, see [CHANGELOG.md](CHANGELOG.md).
 | **Styling** | Tailwind CSS 4 |
 | **UI Components** | Radix UI primitives, shadcn-style components |
 | **Rich Text** | TipTap editor (admin) |
-| **Database** | Supabase (PostgreSQL) |
-| **Auth** | Supabase Auth (Google OAuth) |
-| **Hosting** | Cloudflare Pages |
+| **API** | [Hono](https://hono.dev) on Cloudflare Workers (`worker/`) |
+| **Database** | Cloudflare D1 (SQLite) via [Drizzle ORM](https://orm.drizzle.team) |
+| **Media (optional)** | Self-hosted Google Drive CDN — no R2/S3 (see [Media / CDN](#-media--cdn)) |
+| **Auth** | Password-only admin login, JWT session cookie (`SESSION_SECRET`) |
+| **Hosting** | Cloudflare Workers (single Worker serves API + SPA + SEO) |
 | **CAPTCHA** | Cloudflare Turnstile |
-| **SEO** | Cloudflare Pages Functions (edge-rendered OG images) |
+| **SEO** | Edge-rendered meta/OG tags + `/sitemap.xml` from the Worker |
 | **Animations** | Motion (framer-motion) |
+
+> The project migrated off Supabase. There is **no** `@supabase/supabase-js`
+> anywhere in the codebase or the frontend bundle.
 
 ---
 
@@ -29,136 +34,63 @@ For a full list of changes across versions, see [CHANGELOG.md](CHANGELOG.md).
 
 ```
 Miyomi/
-├── functions/              # Cloudflare Pages Functions (SEO edge rendering)
-│   ├── [[path]].ts         # Dynamic OG meta injection for all routes
-│   ├── sitemap.xml.ts      # Auto-generated sitemap
-│   └── _lib/               # Shared utils (supabase client, SEO helpers)
-├── scripts/                # Build & maintenance scripts
-│   ├── generate-og-images.mjs   # Build-time OG image generation (satori)
-│   ├── sync-donations.js        # Syncs donation data from Supabase
-│   ├── backup-db.mjs            # Database backup utility
-│   ├── restore-db.mjs           # Database restore utility
-│   └── update-app-meta.mjs      # GitHub metadata updater
-├── src/
-│   ├── components/         # Reusable UI components
-│   │   ├── admin/          # Admin-specific components (forms, editors, layout)
-│   │   ├── backgrounds/    # Animated background effects
-│   │   ├── forms/          # Public form components
-│   │   └── ui/             # Base UI kit (radix + shadcn style)
-│   ├── config/             # App configuration
-│   ├── context/            # React context providers (likes, etc.)
-│   ├── hooks/              # Custom React hooks (data fetching, auth, etc.)
-│   ├── integrations/       # Third-party integrations (Supabase client)
-│   ├── lib/                # Utility libraries
-│   ├── pages/              # Route pages
-│   │   └── admin/          # Admin dashboard pages (28 pages)
-│   ├── services/           # Data service layer (Supabase queries)
-│   ├── types/              # TypeScript type definitions
-│   └── utils/              # Helper functions
-├── supabase/
-│   ├── functions/          # Supabase Edge Functions (serverless API)
-│   └── migrations/         # Database schema & migrations
-├── .env.example            # Environment variable template
-├── wrangler.toml           # Cloudflare Pages configuration
-├── vite.config.ts          # Vite build configuration
-└── package.json
+├── worker/                     # Cloudflare Worker (API + SEO + assets)
+│   ├── index.ts                # Entry: mounts /api, SEO, sitemap, ASSETS
+│   ├── env.d.ts                # Worker bindings (DB, ASSETS, secrets)
+│   ├── db/
+│   │   ├── schema.ts           # Drizzle schema — the source of truth
+│   │   └── drizzle/            # Generated SQL migrations + journal
+│   ├── lib/                    # auth, http envelope, rate-limit, cron, compat, cdn
+│   └── routes/
+│       ├── public/             # Unauthenticated /api/* (apps, guides, likes…)
+│       ├── admin/              # Session-guarded /api/admin/*
+│       └── pages/              # SEO-injected HTML + sitemap.xml
+├── src/                        # React SPA
+│   ├── components/             # UI (admin/, forms/, ui/, backgrounds/)
+│   ├── context/                # React contexts (likes)
+│   ├── hooks/                  # Data hooks (fetch the API)
+│   ├── integrations/           # (removed — see src/types/db.ts)
+│   ├── types/                  # generated row types (db.ts) — types only
+│   ├── pages/                  # Route pages (admin/ = dashboard)
+│   ├── services/api/           # Typed fetch client for the Hono API
+│   └── utils/                  # Helpers
+├── scripts/                    # Build + maintenance + verification scripts
+├── drizzle.config.ts           # Drizzle Kit config
+├── wrangler.toml               # Worker, D1, ASSETS bindings
+└── vite.config.ts              # Dev proxy: /api → http://localhost:8787
 ```
 
 ---
 
-## 🌐 What the Site Does
+## 🔄 Architecture
 
-### Public Side
-
-- **Software** — Browse, search, filter, and sort apps (grid/list views)
-- **Extensions** — Browse extension repositories with language filtering
-- **Guides** — Read and submit community guides with rich content
-- **Blog** — Announcements and blog posts from the team
-- **Donations** — Support the project with multiple payment options
-- **FAQ** — Frequently asked questions
-- **Search** — Global search across all content (Ctrl+K / S shortcut)
-- **Submit** — Contribute new apps or extensions (Basic & Advanced modes)
-- **Like** — React to favorite entries
-- **Report** — Flag problematic content for admin review
-
-### Admin Side
-
-Admins can:
-- Review and approve/reject submissions and edit suggestions
-- Create, edit, and delete apps, extensions, guides, FAQs, and blog posts
-- Manage donations, notices, and themes
-- View analytics, likes, reports, feedback, and bot attack logs
-- Manage admin users (promote, demote, delete)
-- View session logs and security alerts
-- Configure endpoint toggles and Telegram notifications
-- Manage compatibility groups
-
-**Roles:**
-- `admin` — Content management and moderation
-- `super_admin` — Full access including user management and security
-
----
-
-## 🔄 Architecture Overview
-
-### Data Flow
-
-All data lives in **Supabase** (PostgreSQL). The frontend talks to Supabase directly using the `@supabase/supabase-js` client with Row-Level Security (RLS) policies controlling access.
+A **single Cloudflare Worker** serves everything:
 
 ```
-User → React SPA → Supabase (DB + Auth + RLS)
-                  → Cloudflare Functions (SEO/OG only)
+Browser ──/api/*──▶ Worker (Hono) ──Drizzle──▶ D1 (SQLite)
+        ──/*─────▶ Worker ──▶ ASSETS (Vite build) with SEO tags injected
 ```
 
-### Key Hooks (data fetching)
+- **API**: Hono routers under `worker/routes/`. Every response uses the envelope
+  `{ success: true, data }` or `{ success: false, error }`.
+- **Content lists** paginate as `{ items, total }`; the SPA unwraps via `collectPages`.
+- **SEO**: `worker/routes/pages/seo.ts` injects per-route meta/OG/JSON-LD into
+  `dist/index.html`; `sitemap.ts` renders `/sitemap.xml`. Both query D1 directly.
+- **Assets**: `wrangler.toml` `[assets]` points at `./dist` via the `ASSETS` binding.
+- **Frontend data**: all calls go through `src/services/api/*` (typed `fetch`), never
+  a database SDK.
+
+### Key hooks
 
 | Hook | Purpose |
 |---|---|
-| `useApp` / `useExtension` | Fetch single item details |
+| `useApp` / `useExtension` | Single item details |
 | `useGlobalSearch` | Search across apps + extensions |
-| `useAuth` | Authentication state and session |
-| `useAdmin` | Admin role verification |
-| `useDonations` | Donation data and management |
+| `useAuth` / `useAdmin` | Admin session + role |
+| `useDonations` | Donation data |
 | `useBlogPosts` / `useBlogPost` | Blog content |
-| `useGitHubRelease` | GitHub release info and downloads |
-| `useGitHubLastCommit` | Latest commit activity |
+| `useGitHubRelease` / `useGitHubLastCommit` | GitHub metadata |
 | `useThemeEngine` | Dynamic theme system |
-| `useCachedImage` | Image caching for performance |
-| `useSessionTracker` | Admin session tracking |
-
-### Supabase Edge Functions
-
-The backend logic runs as Supabase Edge Functions:
-
-| Function | Purpose |
-|---|---|
-| `bootstrap-admin` | First-time super admin setup |
-| `manage-admin` | Admin CRUD operations |
-| `security-alert` | Unauthorized login detection + Telegram alerts |
-| `feedback` | User feedback → Telegram notifications |
-| `submit-content` | Content submission handler |
-| `edit-suggestion` | Edit suggestion handler |
-| `like` | Like/vote system |
-| `list-apps` | Public app listing API |
-| `report-content` | Content reporting handler |
-| `update-app-meta` | App metadata updater |
-
-### Cloudflare Pages Functions
-
-These run at the edge for SEO purposes only:
-
-| Function | Purpose |
-|---|---|
-| `[[path]].ts` | Intercepts requests to inject OG meta tags for social sharing |
-| `sitemap.xml.ts` | Auto-generates sitemap from database content |
-
----
-
-## 🔐 Security Note
-
-> Miyomi's backend (Supabase edge functions, database schema, and migrations) lives in a **separate private repository** and is gitignored here. This was done after malicious actors attempted spam attacks, security exploits, and tried to break the site by targeting the backend.
->
-> If you need backend context for your contribution, reach out to the team.
 
 ---
 
@@ -166,12 +98,11 @@ These run at the edge for SEO purposes only:
 
 ### Prerequisites
 
-- **Node.js 18+**
-- A [Supabase](https://supabase.com) account (free tier works)
-- A [Cloudflare](https://cloudflare.com) account (for Turnstile CAPTCHA + Pages hosting)
-- A Google Cloud project (for OAuth login)
+- **Node.js 22.18+** (native TypeScript execution and SQLite verification scripts)
+- A [Cloudflare](https://cloudflare.com) account (Workers, D1, Turnstile)
+- Optional: the production DB backup for realistic local data
 
-### 1. Clone & Install
+### 1. Install
 
 ```bash
 git clone https://github.com/miyomiorg/Miyomi.git
@@ -179,134 +110,245 @@ cd Miyomi
 npm install
 ```
 
-### 2. Environment Variables
+### 2. Configuration — ONE place
 
-Copy the example and fill it in:
+All Miyomi configuration lives in **Cloudflare**, not in scattered dotfiles:
 
-```bash
-cp .env.example .env
-```
+| What | Where |
+|---|---|
+| Non-secret config (`SITE_URL`, `VITE_TURNSTILE_SITE_KEY`, `CF_ZONE_ID`, …) | `wrangler.toml` → `[vars]` |
+| Secrets (`SESSION_SECRET`, `TURNSTILE_SECRET_KEY`, `CF_API_TOKEN`) | `npx wrangler secret put <NAME>` (production) |
 
-```env
-# Public (exposed to client via Vite)
-VITE_SUPABASE_PROJECT_ID="your-project-ref"
-VITE_SUPABASE_URL="https://your-project-ref.supabase.co"
-VITE_SUPABASE_PUBLISHABLE_KEY="your-anon-key"
-VITE_SUPABASE_ANON_KEY="your-anon-key"
-VITE_TURNSTILE_SITE_KEY="your-turnstile-site-key"
-VITE_EMAIL_LOGIN_ENABLED=false
-VITE_REMEMBER_SESSION=false
+The frontend build (`vite.config.ts`) and the OG generator read `[vars]` from
+`wrangler.toml`, so there is no separate `.env` for `VITE_*` keys and they can
+never drift from the Worker's runtime config.
 
-# Server-side only (never expose these)
-SUPABASE_SERVICE_ROLE_KEY="your-service-role-key"
-TURNSTILE_SECRET_KEY="your-turnstile-secret"
-CRON_API_KEY="any-random-secret-for-cron-jobs"
-TELEGRAM_BOT_TOKEN="your-telegram-bot-token"
-```
+- `wrangler secret put --local <NAME>` writes local-dev secrets into `.dev.vars`
+  (used by `npm run dev:worker`); it is gitignored.
+- `.env` is **local developer tooling only** — Drizzle Kit's `db:studio`/`db:push`
+  credentials (`CLOUDFLARE_ACCOUNT_ID` + `CLOUDFLARE_D1_TOKEN`) and legacy
+  Supabase migration scripts. It is not used at runtime or for the build.
 
-### 3. Run Locally
+Secrets in use:
 
 ```bash
-npm run dev
+npx wrangler secret put SESSION_SECRET          # ≥32 char JWT signing key
+npx wrangler secret put TURNSTILE_SECRET_KEY    # matches VITE_TURNSTILE_SITE_KEY
+npx wrangler secret put CF_API_TOKEN            # Cloudflare API token (Analytics:Read + Zone:Read) for /api/stats
 ```
 
-Opens at `http://localhost:8080` by default.
+`CF_ZONE_ID` (the `miyomi.app` zone id) is **not** a secret — it already lives in
+`wrangler.toml [vars]`. A `CF_API_TOKEN` is created in the Cloudflare dashboard
+(My Profile → API Tokens) with **Analytics: Read** and **Zone: Read** on
+`miyomi.app`, then set with the command above.
 
-### 4. Build for Production
+### 3. Database (local D1)
 
 ```bash
-npm run build
+npm run d1:migrate:local     # apply Drizzle migrations to the local D1
+npm run seed:local           # add a local dev admin (does NOT wipe data)
+npm run db:seed:synthetic    # ⚠️ wipes local data, inserts throwaway samples
 ```
 
-This runs `vite build` and then auto-generates OG images via `scripts/generate-og-images.mjs`.
+Local dev login (after `seed:local`): `admin@miyomi.local` / `MiomiLocal123!`
+
+### 4. Run
+
+```bash
+npm run dev:worker   # Worker + D1 on http://localhost:8787
+npm run dev          # Vite SPA on http://localhost:8080 (proxies /api → :8787)
+```
+
+> Local dev reads the production Turnstile site key from `wrangler.toml`, which
+> does not work on `localhost`. Skip the widget while developing:
+>
+> ```powershell
+> $env:VITE_DISABLE_TURNSTILE = 'true'
+> npm run dev
+> ```
+>
+> The local Worker has no `TURNSTILE_SECRET_KEY`, so it skips verification.
+
+> ⚠️ Run **one** `wrangler dev` at a time — two instances sharing the local D1 file
+> cause `SQLITE_BUSY`.
+
+### 5. Verify & Build
+
+```bash
+npm run verify:worker        # end-to-end API checks against the local Worker
+npm run verify:2fa           # staged-login / enrolment / gate circuit
+npm run verify:analytics     # admin analytics endpoint (needs CF creds in .dev.vars)
+npm run test:import          # isolated importer regression tests (no real data)
+npm run verify:cron          # isolated scheduled-cleanup retention checks
+npm run build                # Vite build only; skips OG images during development
+npm run build:release        # release preparation: Vite + OG image generation
+npm run deploy:worker        # wrangler deploy
+```
+
+Before deploying: `npx tsc -p tsconfig.worker.json` and `npx tsc -p tsconfig.app.json`
+should pass, and `npm run build` should succeed.
+
+### 6. Secrets for production
+
+```bash
+npx wrangler secret put SESSION_SECRET
+npx wrangler secret put TURNSTILE_SECRET_KEY
+npx wrangler secret put CF_API_TOKEN
+```
+
+`CF_ZONE_ID` and the Turnstile site key are non-secret and live in
+`wrangler.toml [vars]`.
 
 ---
 
 ## ☁️ Deployment
 
-Miyomi runs on **Cloudflare Pages**:
+For the current launch blockers and ordered production cutover tasks, see
+[PROGRESS.md → What remains](PROGRESS.md#what-remains). The remote D1 database
+exists, but its Miyomi schema/data have not been imported yet.
 
-1. Connect your repo to Cloudflare Pages
-2. Set build command: `npm run build`
-3. Set output directory: `dist`
-4. Add all `VITE_*` environment variables in Cloudflare Pages settings
-5. Deploy
+Single Worker deployment (after database and secrets are configured):
 
-The `functions/` directory is automatically picked up by Cloudflare Pages Functions for edge SEO rendering.
+1. `npm run build:release` (produces `dist/` incl. OG images)
+2. `npm run deploy:worker` (`wrangler deploy`)
 
-The `dist/` output also works on any static hosting (Vercel, Netlify, etc.) but you'll lose the edge SEO functions.
+Before the domain serves the new API, build OG images using the local migrated
+Worker. In PowerShell, with one `npm run dev:worker` instance running:
+
+```powershell
+$env:OG_API_URL = 'http://127.0.0.1:8787'
+npm run build:release
+```
+
+`VITE_TURNSTILE_SITE_KEY` must be available to Vite at build time; a Wrangler
+runtime variable alone does not configure the frontend bundle. Attach the
+production custom domain to the Worker after verifying the deployment URL.
+
+Regular `npm run dev` and `npm run build` do not generate OG images. Use
+`build:release` for a release, or `og:generate` to regenerate images explicitly.
+
+`wrangler.toml` binds:
+
+- `DB` → D1 database `miyomi-db`
+- `ASSETS` → `./dist`
+
+There is **no R2 binding**. Miyomi scrapes content from source and hosts no
+media itself; see [Media / CDN](#-media--cdn).
+
+---
+
+## 🖼️ Media / CDN
+
+Miyomi does **not** store media. Icons/OG images are scraped from each item's own
+source (GitHub etc.), and social images are generated at build time into
+`dist/og/**`, served by the Worker through `ASSETS`. There is **no R2 bucket**.
+
+A self-hosted media CDN is available **if uploads are ever needed**:
+
+- **Host:** `https://cdn-bevore.misfits.workers.dev`
+- **What it is:** a personal Google Drive → Cloudflare Worker proxy (built by
+  `tas33n`) with an upload API and dashboard.
+- **Client:** [`worker/lib/cdn.ts`](worker/lib/cdn.ts) — `cdnUpload()`,
+  `cdnFileUrl()`, `cdnConfigured()`.
+- **Config (optional):** `CDN_BASE_URL` + `CDN_API_KEY`
+  (`npx wrangler secret put CDN_API_KEY`). When unset the client is dormant.
+
+### Upload API
+
+```bash
+curl -X POST https://cdn-bevore.misfits.workers.dev/api/files \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -F "file=@image.jpg" \
+  -F 'metadata={"name":"image.jpg"}'
+```
+
+Response:
+
+```json
+{
+  "status": "success",
+  "data": {
+    "kind": "drive#file",
+    "id": "1yjInKBrrl0swNMXAWK5gOMn538zR2NMw",
+    "name": "SaveSora_video_1762868282102.mp4",
+    "mimeType": "video/mp4",
+    "rawUrl": "https://cdn-bevore.misfits.workers.dev/files/1yjInKBrrl0swNMXAWK5gOMn538zR2NMw"
+  }
+}
+```
+
+Store `data.rawUrl` in `apps.icon_url` / `og_image_url` (or `metadata`) and render
+it directly.
+
+> Delete/list endpoints are **not** documented in this repo — confirm them from the
+> CDN's own API docs before using them.
 
 ---
 
 ## 🗃️ Database
 
-Content is stored in Supabase (PostgreSQL). Main table groups:
+Drizzle schema: `worker/db/schema.ts`. Migrations: `worker/db/drizzle/`
+(`npm run db:generate` after schema changes, then `npm run d1:migrate:local`).
 
-**Content:** `apps`, `extensions`, `guides`, `faqs`, `blog_posts`
+Main table groups:
 
-**Community:** `submissions`, `edit_suggestions`, `likes`, `reports`, `feedback`, `guide_submissions`
+- **Content:** `apps`, `extensions`, `guides`, `faqs`, `blog_posts`
+- **Community:** `submissions`, `public_edit_suggestions`, `likes`, `reports`, `feedbacks`
+- **Admin:** `admins`, `user_roles`, `moderator_permissions`, `admin_logs`, `admin_sessions`, `unauthorized_login_attempts`, `bot_attack_logs`
+- **Config:** `notices`, `themes`, `settings`, `donations`, `donation_settings`, `compatibility_groups`
+- **Joins:** `app_group_memberships`, `extension_group_memberships`, `contributors`, `rate_limits`
 
-**Admin:** `user_roles`, `admin_logs`, `admin_sessions`, `unauthorized_login_attempts`, `bot_attack_logs`
+### Preparing the D1 data import
 
-**Config:** `notices`, `themes`, `settings`, `donations`, `compatibility_groups`
+After exporting the restored Postgres backup as headerless CSVs, run:
 
-Migrations are in `supabase/migrations/`. The base schema is in `00000000000000_init.sql` with incremental migrations for newer features.
+```bash
+node scripts/migrate-supabase-to-d1.mjs
+# Optional explicit paths (including paths with spaces):
+node scripts/migrate-supabase-to-d1.mjs --export-dir "path/to/csv" --out-dir "path/to/sql"
+```
 
----
+The default input is `.wrangler/export/`, resolved relative to the repository,
+and the default output is its `sql/` subdirectory. All 27 table CSVs and
+`auth_users.csv` must exist; export empty tables as empty files. The script only
+generates SQL and a row-count `manifest.json`; it does not apply changes to D1.
+It validates inputs before replacing output and rebuilds empty-table SQL to
+prevent stale data from leaking into `ALL.sql`.
 
-## 🤝 How to Contribute
-
-We welcome contributions! Here are some areas where help is appreciated:
-
-- **UI/UX improvements** — Better layouts, animations, responsiveness
-- **Performance** — Faster load times, better caching, lazy loading
-- **Search** — Improved search ranking and relevance
-- **Accessibility** — Screen reader support, keyboard navigation
-- **Bug fixes** — Check the issues tab for known bugs
-- **Data contributions** — Submit apps and extensions through the site's form
-- **Documentation** — Improve this guide or add inline code docs
-
-### Guidelines
-
-- Keep changes clean and focused — one feature per PR
-- Follow existing code style and patterns
-- Test on both desktop and mobile
-- Don't commit `.env` or sensitive keys
-- If touching security-related code, explain your changes clearly
+Use `npm run test:import` to verify the importer against disposable fixtures.
+`scripts/restore-db.mjs` is the legacy Supabase restore tool, not a D1 importer.
 
 ---
 
 ## 📨 Submission Flow
 
-1. User fills out the Submit form (Basic or Advanced mode)
-2. Cloudflare Turnstile CAPTCHA validation
-3. Data sent to Supabase via edge function
-4. Stored in `submissions` table as "pending"
-5. Admin reviews, edits if needed, and approves or rejects
-6. Approved entries go live immediately
+1. User submits via `/contribute` (Basic/Advanced) or `/submit-guide`.
+2. Turnstile token is verified server-side (`POST /api/submissions`).
+3. Row lands in `submissions` with status `pending`.
+4. Admin reviews in `/admin` (edit if needed) and approves or rejects.
+5. On approval the server writes the content row, syncs compatibility groups, and
+   records the contributor.
 
 ---
 
-## 🔒 Security Checklist
+## 🔒 Security Notes
 
-- Never expose `SUPABASE_SERVICE_ROLE_KEY` client-side
-- Keep RLS policies restricting write access
-- Keep CAPTCHA enabled in production
-- Keep `VITE_EMAIL_LOGIN_ENABLED=false` unless explicitly needed
-- Review `unauthorized_login_attempts` and `bot_attack_logs` regularly
-- IP addresses are stored as SHA-256 hashes, not raw IPs
-
----
-
-## 💡 Future Ideas
-
-- Better search ranking and relevance
-- Trending / popular system
-- Multi-language / i18n support
-- Improved duplicate detection
-- Contributor recognition system
-- More guide categories and content types
+- Never expose `SESSION_SECRET` or other server secrets to the client bundle.
+- Admin routes require a valid session (cookie or `Authorization: Bearer`).
+- **Two-factor authentication (TOTP) is mandatory and one-way.** Password-first
+  staged login: enrolled accounts always need the authenticator code (`/admin/auth/
+  login` + `/admin/auth/login/complete`). Accounts without 2FA log in but are
+  redirected to Settings, where a router-wide gate blocks every other admin API
+  section until enrolment finishes. Once enabled it **cannot be disabled** —
+  only reset (re-enrol) from Settings → Two-Factor Authentication with a password
+  confirm. Secrets are stored AES-GCM-encrypted (`SESSION_SECRET`-derived key).
+  Lost-authenticator recovery = CLI password reset (`admin:reset-password` +
+  `admin:create`), which also clears the stored 2FA secret.
+- Turnstile protects public write endpoints; keep it enabled in production.
+- IP addresses are stored as SHA-256 hashes, not raw values.
+- `.env`, `.dev.vars`, `*.backup`, and `supabase/` must never be committed.
 
 ---
 
-Miyomi is built by our team and shaped by community feedback. Keep changes clean, readable, and maintainable. ❤️
+Miyomi is built by our team and shaped by community feedback. Keep changes clean,
+readable, and maintainable. ❤️

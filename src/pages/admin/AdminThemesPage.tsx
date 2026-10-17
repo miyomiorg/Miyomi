@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react';
 import { Palette, Plus, ChevronDown, ChevronUp, Sparkles, Snowflake, Leaf, Cherry, Settings, CloudRain, Pencil, Trash2, Save, FileJson, Copy } from 'lucide-react';
 import { AdminButton, AdminInput, AdminFormField, AdminSelect, StatusBadge, EmptyState, AdminTextarea } from '@/components/admin/AdminFormElements';
 import { useThemeEngineContext, type ThemeMode, type ParticleConfig, type ThemeAssets, type ThemeCssVariables, type ThemeRecord } from '@/hooks/useThemeEngine';
-import { supabase } from '@/integrations/supabase/client';
+import { adminThemesApi } from '@/services/api';
 import { toast } from 'sonner';
 
 function hexToHSL(hex: string): { h: number; s: number; l: number } {
@@ -337,8 +337,7 @@ export function AdminThemesPage() {
 
     setActivatingId(themeId);
     try {
-      const { error } = await supabase.from('themes').delete().eq('id', themeId);
-      if (error) throw error;
+      await adminThemesApi.remove(themeId);
       toast.success(`Theme "${themeName}" deleted`);
       await refetch();
     } catch (err: any) {
@@ -494,30 +493,22 @@ Output ONLY valid JSON matching this exact structure:
       const themeData = {
         name: newName.trim(),
         slug: newSlug.trim().toLowerCase().replace(/[^a-z0-9-]/g, '-'),
-        is_seasonal: newSeasonal,
-        is_active: editingId ? (themes.find(t => t.id === editingId)?.is_active ?? false) : false,
-        active_from: newActiveFrom || null,
-        active_to: newActiveTo || null,
-        css_variables: finalPalette, // Use the Final Merged Palette
-        particle_config: particleConfig,
-        updated_at: new Date().toISOString(),
+        isSeasonal: newSeasonal,
+        isActive: editingId ? (themes.find(t => t.id === editingId)?.is_active ?? false) : false,
+        activeFrom: newActiveFrom || null,
+        activeTo: newActiveTo || null,
+        cssVariables: finalPalette, // Use the Final Merged Palette
+        particleConfig: particleConfig,
       };
 
       if (editingId) {
-        const { error } = await supabase
-          .from('themes')
-          .update(themeData as any)
-          .eq('id', editingId);
-        if (error) throw error;
+        await adminThemesApi.update(editingId, themeData);
         toast.success(`Theme "${newName}" updated!`);
       } else {
-        const { error } = await supabase
-          .from('themes')
-          .insert({
-            ...themeData,
-            assets: null,
-          } as any);
-        if (error) throw error;
+        await adminThemesApi.create({
+          ...themeData,
+          assets: null,
+        });
         toast.success(`Theme "${newName}" created!`);
       }
 

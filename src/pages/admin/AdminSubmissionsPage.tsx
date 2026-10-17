@@ -1,15 +1,14 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { supabase } from '@/integrations/supabase/client';
+import { adminSubmissionsApi } from '@/services/api';
+import { collectPages } from '@/services/api/pagination';
 import { useAdminLogger } from '@/hooks/useAdminLogger';
-import type { Tables } from '@/integrations/supabase/types';
+import type { Tables } from '@/types/db';
 import { Inbox, User, Check, X as XIcon, Eye, Trash2, AlertTriangle, RotateCcw, Package, Puzzle, StickyNote, FileText } from 'lucide-react';
 import { AdminButton, StatusBadge, EmptyState } from '@/components/admin/AdminFormElements';
 import { ConfirmDialog } from '@/components/admin/ConfirmDialog';
 import { EndpointToggle } from '@/components/admin/EndpointToggle';
 import { toast } from 'sonner';
-import { upsertContributor } from '@/utils/contributors';
-import { approveSubmissionRecord } from '@/utils/approvalUtils';
 
 export function AdminSubmissionsPage() {
   const navigate = useNavigate();
@@ -28,15 +27,7 @@ export function AdminSubmissionsPage() {
   async function fetchData() {
     setLoading(true);
     try {
-      try {
-        await supabase.rpc('cleanup_old_rejected' as any);
-      } catch (rpcErr) {
-        console.error('Cleanup RPC failed:', rpcErr);
-      }
-
-      const { data, error } = await supabase.from('submissions').select('*').order('created_at', { ascending: false });
-      if (error) throw error;
-      setSubmissions(data || []);
+      setSubmissions(await collectPages(adminSubmissionsApi.list));
     } catch (e) {
       console.error(e);
     } finally {
@@ -51,16 +42,9 @@ export function AdminSubmissionsPage() {
   async function handleBulkDelete() {
     if (!bulkDeleteTarget) return;
     try {
-      let query = supabase.from('submissions').delete();
-      if (bulkDeleteTarget === 'all') {
-        query = query.neq('id', '00000000-0000-0000-0000-000000000000');
-      } else {
-        query = query.eq('status', bulkDeleteTarget);
-      }
-      const { error, count } = await query;
-      if (error) throw error;
-      await logAction('delete', 'submission', 'bulk', `Bulk delete ${bulkDeleteTarget}`, { count, target: bulkDeleteTarget });
-      toast.success(`Cleared ${bulkDeleteTarget} submissions (${count} removed)`);
+      await adminSubmissionsApi.clear(bulkDeleteTarget);
+      await logAction('delete', 'submission', 'bulk', `Bulk delete ${bulkDeleteTarget}`, { target: bulkDeleteTarget });
+      toast.success(`Cleared ${bulkDeleteTarget} submissions`);
       setBulkDeleteTarget(null);
       fetchData();
     } catch (err: any) {
@@ -71,7 +55,7 @@ export function AdminSubmissionsPage() {
 
   async function handleRestore(sub: Tables<'submissions'>) {
     try {
-      await supabase.from('submissions').update({ status: 'pending' }).eq('id', sub.id);
+      await adminSubmissionsApi.update(sub.id, { status: 'pending' });
       await logAction('restore', 'submission', sub.id, 'Restored to pending', {
         submission_name: (sub.submitted_data as any)?.name
       });
@@ -87,28 +71,20 @@ export function AdminSubmissionsPage() {
     try {
       if (actionTarget.action === 'approve' && actionTarget.submission) {
         const sub = actionTarget.submission;
-        const result = await approveSubmissionRecord(sub);
-
-        if (!result.success) {
-          toast.error(result.error || 'Approval failed');
-          return;
-        }
+        const result = await adminSubmissionsApi.approve(sub.id);
 
         await logAction('approve', 'submission', sub.id, `${sub.submission_type} submission`, {
-          approved_as: result.targetTable,
-          resource_id: result.targetId,
+          approved_as: result.target_table,
+          resource_id: result.target_id,
           resource_name: result.name
         }).catch(console.error);
 
-        toast.success(`Published ${result.name} to ${result.targetTable}!`);
+        toast.success(`Published ${result.name} to ${result.target_table}!`);
       } else {
         const sub = actionTarget.submission;
         const data = sub ? (sub.submitted_data as any) : {};
 
-        await supabase.from('submissions').update({ 
-          status: 'rejected',
-          ...(rejectReason.trim() ? { admin_notes: rejectReason.trim() } : {})
-        }).eq('id', actionTarget.id);
+        await adminSubmissionsApi.reject(actionTarget.id, rejectReason.trim() || undefined);
 
         await logAction('reject', 'submission', actionTarget.id, sub ? `${sub.submission_type} submission` : 'submission', {
           reason: rejectReason.trim() || 'Rejected by admin',

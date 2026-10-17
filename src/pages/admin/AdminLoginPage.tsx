@@ -1,11 +1,8 @@
-import { useEffect, useState, useMemo, useRef } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { useAdmin } from '@/hooks/useAdmin';
-import { useSessionTracker } from '@/hooks/useSessionTracker';
-import { supabase } from '@/integrations/supabase/client';
-import { Shield, Lock, Mail, Eye, EyeOff, Loader2, UserPlus, Zap, Sword, Skull, Wind, Waves } from 'lucide-react';
-import { toast } from 'sonner';
+import { Shield, Lock, Mail, Eye, EyeOff, Loader2, Zap, Sword, Skull, Wind, Waves, ShieldCheck } from 'lucide-react';
 import Turnstile from 'react-turnstile';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -127,21 +124,20 @@ const ANIME_THEMES = [
 
 export function AdminLoginPage() {
   const navigate = useNavigate();
-  const { user, loading: authLoading, signInWithEmail, signInWithGoogle } = useAuth();
-  const { isAdmin, loading: adminLoading } = useAdmin();
-  const { trackUnauthorizedAttempt } = useSessionTracker();
+  const { user, loading: authLoading, signInWithEmail, completeLogin } = useAuth();
+  const { isAuthorized, loading: adminLoading } = useAdmin();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [turnstileToken, setTurnstileToken] = useState('');
-  const [googleLoading, setGoogleLoading] = useState(false);
-  const unauthorizedHandled = useRef(false);
+  const [captchaAttempt, setCaptchaAttempt] = useState(0);
+  const [remember, setRemember] = useState(false);
 
-  // System State
-  const [checkingSystem, setCheckingSystem] = useState(true);
-  const [needsSetup, setNeedsSetup] = useState(false);
+  const [loginStage, setLoginStage] = useState<null | '2fa_required'>(null);
+  const [pendingToken, setPendingToken] = useState('');
+  const [totpCode, setTotpCode] = useState('');
 
   // Theme State
   const [theme, setTheme] = useState(ANIME_THEMES[0]);
@@ -180,33 +176,15 @@ export function AdminLoginPage() {
   }, []);
 
   useEffect(() => {
-    async function checkSystem() {
-      try {
-        const { data, error } = await supabase.rpc('system_has_super_admin');
-        if (error) {
-          console.error('[AdminLogin] Failed to check system status:', error);
-          setNeedsSetup(false);
-        } else {
-          setNeedsSetup(data === false);
-        }
-      } catch (err) {
-        console.error('[AdminLogin] Error checking system:', err);
-      } finally {
-        setCheckingSystem(false);
-      }
+    if (!authLoading && !adminLoading && user && isAuthorized) {
+      // Accounts without 2FA land on Settings to enrol; all others go to the dashboard.
+      navigate(user.totpEnabled ? '/admin/dashboard' : '/admin/settings', { replace: true });
     }
-    checkSystem();
-  }, []);
-
-  useEffect(() => {
-    if (!authLoading && !adminLoading && user && isAdmin) {
-      navigate('/admin/dashboard', { replace: true });
-    }
-  }, [user, isAdmin, authLoading, adminLoading, navigate]);
+  }, [user, isAuthorized, authLoading, adminLoading, navigate]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!turnstileToken && !needsSetup) {
+    if (siteKey && !turnstileToken) {
       setError('Please complete the CAPTCHA check');
       return;
     }
@@ -214,50 +192,48 @@ export function AdminLoginPage() {
     setError('');
     setSubmitting(true);
     try {
-      if (needsSetup) {
-        const { error: signUpError } = await supabase.auth.signUp({
-          email,
-          password,
-          options: turnstileToken ? { captchaToken: turnstileToken } : undefined,
-        });
-        if (signUpError) throw signUpError;
-        const { data: claimed, error: claimError } = await supabase.rpc('claim_super_admin');
-        if (claimError || !claimed) throw new Error('Failed to claim super admin.');
-
-        toast.success(`Super Admin Created! Welcome to the crew, ${theme.name}!`);
-        window.location.reload();
-      } else {
-        await signInWithEmail(email, password, turnstileToken);
+      const result = await signInWithEmail(email, password, remember, turnstileToken || undefined);
+      if (result && 'loginStage' in result) {
+        setLoginStage('2fa_required');
+        setPendingToken(result.pendingToken);
+        return;
       }
+      // Session published → the redirect effect takes over.
     } catch (err: any) {
       console.error(err);
       setError(err.message || 'Authentication failed');
+      setTurnstileToken('');
+      setCaptchaAttempt(attempt => attempt + 1);
     } finally {
       setSubmitting(false);
     }
   };
 
-  const isLoading = authLoading || adminLoading || checkingSystem;
-  const siteKey = import.meta.env.VITE_TURNSTILE_SITE_KEY || '1x0000000000000000000000AA';
-  const emailLoginEnabled = import.meta.env.VITE_EMAIL_LOGIN_ENABLED === 'true' || false;
+  const handleComplete = async () => {
+    if (totpCode.length !== 6) return;
+    setError('');
+    setSubmitting(true);
+    try {
+      await completeLogin(pendingToken, totpCode, remember);
+      // Session published → the redirect effect takes over.
+    } catch (err: any) {
+      console.error(err);
+      setError(err.message || 'Two-factor verification failed');
+      setTotpCode('');
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
-  useEffect(() => {
-    if (authLoading || adminLoading || !user || isAdmin || needsSetup || unauthorizedHandled.current) return;
+  const resetStage = () => {
+    setLoginStage(null);
+    setPendingToken('');
+    setTotpCode('');
+    setError('');
+  };
 
-    unauthorizedHandled.current = true;
-    const userEmail = user.email || 'unknown';
-    const provider = user.app_metadata?.provider || 'email';
-
-    (async () => {
-      try {
-        await trackUnauthorizedAttempt(userEmail, provider);
-      } catch (err) {
-        console.error('Failed to track unauthorized attempt:', err);
-      }
-      await supabase.auth.signOut();
-      navigate('/unauthorized', { replace: true, state: { email: userEmail } });
-    })();
-  }, [authLoading, adminLoading, user, isAdmin, needsSetup, trackUnauthorizedAttempt, navigate]);
+  const isLoading = authLoading || adminLoading;
+  const siteKey = import.meta.env.VITE_TURNSTILE_SITE_KEY;
 
   if (isLoading) {
     return (
@@ -348,61 +324,114 @@ export function AdminLoginPage() {
           </motion.div>
 
           <h1 className="text-3xl font-black text-white mb-1 tracking-tight">
-            {needsSetup ? 'SETUP MODE' : 'ADMIN PORTAL'}
+            ADMIN PORTAL
           </h1>
           <p className="text-white/70 italic font-medium">{theme.quote}</p>
         </div>
 
-        {/* Email/Password Form — shown in setup mode OR when VITE_EMAIL_LOGIN_ENABLED=true */}
-        {(needsSetup || emailLoginEnabled) && (
-          <form onSubmit={handleLogin} className="space-y-5">
-            <div className="space-y-1.5">
-              <label className="text-xs font-bold text-white/60 uppercase tracking-widest pl-1">Email</label>
-              <div className="relative group">
-                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-white/50 group-focus-within:text-white transition-colors" />
-                <input
-                  type="email"
-                  value={email}
-                  onChange={e => setEmail(e.target.value)}
-                  className="w-full bg-black/30 border border-white/10 rounded-xl py-3.5 pl-12 pr-4 text-white placeholder:text-white/20 focus:outline-none focus:border-white/30 focus:bg-black/50 transition-all font-medium"
-                  placeholder="admin@miyomi.dev"
-                  style={{ borderColor: `color-mix(in srgb, ${theme.accentColor} 30%, transparent)` }}
-                  required
-                />
-              </div>
-            </div>
+        {/* Password + 2FA authentication */}
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              if (loginStage) handleComplete();
+              else handleLogin(e);
+            }}
+            className="space-y-5"
+          >
+            {loginStage === null ? (
+              <>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-white/60 uppercase tracking-widest pl-1">Email</label>
+                  <div className="relative group">
+                    <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-white/50 group-focus-within:text-white transition-colors" />
+                    <input
+                      type="email"
+                      value={email}
+                      onChange={e => setEmail(e.target.value)}
+                      className="w-full bg-black/30 border border-white/10 rounded-xl py-3.5 pl-12 pr-4 text-white placeholder:text-white/20 focus:outline-none focus:border-white/30 focus:bg-black/50 transition-all font-medium"
+                      placeholder="admin@miyomi.dev"
+                      style={{ borderColor: `color-mix(in srgb, ${theme.accentColor} 30%, transparent)` }}
+                      required
+                    />
+                  </div>
+                </div>
 
-            <div className="space-y-1.5">
-              <label className="text-xs font-bold text-white/60 uppercase tracking-widest pl-1">Password</label>
-              <div className="relative group">
-                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-white/50 group-focus-within:text-white transition-colors" />
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  value={password}
-                  onChange={e => setPassword(e.target.value)}
-                  className="w-full bg-black/30 border border-white/10 rounded-xl py-3.5 pl-12 pr-12 text-white placeholder:text-white/20 focus:outline-none focus:border-white/30 focus:bg-black/50 transition-all font-medium"
-                  placeholder="••••••••"
-                  style={{ borderColor: `color-mix(in srgb, ${theme.accentColor} 30%, transparent)` }}
-                  required
-                />
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-white/60 uppercase tracking-widest pl-1">Password</label>
+                  <div className="relative group">
+                    <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-white/50 group-focus-within:text-white transition-colors" />
+                    <input
+                      type={showPassword ? 'text' : 'password'}
+                      value={password}
+                      onChange={e => setPassword(e.target.value)}
+                      className="w-full bg-black/30 border border-white/10 rounded-xl py-3.5 pl-12 pr-12 text-white placeholder:text-white/20 focus:outline-none focus:border-white/30 focus:bg-black/50 transition-all font-medium"
+                      placeholder="••••••••"
+                      style={{ borderColor: `color-mix(in srgb, ${theme.accentColor} 30%, transparent)` }}
+                      required
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-4 top-1/2 -translate-y-1/2 text-white/40 hover:text-white transition-colors"
+                    >
+                      {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
+                </div>
+
+                <label className="flex items-center gap-2 text-sm text-white/70">
+                  <input type="checkbox" checked={remember} onChange={e => setRemember(e.target.checked)} />
+                  Remember me
+                </label>
+                {siteKey && (
+                  <div className="pt-1 flex justify-center opacity-90 scale-90 origin-center">
+                    <Turnstile
+                      key={captchaAttempt}
+                      sitekey={siteKey}
+                      onVerify={(token) => setTurnstileToken(token)}
+                      onExpire={() => setTurnstileToken('')}
+                      theme="dark"
+                    />
+                  </div>
+                )}
+              </>
+            ) : (
+              <>
+                <div className="text-center pt-1">
+                  <ShieldCheck className="w-12 h-12 mx-auto mb-3" style={{ color: theme.accentColor }} />
+                  <h2 className="text-xl font-black text-white mb-1 tracking-tight">
+                    Two-Factor Authentication
+                  </h2>
+                  <p className="text-white/60 text-sm">
+                    {`Enter the 6-digit code from your authenticator app for ${email}.`}
+                  </p>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="block text-xs font-bold text-white/60 uppercase tracking-widest pl-1">Authentication code</label>
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    autoComplete="one-time-code"
+                    pattern="[0-9]*"
+                    maxLength={6}
+                    value={totpCode}
+                    onChange={(e) => setTotpCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                    placeholder="000000"
+                    autoFocus
+                    className="w-full bg-black/30 border border-white/10 rounded-xl py-3.5 text-white text-center font-mono tracking-[0.4em] placeholder:text-white/20 focus:outline-none focus:border-white/30 focus:bg-black/50 transition-all font-medium"
+                    style={{ borderColor: `color-mix(in srgb, ${theme.accentColor} 30%, transparent)` }}
+                  />
+                </div>
+
                 <button
                   type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-white/40 hover:text-white transition-colors"
+                  onClick={resetStage}
+                  className="w-full text-center text-xs text-white/40 hover:text-white/70 transition-colors underline underline-offset-2"
                 >
-                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  ← Back to password
                 </button>
-              </div>
-            </div>
-
-            {!needsSetup && (
-              <div className="pt-1 flex justify-center opacity-90 scale-90 origin-center">
-                <Turnstile
-                  sitekey={siteKey}
-                  onVerify={(token) => setTurnstileToken(token)}
-                  theme="dark"
-                />
-              </div>
+              </>
             )}
 
             {error && (
@@ -416,93 +445,31 @@ export function AdminLoginPage() {
               </motion.div>
             )}
 
-            <motion.button
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              type="submit"
-              disabled={submitting || (!turnstileToken && !needsSetup)}
-              className="w-full py-4 rounded-xl font-bold text-white shadow-lg transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed mt-4"
-              style={{
-                background: `linear-gradient(45deg, ${theme.primaryColor}, ${theme.accentColor})`,
-                boxShadow: `0 4px 20px ${theme.primaryColor}60`
-              }}
-            >
-              {submitting ? (
-                <Loader2 className="w-5 h-5 animate-spin" />
-              ) : (
-                <>
-                  {needsSetup ? <UserPlus className="w-5 h-5" /> : <div className="text-xl">🚀</div>}
-                  <span className="tracking-wide">{needsSetup ? 'CREATE SYSTEM' : 'ENTER PORTAL'}</span>
-                </>
-              )}
-            </motion.button>
-          </form>
-        )}
-
-        {/* Google OAuth — shown when NOT in setup mode */}
-        {!needsSetup && (
-          <div className="space-y-4">
-            {/* Divider — only when email login is also visible */}
-            {emailLoginEnabled && (
-              <div className="flex items-center gap-3 mt-5">
-                <div className="flex-1 h-px" style={{ background: 'linear-gradient(to right, transparent, rgba(255,255,255,0.15), transparent)' }} />
-                <span className="text-xs font-semibold text-white/30 uppercase tracking-widest">or</span>
-                <div className="flex-1 h-px" style={{ background: 'linear-gradient(to right, transparent, rgba(255,255,255,0.15), transparent)' }} />
-              </div>
-            )}
-
-            {!emailLoginEnabled && error && (
-              <motion.div
-                initial={{ opacity: 0, y: -10 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="p-3 rounded-lg bg-red-500/20 border border-red-500/30 text-red-200 text-sm font-medium flex items-center gap-2"
+            {(loginStage === null || loginStage === '2fa_required') && (
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                type="submit"
+                disabled={submitting || (loginStage === null ? Boolean(siteKey && !turnstileToken) : totpCode.length !== 6)}
+                className="w-full py-4 rounded-xl font-bold text-white shadow-lg transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed mt-4"
+                style={{
+                  background: `linear-gradient(45deg, ${theme.primaryColor}, ${theme.accentColor})`,
+                  boxShadow: `0 4px 20px ${theme.primaryColor}60`
+                }}
               >
-                <Shield className="w-4 h-4" />
-                {error}
-              </motion.div>
+                {submitting ? (
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                ) : loginStage === '2fa_required' ? (
+                  <span className="tracking-wide">VERIFY & SIGN IN</span>
+                ) : (
+                  <>
+                    <div className="text-xl">🚀</div>
+                    <span className="tracking-wide">ENTER PORTAL</span>
+                  </>
+                )}
+              </motion.button>
             )}
-
-            <motion.button
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              type="button"
-              disabled={googleLoading}
-              onClick={async () => {
-                setGoogleLoading(true);
-                setError('');
-                try {
-                  await signInWithGoogle();
-                } catch (err: any) {
-                  setError(err.message || 'Google sign-in failed');
-                  setGoogleLoading(false);
-                }
-              }}
-              className="w-full py-4 rounded-xl font-bold text-white shadow-lg transition-all flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed border border-white/10 hover:border-white/20"
-              style={{
-                background: emailLoginEnabled ? 'rgba(255,255,255,0.06)' : `linear-gradient(45deg, ${theme.primaryColor}, ${theme.accentColor})`,
-                boxShadow: emailLoginEnabled ? 'none' : `0 4px 20px ${theme.primaryColor}60`
-              }}
-            >
-              {googleLoading ? (
-                <Loader2 className="w-5 h-5 animate-spin" />
-              ) : (
-                <>
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-                    <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4" />
-                    <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" />
-                    <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18A11.96 11.96 0 0 0 1 12c0 1.94.46 3.77 1.18 5.09l3.66-2.84v-.16z" fill="#FBBC05" />
-                    <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335" />
-                  </svg>
-                  <span className="tracking-wide">{emailLoginEnabled ? 'CONTINUE WITH GOOGLE' : 'SIGN IN WITH GOOGLE'}</span>
-                </>
-              )}
-            </motion.button>
-
-            <p className="text-center text-[11px] text-white/20 font-mono mt-1">
-              AUTHORIZED PERSONNEL ONLY {!emailLoginEnabled && '• GOOGLE SSO ENFORCED'}
-            </p>
-          </div>
-        )}
+          </form>
 
         <p className="text-center text-xs text-white/30 mt-6 font-mono">
           SECURE CONNECTION • ENCRYPTED PAYLOAD
