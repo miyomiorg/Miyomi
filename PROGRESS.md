@@ -97,7 +97,8 @@
   workflow (it called a dead Supabase function).
 - Open-source cleanup: removed `scripts/backup-db.mjs` / `scripts/restore-db.mjs`
   and the `@supabase/supabase-js` dependency (last Supabase runtime artifacts);
-  deleted the legacy Pages routing file `public/_routes.json`; renamed
+  deleted the legacy Pages routing file `public/_routes.json` and the local
+  `supabase/` project folder (functions/migrations CLI repo); renamed
   `src/integrations/supabase/types.ts` → `src/types/db.ts` and
   `src/services/supabaseDataService.ts` → `apiDataService.ts`. Git history audit:
   no Cloudflare credentials ever committed; old Supabase keys exist in history

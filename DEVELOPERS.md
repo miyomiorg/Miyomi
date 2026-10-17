@@ -346,7 +346,7 @@ Use `npm run test:import` to verify the importer against disposable fixtures.
   `admin:create`), which also clears the stored 2FA secret.
 - Turnstile protects public write endpoints; keep it enabled in production.
 - IP addresses are stored as SHA-256 hashes, not raw values.
-- `.env`, `.dev.vars`, `*.backup`, and `supabase/` must never be committed.
+- `.env`, `.dev.vars`, and `*.backup` must never be committed.
 
 ---
 

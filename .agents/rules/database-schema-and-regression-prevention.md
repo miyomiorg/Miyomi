@@ -63,7 +63,9 @@
 
 ## 6. Git & repository boundaries
 
-- **NEVER track or commit `supabase/`** (gitignored, separate history, legacy reference).
+- **Never re-introduce a `supabase/` project folder or Supabase docs/CLI
+  artifacts** — the previous backend (and its nested git repo) was deleted during
+  the Workers + D1 migration.
 - Never commit `.env`, `.dev.vars`, or `*.backup` (real production data).
 - Keep commits focused on the requested change.
 

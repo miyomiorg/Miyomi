@@ -97,8 +97,9 @@ Local dev admin: `admin@miyomi.local` / `MiomiLocal123!`.
 - Do NOT add a new ORM, web framework, or storage SDK.
 - Do NOT assume a column exists — **check `worker/db/schema.ts` first**. Read it
   instead of guessing.
-- Do NOT trust the legacy `supabase/` folder or old edge functions as the current
-  contract. They are historical reference only (gitignored).
+- The old Supabase codebase (`supabase/` project folder and Cloudflare Pages
+  `functions/`) has been removed. Keep it that way — do not re-introduce a
+  Supabase client, Pages Functions, or the legacy edge-function patterns.
 - Do NOT edit generated files: `worker/db/drizzle/*.sql`, `dist/`, `.wrangler/`.
 - Do NOT commit `.env`, `.dev.vars`, `*.backup`, or real credentials.
 - Do NOT run two `wrangler dev` instances (causes `SQLITE_BUSY`).
