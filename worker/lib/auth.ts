@@ -238,6 +238,7 @@ export const resolveSession: MiddlewareHandler<AppEnv> = async (c, next) => {
         const role = await loadRole(admin.id, db);
         c.set('adminId', admin.id);
         c.set('adminEmail', admin.email);
+        c.set('hasTotp', Boolean(admin.totpSecret));
         c.set('role', role);
         if (role === 'moderator') c.set('permissions', await loadPermissions(admin.id, db));
       }

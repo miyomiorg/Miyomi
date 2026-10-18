@@ -419,6 +419,7 @@ export const likes = sqliteTable(
     // UNIQUE (item_id, device_fingerprint) — note: item_type is NOT in the key
     uniqueIndex('uq_likes_item_fingerprint').on(t.itemId, t.deviceFingerprint),
     index('idx_likes_item_lookup').on(t.itemId, t.itemType),
+    index('idx_likes_fingerprint_item').on(t.deviceFingerprint, t.itemId),
     index('idx_likes_liked_at').on(t.likedAt),
   ],
 );

@@ -7,6 +7,7 @@ import { apiRouter } from './routes/index.ts';
 import { seoRouter } from './routes/pages/seo.ts';
 import { sitemapRouter } from './routes/pages/sitemap.ts';
 import { runCronJobs } from './lib/cron.ts';
+import { publicCache } from './lib/public-cache.ts';
 
 /**
  * Miyomi API + page Worker (Hono).
@@ -48,6 +49,7 @@ app.use(
 );
 
 // ── API ─────────────────────────────────────────────────────────────
+app.use('*', publicCache);
 app.route('/api', apiRouter);
 
 // Unknown API paths must not fall through to the SPA shell — answer with

@@ -1,4 +1,4 @@
-import { and, eq } from 'drizzle-orm';
+import { lt, sql } from 'drizzle-orm';
 import type { MiddlewareHandler } from 'hono';
 import { createDb } from './db.ts';
 import { clientIp, fail, type AppEnv } from './http.ts';
@@ -22,33 +22,18 @@ export function rateLimit(windowSec: number, max: number): MiddlewareHandler<App
         Math.floor(Date.now() / (windowSec * 1000)) * windowSec * 1000,
       ).toISOString();
       const db = createDb(c.env.DB);
-      const key = and(
-        eq(rateLimits.ipAddress, ip),
-        eq(rateLimits.endpoint, endpoint),
-        eq(rateLimits.windowStart, windowStart),
-      );
+      // Atomic admission: one statement instead of SELECT + INSERT/UPDATE.
+      // At the limit the conditional upsert returns no row and writes nothing.
+      const [admitted] = await db.insert(rateLimits).values({
+        id: crypto.randomUUID(), endpoint, ipAddress: ip, windowStart, requestCount: 1,
+      }).onConflictDoUpdate({
+        target: [rateLimits.ipAddress, rateLimits.endpoint, rateLimits.windowStart],
+        set: { requestCount: sql`${rateLimits.requestCount} + 1` },
+        setWhere: lt(rateLimits.requestCount, max),
+      }).returning({ count: rateLimits.requestCount });
 
-      const [existing] = await db
-        .select({ count: rateLimits.requestCount })
-        .from(rateLimits)
-        .where(key)
-        .limit(1);
-      const current = existing?.count ?? 0;
-
-      if (current >= max) {
+      if (!admitted) {
         return fail(c, 429, 'Too many requests. Please try again later.');
-      }
-
-      if (current === 0) {
-        await db.insert(rateLimits).values({
-          id: crypto.randomUUID(),
-          endpoint,
-          ipAddress: ip,
-          windowStart,
-          requestCount: 1,
-        });
-      } else {
-        await db.update(rateLimits).set({ requestCount: current + 1 }).where(key);
       }
     } catch (error) {
       // Fail open; log for observability.

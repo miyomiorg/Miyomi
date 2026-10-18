@@ -31,19 +31,14 @@ blogRouter.get('/:idOrSlug', async (c) => {
     const db = createDb(c.env.DB);
     const ref = c.req.param('idOrSlug');
     const cond = isUuid(ref) ? or(eq(blogPosts.id, ref), eq(blogPosts.slug, ref)) : eq(blogPosts.slug, ref);
+    // UPDATE RETURNING preserves per-request views with one D1 statement.
     const [row] = await db
-      .select()
-      .from(blogPosts)
-      .where(and(eq(blogPosts.status, 'published'), cond))
-      .limit(1);
-    if (!row) return fail(c, 404, 'Blog post not found');
-
-    // Port of the Postgres increment_blog_view() RPC
-    await db
       .update(blogPosts)
       .set({ views: sql`(COALESCE(${blogPosts.views}, 0) + 1)` })
-      .where(eq(blogPosts.id, row.id));
-    row.views = (row.views ?? 0) + 1;
+      .where(eq(blogPosts.id, db.select({ id: blogPosts.id }).from(blogPosts)
+        .where(and(eq(blogPosts.status, 'published'), cond)).limit(1)))
+      .returning();
+    if (!row) return fail(c, 404, 'Blog post not found');
 
     return ok(c, row);
   } catch (error) {

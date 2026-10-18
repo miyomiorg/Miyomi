@@ -225,6 +225,7 @@ async function resolveSeo(env: Bindings, pathname: string, slug: string | null):
     }
   } catch (error) {
     console.error('[seo] resolve failed:', error);
+    seo.status = 503;
   }
   return seo;
 }
@@ -242,7 +243,7 @@ async function serveSeoPage(c: Context<AppEnv>, pathname: string, slug: string |
     status: seo.status || 200,
     headers: {
       'Content-Type': 'text/html; charset=utf-8',
-      'Cache-Control': 'public, max-age=0, s-maxage=3600, stale-while-revalidate=86400',
+      'Cache-Control': seo.status === 503 ? 'no-store' : 'public, max-age=0, s-maxage=60',
     },
   });
 }

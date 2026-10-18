@@ -33,7 +33,9 @@ export class CacheManager {
                 return null;
             }
 
-            if (Date.now() - item.timestamp > ttl) {
+            if (!Number.isFinite(item.timestamp) || Date.now() - item.timestamp >= ttl) {
+                localStorage.removeItem(key);
+                return null;
             }
 
             return item.data;

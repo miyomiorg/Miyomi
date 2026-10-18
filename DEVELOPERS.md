@@ -311,6 +311,30 @@ Main table groups:
 - **Config:** `notices`, `themes`, `settings`, `donations`, `donation_settings`, `compatibility_groups`
 - **Joins:** `app_group_memberships`, `extension_group_memberships`, `contributors`, `rate_limits`
 
+### D1 query caching and freshness
+
+- `worker/lib/public-cache.ts` caches explicitly allow-listed public GETs in
+  Cloudflare's Cache API **before** route handlers query D1. Public content,
+  compatibility results, and detail SEO HTML have a 60-second edge TTL;
+  sitemap has a 5-minute TTL and Cloudflare analytics stats have a 1-hour TTL.
+- Cache keys keep meaningful filters/pagination and ignore tracking parameters.
+  `X-Cache: HIT` means the handler executed no D1 queries. Cache entries are
+  per Cloudflare location, not globally shared; concurrent cold misses can
+  still query D1 independently.
+- Authenticated public requests bypass edge caching. Admin routes, personalized
+  likes, writes, failures, and blog detail API reads are excluded. Blog detail
+  reads increment views using one atomic `UPDATE RETURNING` statement.
+- Public changes become visible after TTL expiry; there is no global purge on
+  writes. Browser data hooks additionally honor their existing 5-minute app and
+  10-minute extension TTLs and share in-flight requests. Explicit `refetch()`
+  refreshes the browser cache but may still receive fresh edge-cached content.
+- Rate limiting uses one conditional atomic upsert per attempt. Admin 2FA checks
+  reuse the admin record loaded in the same request (no cross-request auth cache).
+- Migration `0003_lying_bromley.sql` adds a covering fingerprint/item index for
+  likes-registry hydration. Apply it with `npm run d1:migrate:remote` during release.
+- Run `npm run verify:query-cache` for isolated query-count/cache/SQL-plan checks
+  and browser hook regression tests; neither test suite touches production data.
+
 ### Preparing the D1 data import
 
 After exporting the restored Postgres backup as headerless CSVs, run:

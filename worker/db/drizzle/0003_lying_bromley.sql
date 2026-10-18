@@ -1,0 +1,1 @@
+CREATE INDEX `idx_likes_fingerprint_item` ON `likes` (`device_fingerprint`,`item_id`);

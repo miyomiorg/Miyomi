@@ -1,10 +1,7 @@
 import { Hono } from 'hono';
-import { eq } from 'drizzle-orm';
 import type { AppEnv } from '../../lib/http.ts';
 import { fail } from '../../lib/http.ts';
 import { resolveSession, requireAdmin } from '../../lib/auth.ts';
-import { createDb } from '../../lib/db.ts';
-import { admins } from '../../db/schema.ts';
 import { authRouter } from './auth.ts';
 import { dashboardRouter } from './dashboard.ts';
 import { submissionsRouter } from './submissions.ts';
@@ -43,9 +40,8 @@ adminRouter.use('*', requireAdmin());
 adminRouter.use('*', async (c, next) => {
   if (c.req.path.startsWith('/auth/')) return next();
   try {
-    const db = createDb(c.env.DB);
-    const [admin] = await db.select().from(admins).where(eq(admins.id, c.get('adminId')!)).limit(1);
-    if (!admin?.totpSecret) {
+    // resolveSession already read this admin during the same request.
+    if (!c.get('hasTotp')) {
       return fail(c, 403, 'Two-factor authentication is required before using this section');
     }
   } catch (error) {

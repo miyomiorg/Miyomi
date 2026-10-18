@@ -12,6 +12,7 @@ export type AppEnv = {
   Variables: {
     adminId?: string;
     adminEmail?: string;
+    hasTotp?: boolean;
     role?: Role | null;
     permissions?: ModeratorPermission[];
   };
