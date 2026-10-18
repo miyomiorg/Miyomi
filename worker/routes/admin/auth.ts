@@ -1,4 +1,4 @@
-import { count, eq } from 'drizzle-orm';
+import { count, eq, sql } from 'drizzle-orm';
 import { Hono, type Context } from 'hono';
 import {
   SESSION_COOKIE,
@@ -197,7 +197,13 @@ authRouter.post('/login', async (c) => {
     const device = (typeof body.device === 'object' && body.device !== null ? body.device : {}) as Record<string, unknown>;
     const db = createDb(c.env.DB);
 
-    const [admin] = await db.select().from(admins).where(eq(admins.email, email)).limit(1);
+    // Case-insensitive lookup: emails are normalized to lowercase at write time,
+    // but rows migrated from Supabase may still hold mixed-case emails.
+    const [admin] = await db
+      .select()
+      .from(admins)
+      .where(sql`lower(${admins.email}) = ${email}`)
+      .limit(1);
     if (!admin || !admin.passwordHash || !(await verifyPassword(password, admin.passwordHash))) {
       await recordFailedAttempt(c, email, device);
       return fail(c, 401, 'Invalid email or password');

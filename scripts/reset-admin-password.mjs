@@ -14,11 +14,14 @@ import { writeFileSync, unlinkSync } from 'node:fs';
 import readline from 'node:readline';
 import { hashPassword } from '../worker/lib/auth.ts';
 
-const [email, passwordArg] = process.argv.slice(2);
-if (!email || !email.includes('@')) {
+const [rawEmail, passwordArg] = process.argv.slice(2);
+if (!rawEmail || !rawEmail.includes('@')) {
   console.error('Usage: node scripts/reset-admin-password.mjs <email> [password]');
   process.exit(1);
 }
+// Match like the login endpoint (case-insensitive) and normalize the stored
+// email to lowercase so legacy mixed-case rows log in correctly.
+const email = rawEmail.trim().toLowerCase();
 
 function hiddenPrompt(question) {
   return new Promise((resolve) => {
@@ -63,9 +66,10 @@ const safeEmail = email.replace(/'/g, "''");
 
 const sql = [
   // Password reset via CLI is also the 2FA recovery path: clear totp_secret so
-  // the account can re-enrol if the authenticator was lost.
-  `UPDATE admins SET password_hash = '${hash}', totp_secret = NULL, updated_at = '${now}' WHERE email = '${safeEmail}';`,
-  `SELECT id, email, password_hash IS NOT NULL AS has_hash, totp_secret IS NULL AS has_no_totp FROM admins WHERE email = '${safeEmail}';`,
+  // the account can re-enrol if the authenticator was lost. Also normalizes
+  // mixed-case emails (login matches against lower(email)).
+  `UPDATE admins SET password_hash = '${hash}', totp_secret = NULL, updated_at = '${now}', email = lower(email) WHERE lower(email) = lower('${safeEmail}');`,
+  `SELECT id, email, password_hash IS NOT NULL AS has_hash, totp_secret IS NULL AS has_no_totp FROM admins WHERE lower(email) = lower('${safeEmail}');`,
 ].join('\n');
 
 const tmp = 'tmp-admin-password.sql';

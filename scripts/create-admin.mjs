@@ -13,11 +13,13 @@ import { execSync } from 'node:child_process';
 import { writeFileSync, unlinkSync } from 'node:fs';
 import { hashPassword } from '../worker/lib/auth.ts';
 
-const [email, password] = process.argv.slice(2);
-if (!email || !email.includes('@') || !password || password.length < 8) {
+const [rawEmail, password] = process.argv.slice(2);
+if (!rawEmail || !rawEmail.includes('@') || !password || password.length < 8) {
   console.error('Usage: node scripts/create-admin.mjs <email> <password (min 8 chars)>');
   process.exit(1);
 }
+// Normalize like the Worker's create-admin endpoint (login lowercases input).
+const email = rawEmail.trim().toLowerCase();
 // Escape SQL string literals built from CLI input (defense in depth).
 const safeEmail = email.replace(/'/g, "''");
 

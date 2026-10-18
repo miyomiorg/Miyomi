@@ -412,6 +412,11 @@ Use `npm run test:import` to verify the importer against disposable fixtures.
   runtime validation.
 - **Rejection notes**: `submissions` stores `admin_notes` (plural);
   `public_edit_suggestions` and `reports` use `admin_note` (singular).
+- **Admin email casing**: emails are normalized to lowercase at write time;
+  login matches case-insensitively (`lower(email) = <input>` in SQL, not Drizzle
+  `eq`) because rows migrated from Supabase can hold mixed-case emails — a
+  mixed-case row makes a lowercase login input fail to match otherwise. Never
+  switch the login lookup back to plain `eq` or add a raw `=` email WHERE.
 
 ## 🔒 Security Notes
 

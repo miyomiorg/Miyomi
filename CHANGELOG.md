@@ -35,6 +35,7 @@ Miyomi is a community-driven project — it will keep evolving. We use `v0.x` ve
 - **Admin auth** — password login with bcrypt + JWT sessions; admin sections locked until 2FA enrolment
 
 ### Fixed
+- Admin login case-sensitivity: email lookups are now case-insensitive and legacy mixed-case emails are normalized to lowercase (mixed-case rows made re-set passwords appear "not reset")
 - Admin **Likes** page crash (aggregate response key casing)
 - Admin **dashboard** showing empty activity/contributions (adapter contract)
 - Production admin login failing with Node-generated password hashes (switched to bcrypt)
