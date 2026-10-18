@@ -26,6 +26,7 @@ import { DiscordIcon } from '../components/DiscordIcon';
 import { detectPlatform, getPlatform } from '../utils/communityPlatforms';
 import { PlatformIcon } from '../components/admin/CommunityUrlInput';
 import { detectGitProvider, getProviderIcon, resolveGitProvider } from '../utils/gitProviders';
+import { YouTubeEmbed } from '../components/YouTubeEmbed';
 
 type StatusStyle = {
   bg: string;
@@ -724,14 +725,8 @@ export function AppDetailPage({ appId, onNavigate }: AppDetailPageProps) {
                     className="bg-[var(--bg-surface)] border border-[var(--divider)] rounded-2xl p-4 sm:p-5"
                     style={{ boxShadow: '0 6px 20px 0 rgba(0,0,0,0.08)' }}
                   >
-                    <div className="relative w-full mb-3 overflow-hidden rounded-xl aspect-video">
-                      <iframe
-                        src={tutorial.url}
-                        title={tutorial.title}
-                        className="absolute inset-0 h-full w-full"
-                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                        allowFullScreen
-                      ></iframe>
+                    <div className="mb-3">
+                      <YouTubeEmbed url={tutorial.url} title={tutorial.title} />
                     </div>
                     <div className="flex items-start gap-3">
                       <div className="mt-0.5 flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-[var(--chip-bg)] text-[var(--brand)]">

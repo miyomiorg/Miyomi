@@ -27,6 +27,7 @@ import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious
 import Autoplay from 'embla-carousel-autoplay';
 import { WheelGesturesPlugin } from 'embla-carousel-wheel-gestures';
 import { detectGitProvider, getProviderIcon, resolveGitProvider } from '../utils/gitProviders';
+import { YouTubeEmbed } from '../components/YouTubeEmbed';
 
 type StatusStyle = {
   bg: string;
@@ -613,92 +614,6 @@ export function ExtensionDetailPage({ extensionId, onNavigate }: ExtensionDetail
         </div>
       )}
 
-      {/* Tutorials & Guides Section */}
-      {hasTutorials && (
-        <div className="mb-6 sm:mb-8">
-          <h2
-            className="text-[var(--text-primary)] font-['Poppins',sans-serif] mb-4"
-            style={{ fontSize: '24px', fontWeight: 600 }}
-          >
-            Tutorials & Guides
-          </h2>
-          <p className="text-[var(--text-secondary)] font-['Inter',sans-serif] mb-4" style={{ fontSize: '15px' }}>
-            Learn how to get the most out of {extension.name} with curated walkthroughs and documentation.
-          </p>
-          <div className="grid gap-4 sm:grid-cols-2">
-            {tutorials.map((tutorial: any, index: number) => {
-              if (tutorial.type === 'video') {
-                return (
-                  <div
-                    key={`${tutorial.type}-${index}`}
-                    className="bg-[var(--bg-surface)] border border-[var(--divider)] rounded-2xl p-4 sm:p-5"
-                    style={{ boxShadow: '0 6px 20px 0 rgba(0,0,0,0.08)' }}
-                  >
-                    <div className="relative w-full mb-3 overflow-hidden rounded-xl aspect-video">
-                      <iframe
-                        src={tutorial.url}
-                        title={tutorial.title}
-                        className="absolute inset-0 h-full w-full"
-                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                        allowFullScreen
-                      ></iframe>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-[var(--chip-bg)] text-[var(--brand)]">
-                        <PlayCircle className="w-5 h-5" />
-                      </div>
-                      <div className="min-w-0">
-                        <h3 className="text-[var(--text-primary)] font-['Inter',sans-serif]" style={{ fontWeight: 600, fontSize: '15px' }}>
-                          {tutorial.title}
-                        </h3>
-                        {tutorial.description && (
-                          <p className="text-[var(--text-secondary)] font-['Inter',sans-serif] text-sm mt-1">
-                            {tutorial.description}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                );
-              }
-
-              return (
-                <a
-                  key={`${tutorial.type}-${index}`}
-                  href={tutorial.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="group flex flex-col gap-3 rounded-2xl border border-[var(--divider)] bg-[var(--bg-surface)] p-4 sm:p-5 hover:border-[var(--brand)] hover:shadow-lg transition-all"
-                  style={{ boxShadow: '0 6px 20px 0 rgba(0,0,0,0.06)' }}
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-[var(--chip-bg)] text-[var(--brand)]">
-                      <BookOpen className="w-5 h-5" />
-                    </div>
-                    <div className="min-w-0">
-                      <h3 className="text-[var(--text-primary)] font-['Inter',sans-serif] flex items-center gap-2" style={{ fontWeight: 600, fontSize: '15px' }}>
-                        {tutorial.title}
-                        {tutorial.type === 'external' && (
-                          <ExternalLink className="w-3.5 h-3.5 text-[var(--text-tertiary)]" />
-                        )}
-                      </h3>
-                      {tutorial.description && (
-                        <p className="text-[var(--text-secondary)] font-['Inter',sans-serif] text-sm mt-1">
-                          {tutorial.description}
-                        </p>
-                      )}
-                    </div>
-                    <span className="ml-auto text-[var(--text-secondary)] group-hover:text-[var(--brand)] transition-colors">
-                      &rarr;
-                    </span>
-                  </div>
-                </a>
-              );
-            })}
-          </div>
-        </div>
-      )}
-
       {/* Supported Apps Section */}
       {supportedApps.length > 0 && (
         <div className="mb-6 sm:mb-8">
@@ -770,6 +685,86 @@ export function ExtensionDetailPage({ extensionId, onNavigate }: ExtensionDetail
               </div>
             </div>
           </Carousel>
+        </div>
+      )}
+
+      {/* Tutorials & Guides Section */}
+      {hasTutorials && (
+        <div className="mb-6 sm:mb-8">
+          <h2
+            className="text-[var(--text-primary)] font-['Poppins',sans-serif] mb-4"
+            style={{ fontSize: '24px', fontWeight: 600 }}
+          >
+            Tutorials & Guides
+          </h2>
+          <p className="text-[var(--text-secondary)] font-['Inter',sans-serif] mb-4" style={{ fontSize: '15px' }}>
+            Learn how to get the most out of {extension.name} with curated walkthroughs and documentation.
+          </p>
+          <div className="grid gap-4 sm:grid-cols-2">
+            {tutorials.map((tutorial: any, index: number) => {
+              if (tutorial.type === 'video') {
+                return (
+                  <div
+                    key={`${tutorial.type}-${index}`}
+                    className="bg-[var(--bg-surface)] border border-[var(--divider)] rounded-2xl p-4 sm:p-5"
+                    style={{ boxShadow: '0 6px 20px 0 rgba(0,0,0,0.08)' }}
+                  >
+                    <div className="mb-3">
+                      <YouTubeEmbed url={tutorial.url} title={tutorial.title} />
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-[var(--chip-bg)] text-[var(--brand)]">
+                        <PlayCircle className="w-5 h-5" />
+                      </div>
+                      <div className="min-w-0">
+                        <h3 className="text-[var(--text-primary)] font-['Inter',sans-serif]" style={{ fontWeight: 600, fontSize: '15px' }}>
+                          {tutorial.title}
+                        </h3>
+                        {tutorial.description && (
+                          <p className="text-[var(--text-secondary)] font-['Inter',sans-serif] text-sm mt-1">
+                            {tutorial.description}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              }
+
+              return (
+                <a
+                  key={`${tutorial.type}-${index}`}
+                  href={tutorial.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="group flex flex-col gap-3 rounded-2xl border border-[var(--divider)] bg-[var(--bg-surface)] p-4 sm:p-5 hover:border-[var(--brand)] hover:shadow-lg transition-all"
+                  style={{ boxShadow: '0 6px 20px 0 rgba(0,0,0,0.06)' }}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-[var(--chip-bg)] text-[var(--brand)]">
+                      <BookOpen className="w-5 h-5" />
+                    </div>
+                    <div className="min-w-0">
+                      <h3 className="text-[var(--text-primary)] font-['Inter',sans-serif] flex items-center gap-2" style={{ fontWeight: 600, fontSize: '15px' }}>
+                        {tutorial.title}
+                        {tutorial.type === 'external' && (
+                          <ExternalLink className="w-3.5 h-3.5 text-[var(--text-tertiary)]" />
+                        )}
+                      </h3>
+                      {tutorial.description && (
+                        <p className="text-[var(--text-secondary)] font-['Inter',sans-serif] text-sm mt-1">
+                          {tutorial.description}
+                        </p>
+                      )}
+                    </div>
+                    <span className="ml-auto text-[var(--text-secondary)] group-hover:text-[var(--brand)] transition-colors">
+                      &rarr;
+                    </span>
+                  </div>
+                </a>
+              );
+            })}
+          </div>
         </div>
       )}
 
