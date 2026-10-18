@@ -11,6 +11,7 @@ import { ConfirmDialog } from '@/components/admin/ConfirmDialog';
 import { AdminButton, StatusBadge, EmptyState } from '@/components/admin/AdminFormElements';
 import { useAdminCache } from '@/hooks/useAdminCache';
 import { useAdmin } from '@/hooks/useAdmin';
+import { AdminNoteBadge } from '@/components/AdminNoteBadge';
 
 export function AdminAppsPage() {
   const navigate = useNavigate();
@@ -160,7 +161,10 @@ export function AdminAppsPage() {
                       {i + 1}
                     </td>
                     <td className="px-4 py-3 font-medium" style={{ color: "var(--text-primary)" }}>
-                      {app.name}
+                      <span className="inline-flex items-center gap-2">
+                        {app.name}
+                        <AdminNoteBadge note={app.moderator_note} severity={app.note_severity} />
+                      </span>
                     </td>
                     <td className="px-4 py-3 hidden sm:table-cell" style={{ color: "var(--text-secondary)" }}>
                       {app.author || "—"}

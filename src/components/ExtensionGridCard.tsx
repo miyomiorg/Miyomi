@@ -9,7 +9,6 @@ import { useCachedImage } from '../hooks/useCachedImage';
 import { LoveButton } from './LoveButton';
 import { TagBadge } from './TagBadge';
 import { RepositoryStatus } from './RepositoryStatus';
-import { RepositoryNote } from './RepositoryNote';
 
 interface ExtensionGridCardProps {
   key?: string | number;
@@ -79,7 +78,6 @@ export function ExtensionGridCard({ extension, isHighlighted, onSelect }: Extens
           </h3>
           <div className="flex flex-wrap justify-center sm:justify-start gap-1 mb-2">
             <RepositoryStatus status={extension.devStatus} />
-            <RepositoryNote id={extension.id} note={extension.moderatorNote} severity={extension.noteSeverity} />
           </div>
           <div className="flex items-center justify-center sm:justify-start gap-1.5 flex-wrap mb-1">
             {extension.types.map((tag, index) => (

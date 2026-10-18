@@ -258,8 +258,6 @@ export function SearchPage({ onNavigate }: SearchPageProps) {
                     rating={result.rating}
                     downloads={result.downloadCount || result.downloads}
                     likes={result.likes}
-                    moderatorNote={result.moderatorNote}
-                    noteSeverity={result.noteSeverity}
                     forkOf={result.forkOf}
                     upstreamUrl={result.upstreamUrl}
                     onClick={() => handleResultClick(result)}
@@ -276,8 +274,6 @@ export function SearchPage({ onNavigate }: SearchPageProps) {
                     rating={result.rating}
                     downloads={result.downloadCount || result.downloads}
                     likes={result.likes}
-                    moderatorNote={result.moderatorNote}
-                    noteSeverity={result.noteSeverity}
                     forkOf={result.forkOf}
                     upstreamUrl={result.upstreamUrl}
                     onClick={() => handleResultClick(result)}

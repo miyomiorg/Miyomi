@@ -8,7 +8,6 @@ import { LoveButton } from './LoveButton';
 import { AppLogo } from './AppLogo';
 import { TagBadge } from './TagBadge';
 import { RepositoryStatus } from './RepositoryStatus';
-import { RepositoryNote } from './RepositoryNote';
 
 interface ExtensionListCardProps {
   extension: ExtensionData;
@@ -54,7 +53,6 @@ export function ExtensionListCard({ extension, isHighlighted, onSelect }: Extens
         </h3>
         <div className="flex flex-wrap gap-1 mb-2">
           <RepositoryStatus status={extension.devStatus} />
-          <RepositoryNote id={extension.id} note={extension.moderatorNote} severity={extension.noteSeverity} />
         </div>
 
         <div className="flex flex-wrap items-center gap-1.5 mb-1">

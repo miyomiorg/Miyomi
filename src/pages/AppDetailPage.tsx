@@ -27,8 +27,6 @@ import { detectPlatform, getPlatform } from '../utils/communityPlatforms';
 import { PlatformIcon } from '../components/admin/CommunityUrlInput';
 import { detectGitProvider, getProviderIcon, resolveGitProvider } from '../utils/gitProviders';
 import { YouTubeEmbed } from '../components/YouTubeEmbed';
-import { RepositoryNote } from '../components/RepositoryNote';
-import { useAdmin } from '../hooks/useAdmin';
 
 type StatusStyle = {
   bg: string;
@@ -79,7 +77,6 @@ interface AppDetailPageProps {
 }
 
 export function AppDetailPage({ appId, onNavigate }: AppDetailPageProps) {
-  const { hasPermission } = useAdmin();
   const { app, loading: appLoading } = useApp(appId);
   const { extensions: allExtensions } = useExtensions();
 
@@ -460,10 +457,6 @@ export function AppDetailPage({ appId, onNavigate }: AppDetailPageProps) {
                 {getStatusLabel(app.devStatus)}
               </div>
             )}
-
-            <div className="flex flex-wrap justify-center gap-2">
-              <RepositoryNote id={app.id} note={app.moderatorNote} severity={app.noteSeverity} targetType="app" canEdit={hasPermission('apps', 'write')} />
-            </div>
 
             {authorInfo && (
               <p className="text-[var(--text-secondary)] font-['Inter',sans-serif] text-base">

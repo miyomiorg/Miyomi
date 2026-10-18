@@ -7,7 +7,6 @@ import { StarRating } from './StarRating';
 import { motion } from 'motion/react';
 import { useAccentColor } from '../hooks/useAccentColor';
 import { LoveButton } from './LoveButton';
-import { RepositoryNote } from './RepositoryNote';
 
 interface AppListCardProps {
   appId: string;
@@ -22,8 +21,6 @@ interface AppListCardProps {
   likes?: number;
   forkOf?: string;
   upstreamUrl?: string;
-  moderatorNote?: string | null;
-  noteSeverity?: string | null;
   isHighlighted?: boolean;
   onClick?: () => void;
 }
@@ -41,8 +38,6 @@ export function AppListCard({
   likes,
   forkOf,
   upstreamUrl,
-  moderatorNote,
-  noteSeverity,
   isHighlighted,
   onClick,
 }: AppListCardProps) {
@@ -84,9 +79,6 @@ export function AppListCard({
         <h3 className="font-['Inter',sans-serif] text-[var(--text-primary)] truncate mb-1" style={{ fontWeight: 600, fontSize: '15px' }}>
           {name}
         </h3>
-        <div className="flex flex-wrap items-center gap-1.5 mb-1">
-          <RepositoryNote id={appId} note={moderatorNote} severity={noteSeverity} targetType="app" />
-        </div>
         <div className="flex flex-wrap items-center gap-1.5 mb-1">
           {displayedTags.map((tag, index) => (
             <React.Fragment key={index}>

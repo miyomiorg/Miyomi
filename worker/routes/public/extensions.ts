@@ -16,7 +16,8 @@ extensionsRouter.get('/', async (c) => {
       .from(extensions)
       .where(eq(extensions.status, 'approved'))
       .orderBy(asc(extensions.name));
-    return ok(c, rows);
+    // Moderator notes are admin/moderator-only — never expose them publicly.
+    return ok(c, rows.map(({ moderatorNote, noteSeverity, ...rest }) => rest));
   } catch (error) {
     console.error('[extensions] list failed:', error);
     return fail(c, 500, 'Failed to fetch extensions');
@@ -58,7 +59,8 @@ extensionsRouter.get('/:idOrSlug', async (c) => {
       .where(and(eq(extensions.status, 'approved'), cond))
       .limit(1);
     if (!row) return fail(c, 404, 'Extension not found');
-    return ok(c, row);
+    const { moderatorNote, noteSeverity, ...publicRow } = row;
+    return ok(c, publicRow);
   } catch (error) {
     console.error('[extensions] get failed:', error);
     return fail(c, 500, 'Failed to fetch extension');

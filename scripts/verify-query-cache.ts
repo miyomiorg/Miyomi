@@ -120,7 +120,9 @@ try {
     INSERT INTO user_roles (id, user_id, role) VALUES ('mod-role', 'mod', 'moderator');`);
   assert.equal((await request('/api/admin/extensions/repo/note', write({ note: 'Needs review', severity: 'warning' }))).response.status, 200);
   const publicRepo = (await (await request('/api/extensions/repo')).response.json()).data;
-  assert.equal(publicRepo.moderatorNote, 'Needs review');
+  assert.equal(publicRepo.moderatorNote, undefined, 'moderator notes must not be exposed publicly');
+  const adminExtList = (await (await request('/api/admin/extensions', auth)).response.json()).data;
+  assert.equal(adminExtList.items.find((e: any) => e.id === 'repo')?.moderatorNote, 'Needs review');
   assert.equal((await request('/api/admin/extensions/repo/note', { method: 'PUT', body: JSON.stringify({ note: 'Forged', severity: 'info' }) })).response.status, 401);
   const modToken = await signSession({ sub: 'mod' }, env.SESSION_SECRET, 60);
   const modWrite = { ...write({ note: 'Updated by moderator', severity: 'danger' }), headers: { 'Content-Type': 'application/json', Cookie: `miyomi_session=${modToken}` } };
@@ -132,7 +134,9 @@ try {
   assert.equal(sqlite.prepare("SELECT moderator_note FROM extensions WHERE id = 'repo'").get()?.moderator_note, null);
   // App notes use the same route under /admin/apps/:id/note.
   assert.equal((await request('/api/admin/apps/app/note', write({ note: 'App review needed', severity: 'danger' }))).response.status, 200);
-  assert.equal((await (await request('/api/apps/app')).response.json()).data.moderatorNote, 'App review needed');
+  assert.equal((await (await request('/api/apps/app')).response.json()).data.moderatorNote, undefined, 'moderator notes must not be exposed publicly');
+  const adminAppList = (await (await request('/api/admin/apps', auth)).response.json()).data;
+  assert.equal(adminAppList.items.find((a: any) => a.id === 'app')?.moderatorNote, 'App review needed');
   assert.equal((await request('/api/admin/apps/app/note', write({ note: '', severity: 'warning' }))).response.status, 200);
   assert.equal(sqlite.prepare("SELECT moderator_note FROM apps WHERE id = 'app'").get()?.moderator_note, null);
   sqlite.exec("UPDATE admins SET totp_secret = NULL WHERE id = 'admin'");

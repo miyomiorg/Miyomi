@@ -356,8 +356,6 @@ export function SoftwarePage({ onNavigate }: SoftwarePageProps) {
                   rating={app.rating}
                   downloads={app.downloads}
                   likes={app.likes}
-                  moderatorNote={app.moderatorNote}
-                  noteSeverity={app.noteSeverity}
 
                   forkOf={app.forkOf}
                   upstreamUrl={app.upstreamUrl}
@@ -382,8 +380,6 @@ export function SoftwarePage({ onNavigate }: SoftwarePageProps) {
                   rating={app.rating}
                   downloads={app.downloads}
                   likes={app.likes}
-                  moderatorNote={app.moderatorNote}
-                  noteSeverity={app.noteSeverity}
                   forkOf={app.forkOf}
                   upstreamUrl={app.upstreamUrl}
                   isHighlighted={highlightedId === app.id || highlightedId === app.slug}

@@ -9,6 +9,7 @@ import { AdminSearchBar } from '@/components/admin/AdminSearchBar';
 import { ConfirmDialog } from '@/components/admin/ConfirmDialog';
 import { AdminButton, StatusBadge, EmptyState } from '@/components/admin/AdminFormElements';
 import { useAdminCache } from '@/hooks/useAdminCache';
+import { AdminNoteBadge } from '@/components/AdminNoteBadge';
 
 export function AdminExtensionsPage() {
   const navigate = useNavigate();
@@ -146,7 +147,10 @@ export function AdminExtensionsPage() {
                       {i + 1}
                     </td>
                     <td className="px-4 py-3 font-medium" style={{ color: "var(--text-primary)" }}>
-                      {ext.name}
+                      <span className="inline-flex items-center gap-2">
+                        {ext.name}
+                        <AdminNoteBadge note={ext.moderator_note} severity={ext.note_severity} />
+                      </span>
                     </td>
                     <td className="px-4 py-3 hidden sm:table-cell" style={{ color: "var(--text-secondary)" }}>
                       {ext.language || "—"}
