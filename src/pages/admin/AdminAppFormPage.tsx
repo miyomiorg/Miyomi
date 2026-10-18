@@ -14,6 +14,7 @@ import { SocialUrlsInput } from '@/components/admin/SocialUrlsInput';
 import { detectGitProvider } from '@/utils/gitProviders';
 
 import { SharedAppForm } from '@/components/forms/SharedAppForm';
+import { RepositoryNote } from '@/components/RepositoryNote';
 
 function slugify(text: string): string {
     return text
@@ -290,6 +291,9 @@ export function AdminAppFormPage() {
                 </div>
             </div>
 
+            {id && <div className="mb-4">
+                <RepositoryNote id={id} note={(form as any).moderator_note} severity={(form as any).note_severity} targetType="app" canEdit />
+            </div>}
             <SharedAppForm 
                 form={form} 
                 setForm={setForm} 

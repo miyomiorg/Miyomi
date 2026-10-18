@@ -162,12 +162,14 @@ export const apps = sqliteTable(
   {
     id: text('id').primaryKey(),
     name: text('name').notNull(),
+    moderatorNote: text('moderator_note'),
+    noteSeverity: text('note_severity'),
     slug: text('slug'),
     description: text('description'),
     shortDescription: text('short_description'),
     author: text('author'),
     category: text('category'),
-    /** pending | approved | rejected | ... (service layer) */
+    /** pending | approved | rejected | ... (service layer） */
     status: text('status').notNull(),
     version: text('version'),
     platforms: arrN('platforms'),

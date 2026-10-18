@@ -8,6 +8,8 @@ export function useAppMeta(): { apps: AppData[]; loading: boolean } {
 
     return (data || []).map((app: any) => ({
       id: app.id,
+      moderatorNote: app.moderator_note,
+      noteSeverity: app.note_severity,
       slug: app.slug || undefined,
       name: (app.name || '').trim(),
       shortDescription: app.short_description || app.metadata?.shortDescription,

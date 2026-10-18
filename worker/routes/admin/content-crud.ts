@@ -51,16 +51,17 @@ export function makeContentRouter(kind: ContentKind) {
   const router = new Hono<AppEnv>();
   const cfg = KINDS[kind];
 
-  if (kind === 'extensions') {
-    router.put('/:id/note', requireAdmin(), requireResource('extensions', 'write'), async (c) => {
+  if (kind === 'apps' || kind === 'extensions') {
+    const noteTable = kind === 'apps' ? apps : extensions;
+    router.put('/:id/note', requireAdmin(), requireResource(cfg.resource, 'write'), async (c) => {
       try {
         const body = await c.req.json();
         if (!body || typeof body.note !== 'string' || body.note.length > 2000 ||
           !['info', 'warning', 'danger'].includes(body.severity)) return fail(c, 400, 'Invalid repository note');
-        const [row] = await createDb(c.env.DB).update(extensions).set({
+        const [row] = await createDb(c.env.DB).update(noteTable).set({
           moderatorNote: body.note.trim() || null,
           noteSeverity: body.note.trim() ? body.severity : null, updatedAt: isoNow(),
-        }).where(eq(extensions.id, c.req.param('id'))).returning({ id: extensions.id });
+        }).where(eq(noteTable.id, c.req.param('id'))).returning({ id: noteTable.id });
         if (!row) return fail(c, 404, 'Repository not found');
         return ok(c, row);
       } catch { return fail(c, 500, 'Failed to save repository note'); }

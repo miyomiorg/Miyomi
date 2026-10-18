@@ -9,6 +9,8 @@ function toAppData(row: Tables<'apps'>): AppData {
   const r = row as any;
   return {
     id: row.id,
+    moderatorNote: row.moderator_note,
+    noteSeverity: row.note_severity,
     slug: row.slug || undefined,
     name: row.name,
     shortDescription: r.short_description || meta.shortDescription || undefined,
@@ -41,6 +43,8 @@ function toExtensionData(row: Tables<'extensions'>): ExtensionData {
   const r = row as any;
   return {
     id: row.id,
+    moderatorNote: r.moderator_note,
+    noteSeverity: r.note_severity,
     slug: row.slug || undefined,
     name: row.name,
     info: row.description || undefined,

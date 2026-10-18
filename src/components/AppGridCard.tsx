@@ -7,6 +7,7 @@ import { StarRating } from './StarRating';
 import { motion } from 'motion/react';
 import { useAccentColor } from '../hooks/useAccentColor';
 import { LoveButton } from './LoveButton';
+import { RepositoryNote } from './RepositoryNote';
 
 interface AppGridCardProps {
   appId: string;
@@ -21,6 +22,8 @@ interface AppGridCardProps {
   likes?: number;
   forkOf?: string;
   upstreamUrl?: string;
+  moderatorNote?: string | null;
+  noteSeverity?: string | null;
   isHighlighted?: boolean;
   onClick?: () => void;
 }
@@ -38,6 +41,8 @@ export function AppGridCard({
   likes,
   forkOf,
   upstreamUrl,
+  moderatorNote,
+  noteSeverity,
   isHighlighted,
   onClick,
 }: AppGridCardProps) {
@@ -78,6 +83,9 @@ export function AppGridCard({
           <h3 className="font-['Inter',sans-serif] text-[var(--text-primary)] mb-1 sm:mb-1" style={{ fontWeight: 600, fontSize: '14px', lineHeight: '1.3' }}>
             {name}
           </h3>
+          <div className="flex items-center justify-center sm:justify-start gap-1.5 flex-wrap mb-2">
+            <RepositoryNote id={appId} note={moderatorNote} severity={noteSeverity} targetType="app" />
+          </div>
           <div className="flex items-center justify-center sm:justify-start gap-1.5 flex-wrap">
             {displayedTags.map((tag, index) => (
               <React.Fragment key={index}>

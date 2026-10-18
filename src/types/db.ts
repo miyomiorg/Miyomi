@@ -206,7 +206,9 @@ export type Database = {
           last_release_date: string | null
           likes_count: number | null
           metadata: Json | null
+          moderator_note: string | null
           name: string
+          note_severity: string | null
           og_image_url: string | null
           platforms: string[] | null
           repo_url: string | null
@@ -241,7 +243,9 @@ export type Database = {
           last_release_date?: string | null
           likes_count?: number | null
           metadata?: Json | null
+          moderator_note?: string | null
           name: string
+          note_severity?: string | null
           og_image_url?: string | null
           platforms?: string[] | null
           repo_url?: string | null
@@ -276,7 +280,9 @@ export type Database = {
           last_release_date?: string | null
           likes_count?: number | null
           metadata?: Json | null
+          moderator_note?: string | null
           name?: string
+          note_severity?: string | null
           og_image_url?: string | null
           platforms?: string[] | null
           repo_url?: string | null

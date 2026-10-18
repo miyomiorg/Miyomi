@@ -16,6 +16,8 @@ export interface AppTutorial {
 }
 
 export interface AppData {
+    moderatorNote?: string | null;
+    noteSeverity?: string | null;
     id: string;
     slug?: string;
     name: string;

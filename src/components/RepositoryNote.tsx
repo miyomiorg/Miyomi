@@ -4,8 +4,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { repositoryNotesApi } from '@/services/api';
 import { toast } from 'sonner';
 
-export function RepositoryNote({ id, note, severity, canEdit = false }: {
-  id: string; note?: string | null; severity?: string | null; canEdit?: boolean;
+export function RepositoryNote({ id, note, severity, canEdit = false, targetType = 'extension' }: {
+  id: string; note?: string | null; severity?: string | null; canEdit?: boolean; targetType?: 'app' | 'extension';
 }) {
   const [saved, setSaved] = useState(note || '');
   const [text, setText] = useState(note || '');
@@ -17,7 +17,7 @@ export function RepositoryNote({ id, note, severity, canEdit = false }: {
   async function save() {
     setSaving(true);
     try {
-      await repositoryNotesApi.save(id, text, level);
+      await repositoryNotesApi.save(targetType === 'app' ? 'apps' : 'extensions', id, text, level);
       setSaved(text.trim());
       toast.success(text.trim() ? 'Repository note saved' : 'Repository note removed');
       setOpen(false);

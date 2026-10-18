@@ -130,6 +130,11 @@ try {
   assert.equal((await request('/api/admin/extensions/repo/note', modWrite)).response.status, 200);
   assert.equal((await request('/api/admin/extensions/repo/note', write({ note: '', severity: 'warning' }))).response.status, 200);
   assert.equal(sqlite.prepare("SELECT moderator_note FROM extensions WHERE id = 'repo'").get()?.moderator_note, null);
+  // App notes use the same route under /admin/apps/:id/note.
+  assert.equal((await request('/api/admin/apps/app/note', write({ note: 'App review needed', severity: 'danger' }))).response.status, 200);
+  assert.equal((await (await request('/api/apps/app')).response.json()).data.moderatorNote, 'App review needed');
+  assert.equal((await request('/api/admin/apps/app/note', write({ note: '', severity: 'warning' }))).response.status, 200);
+  assert.equal(sqlite.prepare("SELECT moderator_note FROM apps WHERE id = 'app'").get()?.moderator_note, null);
   sqlite.exec("UPDATE admins SET totp_secret = NULL WHERE id = 'admin'");
   assert.equal((await request('/api/admin/settings', auth)).response.status, 403, '2FA changes take effect on next request');
 
