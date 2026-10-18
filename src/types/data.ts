@@ -63,6 +63,8 @@ export interface InstallUrl {
 }
 
 export interface ExtensionData {
+    moderatorNote?: string | null;
+    noteSeverity?: string | null;
     id: string;
     slug?: string;
     name: string;

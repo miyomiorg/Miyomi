@@ -314,6 +314,8 @@ export function SharedExtensionForm({
                             <AdminFormField label="Development Status" diffValue={getDiff('dev_status')}>
                                 <AdminSelect value={form.dev_status || 'active'} onChange={e => setForm((f: any) => ({ ...f, dev_status: e.target.value }))}>
                                     <option value="active">Active</option>
+                                    <option value="pending">Pending</option>
+                                    <option value="on_hold">On Hold</option>
                                     <option value="discontinued">Discontinued</option>
                                     <option value="abandoned">Abandoned</option>
                                     <option value="suspended">Suspended</option>

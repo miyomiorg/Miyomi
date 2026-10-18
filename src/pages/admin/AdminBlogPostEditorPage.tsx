@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { adminBlogApi } from '@/services/api';
+import { adminBlogApi, authorProfileApi } from '@/services/api';
 import { collectPages } from '@/services/api/pagination';
 import { invalidateTableCache } from '@/hooks/useAdminCache';
 import { ApiError } from '@/services/api/http';
@@ -25,8 +25,30 @@ export function AdminBlogPostEditorPage() {
     const [insertedId, setInsertedId] = useState<string | null>(null);
     const activeId = routeId || insertedId;
     const [form, setForm] = useState(emptyPost);
-    const [loading, setLoading] = useState(!!routeId);
+    const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
+    const [profileSaving, setProfileSaving] = useState(false);
+    const authorTouched = useRef(false);
+
+    useEffect(() => {
+        if (routeId) return;
+        let cancelled = false;
+        authorProfileApi.get().then(profile => {
+            if (!cancelled && !authorTouched.current) setForm(prev => ({ ...prev,
+                author_name: profile.name, author_role: profile.role, author_avatar_url: profile.avatar }));
+        }).catch(() => toast.error('Could not load your default author profile'))
+          .finally(() => { if (!cancelled) setLoading(false); });
+        return () => { cancelled = true; };
+    }, [routeId]);
+
+    async function saveProfile() {
+        setProfileSaving(true);
+        try {
+            await authorProfileApi.save({ name: form.author_name, role: form.author_role, avatar: form.author_avatar_url });
+            toast.success('Default author profile saved for future articles');
+        } catch (error) { toast.error(error instanceof Error ? error.message : 'Failed to save profile'); }
+        finally { setProfileSaving(false); }
+    }
     const [slugTouched, setSlugTouched] = useState(!!routeId);
     const [slugError, setSlugError] = useState('');
     const [existingCategories, setExistingCategories] = useState<string[]>([]);
@@ -371,9 +393,9 @@ export function AdminBlogPostEditorPage() {
                     </div>
 
                     <div className="bg-[var(--bg-surface)] border rounded-2xl p-6" style={{ borderColor: 'var(--divider)' }}>
-                        <h2 className="text-lg font-semibold text-[var(--text-primary)] mb-4">Author Profile Override</h2>
-                        <p className="text-xs text-[var(--text-secondary)] mb-4">Leave blank to use the default Miyomi Admin or your signed-in user.</p>
-                        <div className="space-y-4">
+                        <h2 className="text-lg font-semibold text-[var(--text-primary)] mb-4">Author Profile</h2>
+                        <p className="text-xs text-[var(--text-secondary)] mb-4">These fields apply to this article. Save Profile makes them your default for future articles; existing articles keep their saved author information.</p>
+                        <div className="space-y-4" onChange={() => { authorTouched.current = true; }}>
                             <AdminFormField label="Author Name">
                                 <AdminInput value={form.author_name} onChange={(e) => setForm(prev => ({...prev, author_name: e.target.value}))} placeholder="e.g. tas33n" />
                             </AdminFormField>
@@ -383,6 +405,9 @@ export function AdminBlogPostEditorPage() {
                             <AdminFormField label="Avatar URL">
                                 <AdminInput value={form.author_avatar_url} onChange={(e) => setForm(prev => ({...prev, author_avatar_url: e.target.value}))} placeholder="https://..." />
                             </AdminFormField>
+                            <AdminButton type="button" onClick={saveProfile} disabled={profileSaving}>
+                                <Save className="w-4 h-4 mr-2" /> {profileSaving ? 'Saving Profile…' : 'Save Profile'}
+                            </AdminButton>
                         </div>
                     </div>
 

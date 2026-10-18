@@ -210,6 +210,8 @@ export const extensions = sqliteTable(
   {
     id: text('id').primaryKey(),
     name: text('name').notNull(),
+    moderatorNote: text('moderator_note'),
+    noteSeverity: text('note_severity'),
     slug: text('slug'),
     description: text('description'),
     shortDescription: text('short_description'),

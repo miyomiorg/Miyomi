@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { MoreHorizontal, Share, Edit2, Flag, PlusCircle, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useNavigate } from 'react-router-dom';
+import { useAdmin } from '../hooks/useAdmin';
 
 interface DetailActionsProps {
   targetType: 'app' | 'extensions' | 'guide';
@@ -9,11 +10,23 @@ interface DetailActionsProps {
   targetName: string;
   onReportClick: () => void;
   onShareClick: () => void;
+  onAddClick?: () => void;
 }
 
-export function DetailActions({ targetType, targetId, targetName, onReportClick, onShareClick }: DetailActionsProps) {
+export function DetailActions({ targetType, targetId, targetName, onReportClick, onShareClick, onAddClick }: DetailActionsProps) {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const navigate = useNavigate();
+  const { hasPermission } = useAdmin();
+
+  if (targetType === 'extensions') {
+    const cls = 'inline-flex min-h-11 items-center justify-center gap-1.5 rounded-xl border border-[var(--divider)] bg-[var(--bg-surface)] px-3 py-2 text-sm text-[var(--text-primary)] hover:text-[var(--brand)]';
+    return <div className="flex flex-wrap gap-2" aria-label="Repository actions">
+      <button className={cls} onClick={onShareClick}><Share className="h-4 w-4" /> Share</button>
+      {hasPermission('extensions', 'write') && <button className={cls} onClick={() => navigate(`/admin/extensions/${targetId}/edit`)}><Edit2 className="h-4 w-4" /> Edit</button>}
+      <button className={cls} onClick={onReportClick}><Flag className="h-4 w-4" /> Report</button>
+      {onAddClick && <button className={cls} onClick={onAddClick}><PlusCircle className="h-4 w-4" /> Add</button>}
+    </div>;
+  }
 
   const handleEditClick = () => {
     if (targetType === 'guide') {

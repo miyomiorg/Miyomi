@@ -15,6 +15,7 @@ import { detectGitProvider } from '@/utils/gitProviders';
 import { InstallUrlsInput, type InstallUrlEntry } from '@/components/admin/InstallUrlsInput';
 import { FlagDisplay } from '@/components/FlagDisplay';
 import { SharedExtensionForm } from '@/components/forms/SharedExtensionForm';
+import { RepositoryNote } from '@/components/RepositoryNote';
 
 function slugify(text: string): string {
     return text
@@ -275,6 +276,9 @@ export function AdminExtensionFormPage() {
                 </div>
             </div>
 
+            {id && <div className="mb-4">
+                <RepositoryNote id={id} note={(form as any).moderator_note} severity={(form as any).note_severity} canEdit />
+            </div>}
             <SharedExtensionForm 
                 form={form} 
                 setForm={setForm} 

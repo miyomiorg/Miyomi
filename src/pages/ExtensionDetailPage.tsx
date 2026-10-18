@@ -12,6 +12,9 @@ import { useAccentColor } from '../hooks/useAccentColor';
 import { LoveButton } from '../components/LoveButton';
 import { useExtension } from '../hooks/useExtension';
 import { DetailActions } from '../components/DetailActions';
+import { RepositoryNote } from '../components/RepositoryNote';
+import { RepositoryStatus } from '../components/RepositoryStatus';
+import { useAdmin } from '../hooks/useAdmin';
 import { BackButton } from '../components/BackButton';
 import { ReportModal } from '../components/ReportModal';
 import { TagBadge } from '../components/TagBadge';
@@ -66,6 +69,8 @@ interface ExtensionDetailPageProps {
 }
 
 export function ExtensionDetailPage({ extensionId, onNavigate }: ExtensionDetailPageProps) {
+  const { hasPermission } = useAdmin();
+  const [installOpen, setInstallOpen] = useState(false);
   const { extension, loading: extensionLoading } = useExtension(extensionId);
   const { apps: allApps, loading: appsLoading } = useAppMeta();
 
@@ -463,7 +468,7 @@ export function ExtensionDetailPage({ extensionId, onNavigate }: ExtensionDetail
       <ReportModal isOpen={isReportOpen} onClose={() => setIsReportOpen(false)} targetType="extension" targetId={extension.id} targetName={extension.name} pageUrl={window.location.href} />
 
       {/* Top Bar (Back Button + Actions) */}
-      <div className="flex items-center justify-between mb-6 sm:mb-8">
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-6 sm:mb-8">
         <BackButton onClick={handleBackClick} />
 
         <motion.div
@@ -477,9 +482,15 @@ export function ExtensionDetailPage({ extensionId, onNavigate }: ExtensionDetail
             targetName={extension.name}
             onReportClick={() => setIsReportOpen(true)}
             onShareClick={() => handleShare(extension.name, window.location.href)}
+            onAddClick={inlineActions ? () => setInstallOpen(value => !value) : undefined}
           />
         </motion.div>
       </div>
+
+      {installOpen && <section aria-label="Add repository" className="mb-6 rounded-2xl border border-[var(--divider)] p-4">
+        <h2 className="mb-3 font-semibold">Add / install repository</h2>
+        {stackedActions}
+      </section>}
 
       {/* Header Section */}
       <motion.div
@@ -529,18 +540,10 @@ export function ExtensionDetailPage({ extensionId, onNavigate }: ExtensionDetail
               <LoveButton itemId={extension.id} itemType="extension" fallbackCount={extension.likes || 0} size="lg" />
             </div>
 
-            {extension.devStatus && extension.devStatus !== 'active' && (
-              <div
-                className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold tracking-wide uppercase shadow-sm"
-                style={{
-                  backgroundColor: STATUS_STYLE_MAP[extension.devStatus.toLowerCase()]?.bg || DEFAULT_STATUS_STYLE.bg,
-                  color: STATUS_STYLE_MAP[extension.devStatus.toLowerCase()]?.text || DEFAULT_STATUS_STYLE.text,
-                  border: `1px solid ${STATUS_STYLE_MAP[extension.devStatus.toLowerCase()]?.border || DEFAULT_STATUS_STYLE.border}`
-                }}
-              >
-                {getStatusLabel(extension.devStatus)}
-              </div>
-            )}
+            <div className="flex flex-wrap justify-center gap-2">
+              <RepositoryStatus status={extension.devStatus} />
+              <RepositoryNote id={extension.id} note={extension.moderatorNote} severity={extension.noteSeverity} canEdit={hasPermission('extensions', 'write')} />
+            </div>
 
             {/* Short Description */}
             <p className={`text-[var(--text-secondary)] font-['Inter',sans-serif] text-lg max-w-2xl leading-relaxed ${!extension.shortDescription && !extension.info ? 'line-clamp-3' : ''}`}>

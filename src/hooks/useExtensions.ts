@@ -8,6 +8,8 @@ export function useExtensions(): { extensions: ExtensionData[]; loading: boolean
 
     return (data || []).map((ext: any) => ({
       id: ext.id,
+      moderatorNote: ext.moderator_note,
+      noteSeverity: ext.note_severity,
       slug: ext.slug,
       name: (ext.name || '').trim(),
       info: ext.short_description || ext.description || '',
@@ -48,7 +50,7 @@ export function useExtensions(): { extensions: ExtensionData[]; loading: boolean
   };
 
   const { data: extensions, loading } = useDataCache<ExtensionData[]>(
-    'extensions_list_v1',
+    'extensions_list_v2',
     fetchExtensions,
     { ttl: 1000 * 60 * 10 } // 10 minutes fresh
   );

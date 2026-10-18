@@ -23,6 +23,16 @@ import type {
 
 // ── Public: content ─────────────────────────────────────────────────
 
+export interface AuthorProfile { name: string; role: string; avatar: string }
+export const authorProfileApi = {
+  get: () => http.get<AuthorProfile>('/admin/author-profile'),
+  save: (profile: AuthorProfile) => http.put<AuthorProfile>('/admin/author-profile', profile),
+};
+export const repositoryNotesApi = {
+  save: (id: string, note: string, severity: string) =>
+    http.put(`/admin/extensions/${encodeURIComponent(id)}/note`, { note, severity }),
+};
+
 export const appsApi = {
   list: () => http.get<Tables<'apps'>[]>('/apps'),
   get: (idOrSlug: string) => http.get<Tables<'apps'>>(`/apps/${encodeURIComponent(idOrSlug)}`),

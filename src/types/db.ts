@@ -525,6 +525,8 @@ export type Database = {
       }
       extensions: {
         Row: {
+          moderator_note: string | null
+          note_severity: string | null
           accent_color: string | null
           author: string | null
           auto_url: string | null
@@ -562,6 +564,8 @@ export type Database = {
           website_url: string | null
         }
         Insert: {
+          moderator_note?: string | null
+          note_severity?: string | null
           accent_color?: string | null
           author?: string | null
           auto_url?: string | null
@@ -599,6 +603,8 @@ export type Database = {
           website_url?: string | null
         }
         Update: {
+          moderator_note?: string | null
+          note_severity?: string | null
           accent_color?: string | null
           author?: string | null
           auto_url?: string | null

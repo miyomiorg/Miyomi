@@ -24,7 +24,7 @@ export function TagBadge({ tag, mobile = false, forceFull = false }: TagBadgePro
     }
   })();
 
-  if (forceFull) {
+  if (forceFull || ['pending', 'on hold', 'on_hold', 'on-hold'].includes(tag.toLowerCase())) {
     return (
       <span
         className="px-2 py-0.5 rounded-md text-xs font-['Inter',sans-serif]"

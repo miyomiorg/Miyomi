@@ -23,6 +23,8 @@ export function useExtension(extensionId: string): { extension: ExtensionData | 
         const meta = data.metadata as any;
         setExtension({
           id: data.id,
+          moderatorNote: data.moderator_note,
+          noteSeverity: data.note_severity,
           slug: data.slug || undefined,
           name: data.name,
           info: data.short_description || data.description || '',

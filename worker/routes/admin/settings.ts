@@ -7,6 +7,30 @@ import { sendTelegramText } from '../../lib/telegram.ts';
 
 export const settingsRouter = new Hono<AppEnv>();
 
+// Private, per-account defaults; articles store their own author snapshot.
+settingsRouter.get('/author-profile', requireAdmin(), async (c) => {
+  try {
+    const [row] = await createDb(c.env.DB).select({ value: settings.value }).from(settings)
+      .where(eq(settings.key, `author-profile:${c.get('adminId')!}`)).limit(1);
+    c.header('Cache-Control', 'private, no-store');
+    return ok(c, row?.value ?? { name: '', role: '', avatar: '' });
+  } catch { return fail(c, 500, 'Failed to load author profile'); }
+});
+settingsRouter.put('/author-profile', requireAdmin(), async (c) => {
+  try {
+    const body = await c.req.json();
+    if (!body || typeof body.name !== 'string' || typeof body.role !== 'string' || typeof body.avatar !== 'string' ||
+      body.name.length > 150 || body.role.length > 150 || body.avatar.length > 2048) return fail(c, 400, 'Invalid author profile');
+    if (body.avatar && !/^https?:\/\//i.test(body.avatar)) return fail(c, 400, 'Avatar must be an HTTP(S) URL');
+    const value = { name: body.name.trim(), role: body.role.trim(), avatar: body.avatar.trim() };
+    const updatedBy = c.get('adminId')!;
+    await createDb(c.env.DB).insert(settings).values({ key: `author-profile:${updatedBy}`, value,
+      isSensitive: true, updatedBy, updatedAt: isoNow() }).onConflictDoUpdate({ target: settings.key,
+      set: { value, isSensitive: true, updatedBy, updatedAt: isoNow() } });
+    return ok(c, value);
+  } catch { return fail(c, 500, 'Failed to save author profile'); }
+});
+
 async function logChange(db: ReturnType<typeof createDb>, adminId: string, action: string, details: Record<string, unknown>) {
   await db.insert(adminLogs).values({
     id: crypto.randomUUID(),
