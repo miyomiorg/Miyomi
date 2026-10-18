@@ -32,6 +32,8 @@ binding = "ASSETS"
 binding = "DB"
 database_name = "miyomi-db"
 database_id = "0d70949a-e439-41fc-a0a1-78b99d17b9af"
+# Target for `wrangler d1 migrations apply DB --remote --preview`.
+preview_database_id = "1a95404b-0718-4895-93b3-7d0aaba94baf"
 # Drizzle Kit output directory (see drizzle.config.ts → `out`)
 migrations_dir = "worker/db/drizzle"
 # Local dev persistence (used by `wrangler dev`) lives automatically in
@@ -67,3 +69,16 @@ CF_ZONE_ID = "5eee3237bd70720c0f476fdd25b658ab"
 # Global Telegram chat ids for admin notifications (comma-separated).
 # Admin profile chat ids are appended automatically.
 TELEGRAM_CHAT_IDS = "-1002475434955"
+
+# Worker Previews do not inherit production variables or data bindings.
+# Assets and compatibility settings remain top-level. Cron is production-only.
+[previews.vars]
+SITE_URL = "https://miyomi.app"
+VITE_TURNSTILE_SITE_KEY = "0x4AAAAAAFZcAacXgE2d12i8"
+VITE_DISABLE_TURNSTILE = "false"
+CF_ZONE_ID = ""
+TELEGRAM_CHAT_IDS = ""
+
+[[previews.d1_databases]]
+binding = "DB"
+database_id = "1a95404b-0718-4895-93b3-7d0aaba94baf"
