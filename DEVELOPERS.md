@@ -252,21 +252,22 @@ media itself; see [Media / CDN](#-media--cdn).
 
 Cloudflare branch builds use `npm run build` followed by `npx wrangler preview`.
 The `[previews.vars]` and `[[previews.d1_databases]]` blocks in `wrangler.toml`
-are required: Previews do not inherit production variables or database bindings.
-Previews share the separate `miyomi-preview-db` database, initially empty, rather
-than production content. Apply schema changes before deploying a Preview:
+are required: Previews do not inherit production variables or bindings. Previews
+intentionally bind the production D1 database so UI/behavior changes can be
+validated against real content — they read the same data as production, so be
+careful when testing anything that writes:
 
 ```bash
-npx wrangler d1 migrations apply DB --remote --preview
+npm run build
 npx wrangler preview
 ```
 
-The top-level D1 `preview_database_id` and `previews.d1_databases.database_id`
-must refer to the same database. Assets stay top-level. The warning about Cron
-Triggers is expected because Previews do not run production scheduled jobs.
-Preview secrets are configured separately via `wrangler preview base-config
-secret put`; production secrets are not inherited. Turnstile's configured site
-key also needs to permit the Preview hostname for form testing.
+Assets stay top-level. The warning about Cron Triggers is expected because
+Previews do not run production scheduled jobs. Preview secrets are configured
+separately via `wrangler preview base-config secret put`; production secrets are
+not inherited (admin login, Telegram, Turnstile verification won't work in a
+Preview until those secrets are added). Turnstile's configured site key also
+needs to permit the Preview hostname for form testing.
 
 ---
 
