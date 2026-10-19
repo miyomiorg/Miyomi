@@ -16,6 +16,7 @@ import {
   prepareExtensionPayload,
   setAppGroups,
   setExtensionGroups,
+  snakeToCamel,
   syncAppCompatibility,
   syncExtensionCompatibility,
 } from './content.ts';
@@ -211,9 +212,11 @@ reviewsRouter.post('/suggestions/:id/approve', requireAdmin(), requireResource('
     const [s] = await db.select().from(publicEditSuggestions).where(eq(publicEditSuggestions.id, id)).limit(1);
     if (!s) return fail(c, 404, 'Suggestion not found');
 
-    const data: Record<string, unknown> =
+    // Form/suggestion payloads arrive in snake_case; the prepare* helpers read
+    // camelCase. Convert once so no field is silently dropped on approval.
+    const raw: Record<string, unknown> =
       (body.editedData as Record<string, unknown>) ?? (s.submittedData as Record<string, unknown>) ?? {};
-    const orig: Record<string, unknown> = (s.originalDataSnapshot as Record<string, unknown>) ?? {};
+    const data = snakeToCamel(raw);
 
     if (s.targetType === 'guide') {
       const values: Record<string, unknown> = {
@@ -231,15 +234,33 @@ reviewsRouter.post('/suggestions/:id/approve', requireAdmin(), requireResource('
     }
 
     const isApp = s.targetType === 'app';
-    const { payload, groupIds, manualCompat } = isApp
-      ? prepareAppPayload({ ...data, slug: (data.slug as string) || undefined }, true)
-      : prepareExtensionPayload({ ...data, slug: (data.slug as string) || undefined }, true);
-
-    // Preserve live counters when the edit did not touch them
-    if (orig.likes_count !== undefined && data.likes_count === undefined) payload.likesCount = orig.likes_count;
-    if (orig.download_count !== undefined && data.download_count === undefined) payload.downloadCount = orig.download_count;
-
     const table = isApp ? apps : extensions;
+
+    // Load the live record as the source of truth for fields the edit does not
+    // touch, so an approval that changes only one field never wipes the rest
+    // (logos, links, counters, descriptions, …).
+    const [live] = await db.select().from(table).where(eq(table.id, s.targetId)).limit(1);
+    if (!live) return fail(c, 404, 'Target item not found');
+
+    const merged: Record<string, unknown> = {
+      ...(live as Record<string, unknown>),
+      ...data,
+      // Engagement counters and status are never editable via a public edit —
+      // always keep the live values so likes/downloads/approval never reset.
+      status: live.status,
+      likesCount: live.likesCount,
+      downloadCount: live.downloadCount,
+    };
+    // Preserve undeclared metadata keys (git_provider, dev_status, …) that the
+    // edit form itself never sends, while still applying install_urls changes.
+    if (data.metadata && live.metadata) {
+      merged.metadata = { ...(live.metadata as Record<string, unknown>), ...(data.metadata as Record<string, unknown>) };
+    }
+
+    const { payload, groupIds, manualCompat } = isApp
+      ? prepareAppPayload(merged, true)
+      : prepareExtensionPayload(merged, true);
+
     await db.update(table).set({ ...(payload as object), updatedAt: isoNow() }).where(eq(table.id, s.targetId));
 
     if (groupIds.length > 0 || manualCompat.length > 0) {

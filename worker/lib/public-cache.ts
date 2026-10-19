@@ -7,7 +7,8 @@ function policy(path: string): { ttl: number; query: string[] } | null {
   if (/^\/api\/(apps|extensions)(\/[^/]+(\/compatible)?)?$/.test(path)) return { ttl: 60, query: [] };
   if (/^\/api\/guides(\/[^/]+)?$/.test(path)) return { ttl: 60, query: ['category'] };
   if (path === '/api/faqs') return { ttl: 60, query: [] };
-  if (path === '/api/donations') return { ttl: 60, query: ['limit', 'offset'] };
+  // Donations change via the admin panel and must show new donors immediately,
+  // so they are intentionally excluded from edge caching.
   if (/^\/api\/(blog|settings\/public|notices|themes|donation-settings|groups|contributors)$/.test(path)) {
     return { ttl: 60, query: [] };
   }

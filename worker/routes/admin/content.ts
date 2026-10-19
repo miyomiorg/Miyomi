@@ -24,6 +24,22 @@ export function generateSlug(name: string): string {
     .replace(/^-+|-+$/g, '');
 }
 
+/**
+ * Convert snake_case object keys to camelCase — mirrors the frontend
+ * `contentPayload` adapter so form/submission payloads (which use snake_case)
+ * can be passed straight into prepareAppPayload / prepareExtensionPayload
+ * (which read camelCase). JSON column values are left untouched.
+ */
+export function snakeToCamel(obj: Record<string, unknown> | null | undefined): Record<string, unknown> {
+  const out: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(obj ?? {})) {
+    if (key === '_selectedGroupIds') { out.selectedGroupIds = value; continue; }
+    if (key === '_selectedGroupNames') { out.selectedGroupNames = value; continue; }
+    out[key.replace(/_([a-z])/g, (_, c: string) => c.toUpperCase())] = value;
+  }
+  return out;
+}
+
 /** Port of src/utils/gitProviders.ts → detectGitProvider */
 export function detectGitProvider(url?: string): string {
   if (!url) return 'Other';

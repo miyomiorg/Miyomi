@@ -9,6 +9,7 @@ import {
   prepareExtensionPayload,
   setAppGroups,
   setExtensionGroups,
+  snakeToCamel,
   syncAppCompatibility,
   syncExtensionCompatibility,
   upsertContributor,
@@ -71,8 +72,10 @@ submissionsRouter.post('/:id/approve', requireAdmin(), requireResource('submissi
     const [sub] = await db.select().from(submissions).where(eq(submissions.id, id)).limit(1);
     if (!sub) return fail(c, 404, 'Submission not found');
 
-    const data: Record<string, unknown> =
+    // Submission payloads arrive in snake_case; the prepare* helpers read camelCase.
+    const raw: Record<string, unknown> =
       (body.editedData as Record<string, unknown>) ?? (sub.submittedData as Record<string, unknown>) ?? {};
+    const data = snakeToCamel(raw);
     const adminId = c.get('adminId')!;
 
     async function log(action: string, details: Record<string, unknown>) {
