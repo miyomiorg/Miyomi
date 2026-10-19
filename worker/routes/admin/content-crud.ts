@@ -60,7 +60,9 @@ export function makeContentRouter(kind: ContentKind) {
           !['info', 'warning', 'danger'].includes(body.severity)) return fail(c, 400, 'Invalid repository note');
         const [row] = await createDb(c.env.DB).update(noteTable).set({
           moderatorNote: body.note.trim() || null,
-          noteSeverity: body.note.trim() ? body.severity : null, updatedAt: isoNow(),
+          noteSeverity: body.note.trim() ? body.severity : null,
+          noticeSticky: body.sticky === true,
+          updatedAt: isoNow(),
         }).where(eq(noteTable.id, c.req.param('id'))).returning({ id: noteTable.id });
         if (!row) return fail(c, 404, 'Repository not found');
         return ok(c, row);

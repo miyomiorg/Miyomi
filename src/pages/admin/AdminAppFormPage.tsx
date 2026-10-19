@@ -292,7 +292,7 @@ export function AdminAppFormPage() {
             </div>
 
             {id && <div className="mb-4">
-                <RepositoryNote id={id} note={(form as any).moderator_note} severity={(form as any).note_severity} targetType="app" canEdit />
+                <RepositoryNote id={id} note={(form as any).moderator_note} severity={(form as any).note_severity} sticky={(form as any).notice_sticky} targetType="app" canEdit />
             </div>}
             <SharedAppForm 
                 form={form} 

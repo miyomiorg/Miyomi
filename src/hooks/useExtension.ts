@@ -20,6 +20,7 @@ export function useExtension(extensionId: string): { extension: ExtensionData | 
       id: data.id,
       moderatorNote: data.moderator_note,
       noteSeverity: data.note_severity,
+      noticeSticky: data.notice_sticky,
       slug: data.slug || undefined,
       name: data.name,
       info: data.short_description || data.description || '',

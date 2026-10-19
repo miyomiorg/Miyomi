@@ -277,7 +277,7 @@ export function AdminExtensionFormPage() {
             </div>
 
             {id && <div className="mb-4">
-                <RepositoryNote id={id} note={(form as any).moderator_note} severity={(form as any).note_severity} canEdit />
+                <RepositoryNote id={id} note={(form as any).moderator_note} severity={(form as any).note_severity} sticky={(form as any).notice_sticky} canEdit />
             </div>}
             <SharedExtensionForm 
                 form={form} 

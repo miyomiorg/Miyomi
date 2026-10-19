@@ -164,6 +164,8 @@ export const apps = sqliteTable(
     name: text('name').notNull(),
     moderatorNote: text('moderator_note'),
     noteSeverity: text('note_severity'),
+    /** Per-entry public notice: sticky (always visible) vs dismissible ("x"). */
+    noticeSticky: integer('notice_sticky', { mode: 'boolean' }).notNull().default(false),
     slug: text('slug'),
     description: text('description'),
     shortDescription: text('short_description'),
@@ -214,6 +216,8 @@ export const extensions = sqliteTable(
     name: text('name').notNull(),
     moderatorNote: text('moderator_note'),
     noteSeverity: text('note_severity'),
+    /** Per-entry public notice: sticky (always visible) vs dismissible ("x"). */
+    noticeSticky: integer('notice_sticky', { mode: 'boolean' }).notNull().default(false),
     slug: text('slug'),
     description: text('description'),
     shortDescription: text('short_description'),

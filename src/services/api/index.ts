@@ -29,8 +29,8 @@ export const authorProfileApi = {
   save: (profile: AuthorProfile) => http.put<AuthorProfile>('/admin/author-profile', profile),
 };
 export const repositoryNotesApi = {
-  save: (type: 'apps' | 'extensions', id: string, note: string, severity: string) =>
-    http.put(`/admin/${type}/${encodeURIComponent(id)}/note`, { note, severity }),
+  save: (type: 'apps' | 'extensions', id: string, note: string, severity: string, sticky = false) =>
+    http.put(`/admin/${type}/${encodeURIComponent(id)}/note`, { note, severity, sticky }),
 };
 
 export const appsApi = {

@@ -19,6 +19,7 @@ export function useApp(appId: string): { app: AppData | null; loading: boolean }
       id: data.id,
       moderatorNote: data.moderator_note,
       noteSeverity: data.note_severity,
+      noticeSticky: data.notice_sticky,
       slug: data.slug || undefined,
       name: (data.name || '').trim(),
       description: data.description || '',

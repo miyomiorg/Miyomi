@@ -18,6 +18,7 @@ export interface AppTutorial {
 export interface AppData {
     moderatorNote?: string | null;
     noteSeverity?: string | null;
+    noticeSticky?: boolean;
     id: string;
     slug?: string;
     name: string;
@@ -67,6 +68,7 @@ export interface InstallUrl {
 export interface ExtensionData {
     moderatorNote?: string | null;
     noteSeverity?: string | null;
+    noticeSticky?: boolean;
     id: string;
     slug?: string;
     name: string;

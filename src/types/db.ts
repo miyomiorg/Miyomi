@@ -209,6 +209,7 @@ export type Database = {
           moderator_note: string | null
           name: string
           note_severity: string | null
+          notice_sticky: boolean
           og_image_url: string | null
           platforms: string[] | null
           repo_url: string | null
@@ -246,6 +247,7 @@ export type Database = {
           moderator_note?: string | null
           name: string
           note_severity?: string | null
+          notice_sticky?: boolean
           og_image_url?: string | null
           platforms?: string[] | null
           repo_url?: string | null
@@ -283,6 +285,7 @@ export type Database = {
           moderator_note?: string | null
           name?: string
           note_severity?: string | null
+          notice_sticky?: boolean
           og_image_url?: string | null
           platforms?: string[] | null
           repo_url?: string | null
@@ -533,6 +536,7 @@ export type Database = {
         Row: {
           moderator_note: string | null
           note_severity: string | null
+          notice_sticky: boolean
           accent_color: string | null
           author: string | null
           auto_url: string | null
@@ -572,6 +576,7 @@ export type Database = {
         Insert: {
           moderator_note?: string | null
           note_severity?: string | null
+          notice_sticky?: boolean
           accent_color?: string | null
           author?: string | null
           auto_url?: string | null
@@ -611,6 +616,7 @@ export type Database = {
         Update: {
           moderator_note?: string | null
           note_severity?: string | null
+          notice_sticky?: boolean
           accent_color?: string | null
           author?: string | null
           auto_url?: string | null

@@ -118,9 +118,10 @@ try {
   sqlite.exec(`INSERT INTO extensions (id, name, slug, status) VALUES ('repo', 'Repo', 'repo', 'approved');
     INSERT INTO admins (id, email, totp_secret) VALUES ('mod', 'mod@example.test', 'enrolled');
     INSERT INTO user_roles (id, user_id, role) VALUES ('mod-role', 'mod', 'moderator');`);
-  assert.equal((await request('/api/admin/extensions/repo/note', write({ note: 'Needs review', severity: 'warning' }))).response.status, 200);
+  assert.equal((await request('/api/admin/extensions/repo/note', write({ note: 'Needs review', severity: 'warning', sticky: true }))).response.status, 200);
   const publicRepo = (await (await request('/api/extensions/repo')).response.json()).data;
   assert.equal(publicRepo.moderatorNote, 'Needs review', 'public note should be visible on the public API');
+  assert.equal(publicRepo.noticeSticky, true, 'sticky flag should persist on the note');
   const adminExtList = (await (await request('/api/admin/extensions', auth)).response.json()).data;
   assert.equal(adminExtList.items.find((e: any) => e.id === 'repo')?.moderatorNote, 'Needs review');
   assert.equal((await request('/api/admin/extensions/repo/note', { method: 'PUT', body: JSON.stringify({ note: 'Forged', severity: 'info' }) })).response.status, 401);

@@ -10,6 +10,7 @@ export function useExtensions(): { extensions: ExtensionData[]; loading: boolean
       id: ext.id,
       moderatorNote: ext.moderator_note,
       noteSeverity: ext.note_severity,
+      noticeSticky: ext.notice_sticky,
       slug: ext.slug,
       name: (ext.name || '').trim(),
       info: ext.short_description || ext.description || '',

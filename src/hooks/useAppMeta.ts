@@ -10,6 +10,7 @@ export function useAppMeta(): { apps: AppData[]; loading: boolean } {
       id: app.id,
       moderatorNote: app.moderator_note,
       noteSeverity: app.note_severity,
+      noticeSticky: app.notice_sticky,
       slug: app.slug || undefined,
       name: (app.name || '').trim(),
       shortDescription: app.short_description || app.metadata?.shortDescription,
