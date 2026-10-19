@@ -12,8 +12,7 @@ appsRouter.get('/', async (c) => {
   try {
     const db = createDb(c.env.DB);
     const rows = await db.select().from(apps).where(eq(apps.status, 'approved')).orderBy(asc(apps.name));
-    // Moderator notes are admin/moderator-only — never expose them publicly.
-    return ok(c, rows.map(({ moderatorNote, noteSeverity, ...rest }) => rest));
+    return ok(c, rows);
   } catch (error) {
     console.error('[apps] list failed:', error);
     return fail(c, 500, 'Failed to fetch apps');
@@ -51,8 +50,7 @@ appsRouter.get('/:idOrSlug', async (c) => {
       .where(and(eq(apps.status, 'approved'), cond))
       .limit(1);
     if (!row) return fail(c, 404, 'App not found');
-    const { moderatorNote, noteSeverity, ...publicRow } = row;
-    return ok(c, publicRow);
+    return ok(c, row);
   } catch (error) {
     console.error('[apps] get failed:', error);
     return fail(c, 500, 'Failed to fetch app');

@@ -13,6 +13,8 @@ import { LoveButton } from '../components/LoveButton';
 import { useExtension } from '../hooks/useExtension';
 import { DetailActions } from '../components/DetailActions';
 import { RepositoryStatus } from '../components/RepositoryStatus';
+import { RepositoryNote } from '../components/RepositoryNote';
+import { useAdmin } from '../hooks/useAdmin';
 import { BackButton } from '../components/BackButton';
 import { ReportModal } from '../components/ReportModal';
 import { TagBadge } from '../components/TagBadge';
@@ -68,6 +70,7 @@ interface ExtensionDetailPageProps {
 }
 
 export function ExtensionDetailPage({ extensionId, onNavigate }: ExtensionDetailPageProps) {
+  const { hasPermission } = useAdmin();
   const [installOpen, setInstallOpen] = useState(false);
   const { extension, loading: extensionLoading } = useExtension(extensionId);
   const { apps: allApps, loading: appsLoading } = useAppMeta();
@@ -540,6 +543,7 @@ export function ExtensionDetailPage({ extensionId, onNavigate }: ExtensionDetail
 
             <div className="flex flex-wrap justify-center gap-2">
               <RepositoryStatus status={extension.devStatus} />
+              <RepositoryNote id={extension.id} note={extension.moderatorNote} severity={extension.noteSeverity} canEdit={hasPermission('extensions', 'write')} />
             </div>
 
             {/* Short Description */}
