@@ -1,125 +1,68 @@
-import React, { useState } from 'react';
-import { MoreHorizontal, Share, Edit2, Flag, PlusCircle, X } from 'lucide-react';
-import { motion, AnimatePresence } from 'motion/react';
+import { Share, Edit2, Flag, PlusCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAdmin } from '../hooks/useAdmin';
 
 interface DetailActionsProps {
-  targetType: 'app' | 'extensions' | 'guide';
-  targetId: string;
-  targetName: string;
-  onReportClick: () => void;
-  onShareClick: () => void;
-  onAddClick?: () => void;
+    targetType: 'app' | 'extensions' | 'guide';
+    targetId: string;
+    targetName: string;
+    onReportClick: () => void;
+    onShareClick: () => void;
+    onAddClick?: () => void;
 }
 
+/**
+ * Direct detail-page actions (Share · Edit · Report · Add) shown inline for
+ * every target type — no more three-dot menu. On mobile the labels collapse to
+ * icon-only buttons; desktop keeps the icon + label in the same order.
+ */
 export function DetailActions({ targetType, targetId, targetName, onReportClick, onShareClick, onAddClick }: DetailActionsProps) {
-  const [dropdownOpen, setDropdownOpen] = useState(false);
-  const navigate = useNavigate();
-  const { hasPermission } = useAdmin();
+    const navigate = useNavigate();
+    const { hasPermission } = useAdmin();
 
-  if (targetType === 'extensions') {
-    const cls = 'inline-flex min-h-11 items-center justify-center gap-1.5 rounded-xl border border-[var(--divider)] bg-[var(--bg-surface)] px-3 py-2 text-sm text-[var(--text-primary)] hover:text-[var(--brand)]';
-    return <div className="flex flex-wrap gap-2" aria-label="Repository actions">
-      <button className={cls} onClick={onShareClick}><Share className="h-4 w-4" /> Share</button>
-      {hasPermission('extensions', 'write') && <button className={cls} onClick={() => navigate(`/admin/extensions/${targetId}/edit`)}><Edit2 className="h-4 w-4" /> Edit</button>}
-      <button className={cls} onClick={onReportClick}><Flag className="h-4 w-4" /> Report</button>
-      {onAddClick && <button className={cls} onClick={onAddClick}><PlusCircle className="h-4 w-4" /> Add</button>}
-    </div>;
-  }
+    const isExtension = targetType === 'extensions';
+    // Extensions edit the repo in the admin panel (requires write permission).
+    // Apps/guides reuse the public "suggest an edit" flow, available to everyone.
+    const canEdit = isExtension ? hasPermission('extensions', 'write') : true;
 
-  const handleEditClick = () => {
-    if (targetType === 'guide') {
-      navigate(`/submit-guide?editId=${targetId}`);
-    } else {
-      const routeType = targetType === 'app' ? 'software' : 'extensions';
-      navigate(`/contribute?type=${routeType}&mode=edit&id=${targetId}&step=form`);
-    }
-    setDropdownOpen(false);
-  };
+    const editPath = () => {
+        if (isExtension) return `/admin/extensions/${targetId}/edit`;
+        if (targetType === 'guide') return `/submit-guide?editId=${targetId}`;
+        return `/contribute?type=software&mode=edit&id=${targetId}&step=form`;
+    };
 
-  const handleAddNewClick = () => {
-    if (targetType === 'guide') {
-      navigate(`/submit-guide`);
-    } else {
-      navigate(`/contribute?step=select`);
-    }
-    setDropdownOpen(false);
-  };
+    const addNewPath = () => (targetType === 'guide' ? '/submit-guide' : '/contribute?step=select');
 
-  const isMobile = typeof window !== 'undefined' && window.innerWidth < 1024;
+    const buttonClass =
+        'inline-flex min-h-11 items-center justify-center gap-1.5 rounded-xl border border-[var(--divider)] bg-[var(--bg-surface)] px-3 py-2 text-sm text-[var(--text-primary)] hover:text-[var(--brand)] transition-colors';
 
-  const baseButtonClass = "flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all border border-[var(--divider)] bg-[var(--bg-surface)] hover:bg-[var(--bg-elev-1)] hover:border-[var(--brand)] hover:text-[var(--brand)] text-[var(--text-secondary)] shadow-sm";
-  const iconButtonClass = "flex items-center justify-center w-10 h-10 rounded-full border border-[var(--divider)] bg-[var(--bg-surface)] hover:bg-[var(--bg-elev-1)] hover:border-[var(--brand)] hover:text-[var(--brand)] text-[var(--text-secondary)] shadow-sm transition-all";
-
-  if (isMobile) {
     return (
-      <div className="flex items-center gap-2 relative">
-        <button 
-          onClick={() => setDropdownOpen(!dropdownOpen)} 
-          className={iconButtonClass}
-          aria-label="More actions"
-        >
-          <MoreHorizontal className="w-5 h-5" />
-        </button>
-        <button 
-          onClick={onShareClick} 
-          className={iconButtonClass}
-          aria-label="Share"
-        >
-          <Share className="w-5 h-5" />
-        </button>
-
-        <AnimatePresence>
-          {dropdownOpen && (
-            <>
-              <motion.div 
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className="fixed inset-0 z-40" 
-                onClick={() => setDropdownOpen(false)} 
-              />
-              <motion.div 
-                initial={{ opacity: 0, y: -10, scale: 0.95 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: -10, scale: 0.95 }}
-                className="absolute top-12 right-12 mt-1 w-48 rounded-2xl border border-[var(--divider)] bg-[var(--bg-surface)]/80 backdrop-blur-xl shadow-xl z-50 overflow-hidden"
-              >
-                <div className="flex flex-col py-2">
-                  <button onClick={handleEditClick} className="flex items-center gap-3 px-4 py-3 text-sm font-medium text-[var(--text-primary)] hover:bg-[var(--bg-elev-1)] hover:text-[var(--brand)] transition-colors">
-                    <Edit2 className="w-4 h-4" /> Edit
-                  </button>
-                  <button onClick={() => { onReportClick(); setDropdownOpen(false); }} className="flex items-center gap-3 px-4 py-3 text-sm font-medium text-[var(--text-primary)] hover:bg-[var(--bg-elev-1)] hover:text-[var(--brand)] transition-colors">
-                    <Flag className="w-4 h-4" /> Report
-                  </button>
-                  <div className="h-px bg-[var(--divider)] my-1 mx-4" />
-                  <button onClick={handleAddNewClick} className="flex items-center gap-3 px-4 py-3 text-sm font-medium text-[var(--text-primary)] hover:bg-[var(--bg-elev-1)] hover:text-[var(--brand)] transition-colors">
-                    <PlusCircle className="w-4 h-4" /> Add New
-                  </button>
-                </div>
-              </motion.div>
-            </>
-          )}
-        </AnimatePresence>
-      </div>
+        <div className="flex flex-wrap items-center gap-2" aria-label={`${targetName} actions`}>
+            <button type="button" className={buttonClass} onClick={onShareClick} aria-label="Share">
+                <Share className="h-4 w-4" />
+                <span className="hidden sm:inline">Share</span>
+            </button>
+            {canEdit && (
+                <button type="button" className={buttonClass} onClick={() => navigate(editPath())} aria-label="Edit">
+                    <Edit2 className="h-4 w-4" />
+                    <span className="hidden sm:inline">Edit</span>
+                </button>
+            )}
+            <button type="button" className={buttonClass} onClick={onReportClick} aria-label="Report">
+                <Flag className="h-4 w-4" />
+                <span className="hidden sm:inline">Report</span>
+            </button>
+            {onAddClick ? (
+                <button type="button" className={buttonClass} onClick={onAddClick} aria-label="Add">
+                    <PlusCircle className="h-4 w-4" />
+                    <span className="hidden sm:inline">Add</span>
+                </button>
+            ) : (
+                <button type="button" className={buttonClass} onClick={() => navigate(addNewPath())} aria-label="Add New">
+                    <PlusCircle className="h-4 w-4" />
+                    <span className="hidden sm:inline">Add New</span>
+                </button>
+            )}
+        </div>
     );
-  }
-
-  return (
-    <div className="flex items-center gap-3">
-      <button onClick={handleEditClick} className={baseButtonClass}>
-        <Edit2 className="w-4 h-4" /> Edit
-      </button>
-      <button onClick={onReportClick} className={baseButtonClass}>
-        <Flag className="w-4 h-4" /> Report
-      </button>
-      <button onClick={handleAddNewClick} className={baseButtonClass}>
-        <PlusCircle className="w-4 h-4" /> Add New
-      </button>
-      <button onClick={onShareClick} className={baseButtonClass}>
-        <Share className="w-4 h-4" /> Share
-      </button>
-    </div>
-  );
 }
