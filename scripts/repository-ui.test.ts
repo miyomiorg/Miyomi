@@ -30,10 +30,10 @@ it('exposes direct share/report/add actions and only grants Edit with write perm
     targetType: 'extensions', targetId: 'repo', targetName: 'Repo', onShareClick: share, onReportClick: report, onAddClick: add,
   }));
   await render(element());
-  expect([...container.querySelectorAll('button')].map(b => b.textContent?.trim())).toEqual(['Share', 'Report', 'Add']);
+  expect([...container.querySelectorAll('button')].map(b => b.textContent?.trim())).toEqual(['Add', 'Report', 'Share']);
   await act(async () => { for (const button of container.querySelectorAll('button')) button.click(); });
   expect(share).toHaveBeenCalledTimes(1); expect(report).toHaveBeenCalledTimes(1); expect(add).toHaveBeenCalledTimes(1);
   permission.write = true;
   await act(async () => root.render(element()));
-  expect([...container.querySelectorAll('button')].map(b => b.textContent?.trim())).toEqual(['Share', 'Edit', 'Report', 'Add']);
+  expect([...container.querySelectorAll('button')].map(b => b.textContent?.trim())).toEqual(['Add', 'Edit', 'Report', 'Share']);
 });

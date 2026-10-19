@@ -1,6 +1,8 @@
+import { useEffect, useState, type ReactNode } from 'react';
 import { Share, Edit2, Flag, PlusCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAdmin } from '../hooks/useAdmin';
+import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip';
 
 interface DetailActionsProps {
     targetType: 'app' | 'extensions' | 'guide';
@@ -12,13 +14,31 @@ interface DetailActionsProps {
 }
 
 /**
- * Direct detail-page actions (Share · Edit · Report · Add) shown inline for
+ * Direct detail-page actions (Add · Edit · Report · Share) shown inline for
  * every target type — no more three-dot menu. On mobile the labels collapse to
- * icon-only buttons; desktop keeps the icon + label in the same order.
+ * icon-only buttons; desktop keeps the icon + label in the same order. The
+ * label is also surfaced as a tooltip, but only while the icon-only state is
+ * active (so desktop never shows a redundant tooltip).
  */
 export function DetailActions({ targetType, targetId, targetName, onReportClick, onShareClick, onAddClick }: DetailActionsProps) {
     const navigate = useNavigate();
     const { hasPermission } = useAdmin();
+
+    // Track the "icon-only" state (below the `sm` breakpoint) so the label
+    // tooltip only appears when the inline label is actually hidden.
+    const [iconOnly, setIconOnly] = useState(
+        () =>
+            typeof window !== 'undefined' &&
+            typeof window.matchMedia === 'function' &&
+            window.matchMedia('(max-width: 639px)').matches,
+    );
+    useEffect(() => {
+        if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return;
+        const mql = window.matchMedia('(max-width: 639px)');
+        const onChange = () => setIconOnly(mql.matches);
+        mql.addEventListener('change', onChange);
+        return () => mql.removeEventListener('change', onChange);
+    }, []);
 
     const isExtension = targetType === 'extensions';
     // Extensions edit the repo in the admin panel (requires write permission).
@@ -33,36 +53,50 @@ export function DetailActions({ targetType, targetId, targetName, onReportClick,
 
     const addNewPath = () => (targetType === 'guide' ? '/submit-guide' : '/contribute?step=select');
 
+    // Match the muted Back-button styling (text-secondary → brand on hover).
     const buttonClass =
-        'inline-flex min-h-11 items-center justify-center gap-1.5 rounded-xl border border-[var(--divider)] bg-[var(--bg-surface)] px-3 py-2 text-sm text-[var(--text-primary)] hover:text-[var(--brand)] transition-colors';
+        'inline-flex min-h-11 items-center justify-center gap-1.5 rounded-xl border border-[var(--divider)] bg-[var(--bg-surface)] px-3 py-2 text-sm text-[var(--text-secondary)] hover:text-[var(--brand)] transition-colors';
+
+    const ActionButton = ({ label, onClick, children }: { label: string; onClick: () => void; children: ReactNode }) => {
+        const button = (
+            <button type="button" className={buttonClass} onClick={onClick} aria-label={label}>
+                {children}
+                <span className="hidden sm:inline">{label}</span>
+            </button>
+        );
+
+        if (!iconOnly) return button;
+
+        return (
+            <Tooltip>
+                <TooltipTrigger asChild>{button}</TooltipTrigger>
+                <TooltipContent side="bottom">{label}</TooltipContent>
+            </Tooltip>
+        );
+    };
 
     return (
         <div className="flex flex-wrap items-center gap-2" aria-label={`${targetName} actions`}>
-            <button type="button" className={buttonClass} onClick={onShareClick} aria-label="Share">
-                <Share className="h-4 w-4" />
-                <span className="hidden sm:inline">Share</span>
-            </button>
-            {canEdit && (
-                <button type="button" className={buttonClass} onClick={() => navigate(editPath())} aria-label="Edit">
-                    <Edit2 className="h-4 w-4" />
-                    <span className="hidden sm:inline">Edit</span>
-                </button>
-            )}
-            <button type="button" className={buttonClass} onClick={onReportClick} aria-label="Report">
-                <Flag className="h-4 w-4" />
-                <span className="hidden sm:inline">Report</span>
-            </button>
             {onAddClick ? (
-                <button type="button" className={buttonClass} onClick={onAddClick} aria-label="Add">
+                <ActionButton label="Add" onClick={onAddClick}>
                     <PlusCircle className="h-4 w-4" />
-                    <span className="hidden sm:inline">Add</span>
-                </button>
+                </ActionButton>
             ) : (
-                <button type="button" className={buttonClass} onClick={() => navigate(addNewPath())} aria-label="Add New">
+                <ActionButton label="Add New" onClick={() => navigate(addNewPath())}>
                     <PlusCircle className="h-4 w-4" />
-                    <span className="hidden sm:inline">Add New</span>
-                </button>
+                </ActionButton>
             )}
+            {canEdit && (
+                <ActionButton label="Edit" onClick={() => navigate(editPath())}>
+                    <Edit2 className="h-4 w-4" />
+                </ActionButton>
+            )}
+            <ActionButton label="Report" onClick={onReportClick}>
+                <Flag className="h-4 w-4" />
+            </ActionButton>
+            <ActionButton label="Share" onClick={onShareClick}>
+                <Share className="h-4 w-4" />
+            </ActionButton>
         </div>
     );
 }
