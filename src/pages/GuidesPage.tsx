@@ -1,11 +1,10 @@
-import React, { useEffect, useState, useRef, useMemo } from 'react';
-import { BookOpen, Download, Settings, HelpCircle, ChevronDown, ArrowRight, Sparkles, Search, Clock, FileText } from 'lucide-react';
+import { useEffect, useState, useRef, useMemo } from 'react';
+import { BookOpen, Download, Settings, HelpCircle, ArrowRight, Search, Clock, FileText } from 'lucide-react';
 import { useLocation, useNavigationType } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
-import { dataService } from '../services/dataService';
-import type { GuideCategoryData } from '../types/data';
-import { DevBanner } from '@/components/DevBanner';
-import { settingsApi } from '@/services/api';
+import { useGuideCategories } from '@/hooks/useGuideCategories';
+import { usePublicSettings } from '@/hooks/usePublicSettings';
+import { Skeleton } from '@/components/ui/skeleton';
 
 interface GuidesPageProps {
   onNavigate?: (path: string) => void;
@@ -17,16 +16,16 @@ export function GuidesPage({ onNavigate }: GuidesPageProps) {
   const location = useLocation();
   const navigationType = useNavigationType();
   const scrollContainerRef = useRef<HTMLDivElement>(null);
-  const [guideCategories, setGuideCategories] = useState<GuideCategoryData[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const { categories: guideCategories, loading } = useGuideCategories();
+  const { settings } = usePublicSettings();
   const [searchQuery, setSearchQuery] = useState('');
   const [activeCategoryId, setActiveCategoryId] = useState<string>('all');
   const [isSearchFocused, setIsSearchFocused] = useState(false);
   const searchContainerRef = useRef<HTMLDivElement>(null);
-
-  const [noticeEnabled, setNoticeEnabled] = useState(false);
-  const [noticeContent, setNoticeContent] = useState('');
   const [noticeDismissed, setNoticeDismissed] = useState(false);
+
+  const noticeEnabled = settings?.guide_notice_enabled === 'true' || settings?.guide_notice_enabled === true;
+  const noticeContent = typeof settings?.guide_notice_content === 'string' ? settings.guide_notice_content : '';
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -39,39 +38,20 @@ export function GuidesPage({ onNavigate }: GuidesPageProps) {
   }, []);
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const categories = await dataService.getGuideCategories();
-        setGuideCategories(categories);
+    if (navigationType === 'POP' && location.state?.activeCategoryId) {
+      setActiveCategoryId(location.state.activeCategoryId);
+      return;
+    }
 
-        // Fetch notice settings
-        const settings = await settingsApi.public();
-        if (settings.guide_notice_enabled === 'true' || settings.guide_notice_enabled === true) {
-          setNoticeEnabled(true);
-          setNoticeContent(settings.guide_notice_content || '');
-        }
-
-        if (navigationType === 'POP' && location.state?.activeCategoryId) {
-          setActiveCategoryId(location.state.activeCategoryId);
-        } else {
-          try {
-            const saved = localStorage.getItem(STORAGE_KEY);
-            if (saved) {
-              const parsed = JSON.parse(saved);
-              if (parsed.activeCategoryId) setActiveCategoryId(parsed.activeCategoryId);
-            }
-          } catch (e) {
-            console.error('Failed to restore guides state:', e);
-          }
-        }
-      } catch (error) {
-        console.error('Failed to fetch guide categories:', error);
-      } finally {
-        setIsLoading(false);
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed.activeCategoryId) setActiveCategoryId(parsed.activeCategoryId);
       }
-    };
-
-    fetchData();
+    } catch (e) {
+      console.error('Failed to restore guides state:', e);
+    }
   }, [navigationType, location.state]);
 
   const iconMap = {
@@ -82,17 +62,17 @@ export function GuidesPage({ onNavigate }: GuidesPageProps) {
   } as const;
 
   useEffect(() => {
-    if (!isLoading) {
+    if (!loading) {
       try {
         localStorage.setItem(STORAGE_KEY, JSON.stringify({ activeCategoryId }));
       } catch (e) {
         console.error('Failed to save guides state:', e);
       }
     }
-  }, [activeCategoryId, isLoading]);
+  }, [activeCategoryId, loading]);
 
   useEffect(() => {
-    if (navigationType === 'POP' && location.state?.scrollPosition && !isLoading) {
+    if (navigationType === 'POP' && location.state?.scrollPosition && !loading) {
       setTimeout(() => {
         window.scrollTo({
           top: location.state.scrollPosition,
@@ -100,7 +80,7 @@ export function GuidesPage({ onNavigate }: GuidesPageProps) {
         });
       }, 0);
     }
-  }, [navigationType, location.state, isLoading]);
+  }, [navigationType, location.state, loading]);
 
   const handleGuideClick = (slug: string) => {
     const state = {
@@ -130,21 +110,12 @@ export function GuidesPage({ onNavigate }: GuidesPageProps) {
     });
   }, [guideCategories, searchQuery, activeCategoryId]);
 
-  if (isLoading) {
-    return (
-      <div className="max-w-6xl mx-auto flex items-center justify-center min-h-[50vh]">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[var(--brand)]"></div>
-      </div>
-    );
-  }
-
   return (
-    <div className="max-w-6xl mx-auto" ref={scrollContainerRef}>
+    <div className="max-w-7xl mx-auto" ref={scrollContainerRef}>
       {/* Notice Banner */}
       {noticeEnabled && noticeContent && !noticeDismissed && (
         <div className="mb-6 relative group">
           <div dangerouslySetInnerHTML={{ __html: noticeContent }} />
-          {/* We assume the user's raw HTML might have a dismiss button, but we can overlay a reliable close handler on the whole box or inject a click handler if needed. We'll rely on the user's HTML and just render it. If they have a button, we can capture clicks if we wanted to, or provide a wrapper dismiss. */}
           <button
             onClick={() => setNoticeDismissed(true)}
             className="absolute top-3 right-4 p-1 rounded-md transition-colors hover:bg-[var(--bg-elev-2)] text-[var(--text-secondary)] opacity-0 group-hover:opacity-100"
@@ -155,128 +126,145 @@ export function GuidesPage({ onNavigate }: GuidesPageProps) {
         </div>
       )}
 
-      {/* Hero & Search Section */}
-      <div className="mb-4 sm:mb-8 relative text-center">
-        {/* Decorative background glow */}
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[80%] max-w-2xl h-32 bg-gradient-to-b from-[var(--brand)]/10 to-transparent rounded-[100%] blur-3xl opacity-60 pointer-events-none -z-10"></div>
-
-        <div className="py-6 sm:py-10">
+      {/* Header */}
+      <div className="mb-6 sm:mb-8">
+        <div className="flex items-center gap-3">
           <h1
-            className="text-[var(--text-primary)] font-['Poppins',sans-serif] mb-3"
+            className="text-[var(--text-primary)] font-['Poppins',sans-serif]"
             style={{ fontSize: 'clamp(28px, 5vw, 40px)', lineHeight: '1.2', fontWeight: 700 }}
           >
-            How can we help you?
+            Guides
           </h1>
+        </div>
+        <p className="text-[var(--text-secondary)] font-['Inter',sans-serif]" style={{ fontSize: '16px' }}>
+          Step-by-step tutorials for setting up and using your favorite apps.
+        </p>
+      </div>
 
-          <p className="text-[var(--text-secondary)] font-['Inter',sans-serif] max-w-2xl mx-auto mb-6" style={{ fontSize: '16px', lineHeight: '1.5' }}>
-            Explore step-by-step tutorials for setting up and using your favorite apps.
-          </p>
+      {/* Search */}
+      <div className="mb-4 sm:mb-5 relative" ref={searchContainerRef}>
+        <div className="relative">
+          <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-secondary)] pointer-events-none flex-shrink-0" />
+          <input
+            type="text"
+            className="w-full pl-8 pr-4 py-2 mt-1 bg-[var(--bg-surface)] border border-[var(--divider)] rounded-xl text-[var(--text-primary)] placeholder:text-[var(--text-secondary)] focus:outline-none focus:border-[var(--brand)] transition-colors font-['Inter',sans-serif] text-sm"
+            placeholder="Search guides by title, summary, or keywords..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            onFocus={() => setIsSearchFocused(true)}
+          />
 
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-8">
-            {/* The "Write a Guide" button was moved to the bottom Quick Links section */}
-          </div>
-
-          {/* Search Bar with Auto-Suggest Dropdown */}
-          <div className="max-w-2xl mx-auto relative group" ref={searchContainerRef}>
-            <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none z-10 h-[56px]">
-              <Search className="h-5 w-5 text-[var(--text-secondary)] group-focus-within:text-[var(--brand)] transition-colors" />
-            </div>
-            <input
-              type="text"
-              className="w-full bg-[var(--bg-surface)] border-2 border-[var(--divider)] focus:border-[var(--brand)] text-[var(--text-primary)] font-['Inter',sans-serif] rounded-2xl h-[56px] pl-12 pr-4 shadow-sm focus:shadow-md transition-all outline-none relative z-10"
-              placeholder="Search guides, tutorials, or keywords..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              onFocus={() => setIsSearchFocused(true)}
-            />
-
-            {/* Auto-suggestion Dropdown */}
-            <AnimatePresence>
-              {isSearchFocused && searchQuery.length > 0 && (
-                <motion.div
-                  initial={{ opacity: 0, y: -10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -10 }}
-                  transition={{ duration: 0.15 }}
-                  className="absolute top-[64px] left-0 right-0 bg-[var(--bg-surface)] border border-[var(--divider)] rounded-xl shadow-xl z-50 overflow-hidden"
-                >
-                  {filteredGuides.length > 0 ? (
-                    <div className="max-h-[300px] overflow-y-auto">
-                      {filteredGuides.slice(0, 5).map((guide) => (
-                        <button
-                          key={guide.id}
-                          onClick={() => {
-                            setSearchQuery('');
-                            setIsSearchFocused(false);
-                            handleGuideClick(guide.slug);
-                          }}
-                          className="w-full text-left px-4 py-3 flex items-center gap-3 hover:bg-[var(--chip-bg)] transition-colors border-b border-[var(--divider)] last:border-b-0"
-                        >
-                          <FileText className="w-4 h-4 text-[var(--text-secondary)] flex-shrink-0" />
-                          <div className="flex-1 min-w-0">
-                            <div className="text-sm font-medium text-[var(--text-primary)] truncate font-['Inter',sans-serif]">
-                              {guide.title}
-                            </div>
-                            <div className="text-xs text-[var(--text-secondary)] font-['Inter',sans-serif] mt-0.5">
-                              {guide.categoryObj.title}
-                            </div>
+          {/* Auto-suggestion Dropdown */}
+          <AnimatePresence>
+            {isSearchFocused && searchQuery.length > 0 && (
+              <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ duration: 0.15 }}
+                className="absolute top-full left-0 right-0 mt-2 bg-[var(--bg-surface)] border border-[var(--divider)] rounded-xl shadow-xl z-50 overflow-hidden"
+              >
+                {filteredGuides.length > 0 ? (
+                  <div className="max-h-[300px] overflow-y-auto">
+                    {filteredGuides.slice(0, 5).map((guide) => (
+                      <button
+                        key={guide.id}
+                        onClick={() => {
+                          setSearchQuery('');
+                          setIsSearchFocused(false);
+                          handleGuideClick(guide.slug);
+                        }}
+                        className="group w-full text-left px-4 py-3 flex items-center gap-3 hover:bg-[var(--chip-bg)] transition-colors border-b border-[var(--divider)] last:border-b-0"
+                      >
+                        <FileText className="w-4 h-4 text-[var(--text-secondary)] flex-shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <div className="text-sm font-medium text-[var(--text-primary)] truncate font-['Inter',sans-serif]">
+                            {guide.title}
                           </div>
-                          <ArrowRight className="w-4 h-4 text-[var(--brand)] opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" />
-                        </button>
-                      ))}
-                      {filteredGuides.length > 5 && (
-                        <div className="px-4 py-2 text-xs text-center text-[var(--text-secondary)] font-medium bg-[var(--bg-elev-1)]">
-                          View {filteredGuides.length - 5} more matching guides below
+                          <div className="text-xs text-[var(--text-secondary)] font-['Inter',sans-serif] mt-0.5">
+                            {guide.categoryObj.title}
+                          </div>
                         </div>
-                      )}
-                    </div>
-                  ) : (
-                    <div className="px-4 py-6 text-sm text-center text-[var(--text-secondary)] font-['Inter',sans-serif]">
-                      No results found for "{searchQuery}"
-                    </div>
-                  )}
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
+                        <ArrowRight className="w-4 h-4 text-[var(--brand)] opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" />
+                      </button>
+                    ))}
+                    {filteredGuides.length > 5 && (
+                      <div className="px-4 py-2 text-xs text-center text-[var(--text-secondary)] font-medium bg-[var(--bg-elev-1)]">
+                        View {filteredGuides.length - 5} more matching guides below
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="px-4 py-6 text-sm text-center text-[var(--text-secondary)] font-['Inter',sans-serif]">
+                    No results found for "{searchQuery}"
+                  </div>
+                )}
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
       </div>
 
-      {/* Navigation Pills */}
-      <div className="mb-6 sticky top-0 z-20 bg-[var(--bg-page)]/80 backdrop-blur-xl py-3 -mx-4 px-4 sm:mx-0 sm:px-0 border-b border-[var(--divider)] shadow-sm">
-        <div className="flex overflow-x-auto scrollbar-hide sm:flex-wrap sm:justify-center sm:overflow-visible gap-2 pb-1 sm:pb-0">
-          <button
-            onClick={() => setActiveCategoryId('all')}
-            className={`flex-shrink-0 px-4 py-2 rounded-full font-['Inter',sans-serif] text-sm font-medium transition-all ${activeCategoryId === 'all'
+      {/* Categories */}
+      <div className="mb-6">
+        {loading && guideCategories.length === 0 ? (
+          <div className="flex gap-2 overflow-hidden">
+            {[1, 2, 3, 4].map((i) => (
+              <Skeleton key={i} className="h-9 w-24 rounded-full flex-shrink-0" />
+            ))}
+          </div>
+        ) : (
+          <div className="flex overflow-x-auto scrollbar-hide sm:flex-wrap gap-2 pb-1 sm:pb-0">
+            <button
+              onClick={() => setActiveCategoryId('all')}
+              className={`flex-shrink-0 px-4 py-2 rounded-full font-['Inter',sans-serif] text-sm font-medium transition-all ${activeCategoryId === 'all'
                 ? 'bg-[var(--brand)] text-white shadow-md'
                 : 'bg-[var(--bg-surface)] text-[var(--text-secondary)] hover:bg-[var(--chip-bg)] hover:text-[var(--text-primary)] border border-[var(--divider)]'
-              }`}
-          >
-            All Guides ({totalGuides})
-          </button>
-
-          {guideCategories.map((category) => (
-            <button
-              key={category.id}
-              onClick={() => setActiveCategoryId(category.id)}
-              className={`flex-shrink-0 flex items-center gap-2 px-4 py-2 rounded-full font-['Inter',sans-serif] text-sm font-medium transition-all ${activeCategoryId === category.id
-                  ? 'bg-[var(--brand)] text-white shadow-md'
-                  : 'bg-[var(--bg-surface)] text-[var(--text-secondary)] hover:bg-[var(--chip-bg)] hover:text-[var(--text-primary)] border border-[var(--divider)]'
                 }`}
             >
-              {category.title}
-              <span className={`inline-flex items-center justify-center px-1.5 py-0.5 rounded text-[10px] ${activeCategoryId === category.id ? 'bg-white/20 text-white' : 'bg-[var(--bg-elev-1)] text-[var(--text-secondary)]'
-                }`}>
-                {category.guides.length}
-              </span>
+              All Guides ({totalGuides})
             </button>
-          ))}
-        </div>
+
+            {guideCategories.map((category) => (
+              <button
+                key={category.id}
+                onClick={() => setActiveCategoryId(category.id)}
+                className={`flex-shrink-0 flex items-center gap-2 px-4 py-2 rounded-full font-['Inter',sans-serif] text-sm font-medium transition-all ${activeCategoryId === category.id
+                  ? 'bg-[var(--brand)] text-white shadow-md'
+                  : 'bg-[var(--bg-surface)] text-[var(--text-secondary)] hover:bg-[var(--chip-bg)] hover:text-[var(--text-primary)] border border-[var(--divider)]'
+                  }`}
+              >
+                {category.title}
+                <span className={`inline-flex items-center justify-center px-1.5 py-0.5 rounded text-[10px] ${activeCategoryId === category.id ? 'bg-white/20 text-white' : 'bg-[var(--bg-elev-1)] text-[var(--text-secondary)]'
+                  }`}>
+                  {category.guides.length}
+                </span>
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Guide Cards Grid */}
       <div className="mb-16">
-        {filteredGuides.length > 0 ? (
+        {loading ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {[1, 2, 3, 4, 5, 6].map((i) => (
+              <div key={i} className="rounded-2xl border p-6 space-y-4" style={{ borderColor: 'var(--divider)' }}>
+                <div className="flex items-center gap-3">
+                  <Skeleton className="w-10 h-10 rounded-xl" />
+                  <Skeleton className="h-3 w-24" />
+                </div>
+                <Skeleton className="h-5 w-3/4" />
+                <Skeleton className="h-4 w-full" />
+                <Skeleton className="h-4 w-5/6" />
+                <div className="pt-4 border-t" style={{ borderColor: 'var(--divider)' }}>
+                  <Skeleton className="h-3 w-20" />
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : filteredGuides.length > 0 ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredGuides.map((guide, index) => {
               const Icon = iconMap[guide.categoryObj.icon] || FileText;

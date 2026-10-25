@@ -2,11 +2,11 @@ import { Plus, Package, Star, Twitter, MessageSquare, Facebook, Search, Youtube,
 import { Button } from '../components/Button';
 import React, { useState, useEffect, useRef } from 'react';
 import { useAppMeta } from '../hooks/useAppMeta';
+import { useExtensions } from '../hooks/useExtensions';
+import { useGuideCategories } from '../hooks/useGuideCategories';
 import { useFeedbackState } from '../hooks/useFeedbackState';
 import { motion } from 'motion/react';
 import { useSeasonalAsset } from '../hooks/useSeasonalAsset';
-import { dataService } from '../services/dataService';
-import type { ExtensionData, GuideCategoryData } from '../types/data';
 import { DiscordIcon } from '../components/DiscordIcon';
 import { TelegramIcon } from '../components/TelegramIcon';
 import { useGlobalSearch } from '../hooks/useGlobalSearch';
@@ -17,27 +17,16 @@ interface HomePageProps {
 
 export function HomePage({ onNavigate }: HomePageProps) {
   const { apps: unifiedApps } = useAppMeta();
+  const { extensions } = useExtensions();
+  const { categories: guideCategories } = useGuideCategories();
   const { isFeedbackOpen, handleToggle, handleClose } = useFeedbackState();
-  const [extensionsCount, setExtensionsCount] = useState<number>(0);
-  const [guidesCount, setGuidesCount] = useState<number>(0);
+  const extensionsCount = extensions.length;
+  const guidesCount = guideCategories.reduce((total, category) => total + category.guides.length, 0);
 
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearchFocused, setIsSearchFocused] = useState(false);
   const searchResults = useGlobalSearch(searchQuery);
   const searchRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const fetchData = async () => {
-      const [exts, guides] = await Promise.all([
-        dataService.getExtensions(),
-        dataService.getGuideCategories()
-      ]);
-      setExtensionsCount(exts.length);
-      const totalGuides = guides.reduce((total, category) => total + category.guides.length, 0);
-      setGuidesCount(totalGuides);
-    };
-    fetchData();
-  }, []);
 
   // Close search suggestions dropdown on outside click
   useEffect(() => {

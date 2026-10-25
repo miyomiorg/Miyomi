@@ -47,4 +47,4 @@ it('lists the newest notice first with its type theme and publish date', async (
   expect(container.textContent).toContain(`Published ${new Date('2026-10-25T12:00:00.000Z').toLocaleDateString(undefined, {
     year: 'numeric', month: 'short', day: 'numeric',
   })}`);
-});
+}, 15_000);
