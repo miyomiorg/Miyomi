@@ -109,10 +109,6 @@ export function AppGridCard({
         <p className="text-[var(--text-secondary)] font-['Inter',sans-serif] mb-2 sm:mb-4 line-clamp-2 text-center sm:text-left overflow-hidden" style={{ fontSize: '12px', lineHeight: '1.5', maxHeight: '3em' }}>
           {description}
         </p>
-        <MatchedTagChips
-          tags={matchedTags}
-          className="justify-center sm:justify-start mb-2"
-        />
       </div>
 
       {/* Rating (Downloads moved to footer) */}
@@ -121,6 +117,11 @@ export function AppGridCard({
           <StarRating rating={rating} size="sm" />
         </div>
       )}
+
+      <MatchedTagChips
+        tags={matchedTags}
+        className="justify-center sm:justify-start mb-3"
+      />
 
       {/* Footer Section: Love Button & Downloads */}
       <div className="mt-auto pt-3 border-t border-[var(--divider)] w-full flex items-center justify-between">

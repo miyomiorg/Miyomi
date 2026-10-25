@@ -4,7 +4,7 @@ interface MatchedTagChipsProps {
   className?: string;
 }
 
-/** Small hashtag chips that explain which tag matched a global search query. */
+/** Compact badge-style chips that explain which tag matched a global search query. */
 export function MatchedTagChips({ tags, limit = 3, className = '' }: MatchedTagChipsProps) {
   if (!tags || tags.length === 0) return null;
 
@@ -13,9 +13,11 @@ export function MatchedTagChips({ tags, limit = 3, className = '' }: MatchedTagC
       {tags.slice(0, limit).map((tag) => (
         <span
           key={tag}
-          className="text-[10px] px-1.5 py-0.5 rounded-full bg-[var(--chip-bg)] text-[var(--text-secondary)]"
+          title={`Matched tag: ${tag}`}
+          className="inline-flex max-w-full items-center rounded-md border border-[var(--divider)] bg-[var(--chip-bg)] px-1.5 py-0.5 text-[10px] font-medium leading-none text-[var(--brand)]"
         >
-          #{tag}
+          <span className="mr-0.5 opacity-60">#</span>
+          <span className="truncate">{tag}</span>
         </span>
       ))}
     </div>
