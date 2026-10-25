@@ -386,7 +386,7 @@ export function HomePage({ onNavigate }: HomePageProps) {
                 <Puzzle className="w-4 h-4" />
               </div>
               <div className="flex-1 min-w-0">
-                <h3 className="font-bold text-[var(--text-primary)] text-sm mb-0.5">Extensions & Plugins</h3>
+                <h3 className="font-bold text-[var(--text-primary)] text-sm mb-0.5">Extensions</h3>
                 <p className="text-xs text-[var(--text-secondary)] leading-snug">that are compatible with your favorite apps</p>
               </div>
             </div>
