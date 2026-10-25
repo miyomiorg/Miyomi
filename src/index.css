@@ -54,6 +54,8 @@ html {
   --bg-page-rgb: 255, 253, 250;
   --bg-surface: #FFFFFF;
   --bg-elev-1: #F0F9FF;
+  --bg-elev-2: #E0F2FE;
+  --bg-elev-3: #BAE6FD;
   --text-primary: #0F172A;
   --text-secondary: #475569;
   --brand: #1d4ed8;
@@ -109,6 +111,8 @@ html {
   --bg-page-rgb: 2, 6, 23;
   --bg-surface: #0F172A;
   --bg-elev-1: #1E293B;
+  --bg-elev-2: #334155;
+  --bg-elev-3: #475569;
   --text-primary: #F8FAFC;
   --text-secondary: #94A3B8;
   --brand: #38BDF8;
@@ -175,6 +179,14 @@ html {
 
   body {
     @apply bg-background text-foreground;
+  }
+
+  /* Native select menus do not inherit the control background on every OS.
+     Keep their option list readable in dark and glass themes. */
+  select option,
+  select optgroup {
+    background-color: var(--bg-surface);
+    color: var(--text-primary);
   }
 
   /* Ensure all interactive elements show pointer cursor */
@@ -284,6 +296,8 @@ html {
   --bg-page: #f0f9ff;
   --bg-surface: rgba(255, 255, 255, 0.8);
   --bg-elev-1: #e0f2fe;
+  --bg-elev-2: #bae6fd;
+  --bg-elev-3: #7dd3fc;
   --text-primary: #0c4a6e;
   --text-secondary: #334155;
   --brand: #0ea5e9;
@@ -301,6 +315,8 @@ html {
   --bg-page: #020617;
   --bg-surface: rgba(15, 23, 42, 0.7);
   --bg-elev-1: rgba(30, 41, 59, 0.6);
+  --bg-elev-2: #1e293b;
+  --bg-elev-3: #334155;
   --text-primary: #e0f2fe;
   --text-secondary: #94a3b8;
   --brand: #38bdf8;
@@ -319,6 +335,8 @@ html {
   --bg-page: #FFF5F7;
   --bg-surface: rgba(255, 255, 255, 0.85);
   --bg-elev-1: #FCE7F3;
+  --bg-elev-2: #FBCFE8;
+  --bg-elev-3: #F9A8D4;
   --text-primary: #831843;
   --text-secondary: #9D174D;
   --brand: #EC4899;
@@ -336,6 +354,8 @@ html {
   --bg-page: #1a0a10;
   --bg-surface: rgba(30, 15, 25, 0.8);
   --bg-elev-1: rgba(50, 20, 35, 0.6);
+  --bg-elev-2: #3b1d2b;
+  --bg-elev-3: #4c2536;
   --text-primary: #FDF2F8;
   --text-secondary: #F9A8D4;
   --brand: #F472B6;

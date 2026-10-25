@@ -326,7 +326,7 @@ export function AdminBlogPostEditorPage() {
                                         className="w-full bg-[var(--bg-elev-1)] border border-[var(--divider)] rounded-xl px-4 py-2.5 text-sm text-[var(--text-primary)] focus:outline-none focus:border-[var(--brand)] transition-colors"
                                     />
                                     {isCategoryOpen && (
-                                        <div className="absolute z-50 mt-1 w-full bg-[var(--bg-elev-2)] border border-[var(--divider)] rounded-xl shadow-lg max-h-60 overflow-y-auto">
+                                        <div className="absolute z-50 mt-1 w-full bg-[var(--bg-surface)] backdrop-blur-xl border border-[var(--divider)] rounded-xl shadow-xl max-h-60 overflow-y-auto">
                                             {existingCategories
                                                 .filter(cat => cat.toLowerCase().includes((form.category || '').toLowerCase()))
                                                 .map(cat => (

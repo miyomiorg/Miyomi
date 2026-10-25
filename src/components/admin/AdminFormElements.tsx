@@ -103,7 +103,9 @@ export function AdminSelect({ className = '', children, ...props }: AdminSelectP
       value={value}
       className={`w-full px-3.5 py-2.5 rounded-xl text-sm outline-none transition-all border focus:ring-2 ${className}`}
       style={{
-        background: 'var(--bg-elev-1)',
+        background: 'var(--bg-surface)',
+        backdropFilter: 'blur(12px)',
+        WebkitBackdropFilter: 'blur(12px)',
         borderColor: 'var(--divider)',
         color: 'var(--text-primary)',
         '--tw-ring-color': 'var(--brand)',

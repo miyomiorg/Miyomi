@@ -354,8 +354,8 @@ Guidelines:
                                         <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                                     </button>
                                 </PopoverTrigger>
-                                <PopoverContent className="w-[280px] p-0" align="start">
-                                    <Command>
+                                <PopoverContent className="w-[280px] p-0 bg-[var(--bg-surface)] backdrop-blur-xl border-[var(--divider)] shadow-xl" align="start">
+                                    <Command className="bg-transparent">
                                         <CommandInput
                                             placeholder="Search or type new..."
                                             value={categoryInput}
