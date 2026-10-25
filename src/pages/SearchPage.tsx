@@ -6,6 +6,7 @@ import { AppGridCard } from '../components/AppGridCard';
 import { BlogCard } from '../components/BlogCard';
 import { ExtensionListCard } from '../components/ExtensionListCard';
 import { ExtensionGridCard } from '../components/ExtensionGridCard';
+import { MatchedTagChips } from '../components/MatchedTagChips';
 import { Search, Smartphone, Puzzle, BookOpen, FileText } from 'lucide-react';
 import { SearchBar } from '../components/SearchBar';
 import { FilterChip } from '../components/FilterChip';
@@ -272,18 +273,6 @@ export function SearchPage({ onNavigate }: SearchPageProps) {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.05 }}
             >
-              {result.matchedTags && result.matchedTags.length > 0 && (
-                <div className="flex flex-wrap gap-1 mb-2 px-1">
-                  {result.matchedTags.slice(0, 4).map((tag) => (
-                    <span
-                      key={tag}
-                      className="text-[10px] px-2 py-0.5 rounded-full bg-[var(--chip-bg)] text-[var(--text-secondary)]"
-                    >
-                      #{tag}
-                    </span>
-                  ))}
-                </div>
-              )}
               {result.type === 'app' && (
                 view === 'grid' ? (
                   <AppGridCard
@@ -299,6 +288,7 @@ export function SearchPage({ onNavigate }: SearchPageProps) {
                     likes={result.likes}
                     forkOf={result.forkOf}
                     upstreamUrl={result.upstreamUrl}
+                    matchedTags={result.matchedTags}
                     onClick={() => handleResultClick(result)}
                   />
                 ) : (
@@ -315,6 +305,7 @@ export function SearchPage({ onNavigate }: SearchPageProps) {
                     likes={result.likes}
                     forkOf={result.forkOf}
                     upstreamUrl={result.upstreamUrl}
+                    matchedTags={result.matchedTags}
                     onClick={() => handleResultClick(result)}
                   />
                 )
@@ -323,11 +314,13 @@ export function SearchPage({ onNavigate }: SearchPageProps) {
                 view === 'grid' ? (
                   <ExtensionGridCard
                     extension={result as any}
+                    matchedTags={result.matchedTags}
                     onSelect={() => handleResultClick(result)}
                   />
                 ) : (
                   <ExtensionListCard
                     extension={result as any}
+                    matchedTags={result.matchedTags}
                     onSelect={() => handleResultClick(result)}
                   />
                 )
@@ -353,6 +346,7 @@ export function SearchPage({ onNavigate }: SearchPageProps) {
                     <p className="text-sm text-[var(--text-secondary)] line-clamp-2">
                       {result.description}
                     </p>
+                    <MatchedTagChips tags={result.matchedTags} className="mt-1.5" />
                   </div>
                 </button>
               )}
@@ -360,6 +354,7 @@ export function SearchPage({ onNavigate }: SearchPageProps) {
                 view === 'grid' ? (
                   <BlogCard
                     post={result as unknown as BlogPostSummary}
+                    matchedTags={result.matchedTags}
                     onClick={() => handleResultClick(result)}
                   />
                 ) : (
@@ -389,6 +384,7 @@ export function SearchPage({ onNavigate }: SearchPageProps) {
                       <p className="text-sm text-[var(--text-secondary)] line-clamp-2">
                         {result.description}
                       </p>
+                      <MatchedTagChips tags={result.matchedTags} className="mt-1.5" />
                     </div>
                   </button>
                 )

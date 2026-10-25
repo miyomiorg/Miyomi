@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { useGlobalSearch } from '../hooks/useGlobalSearch';
 import { AppLogo } from './AppLogo';
 import { FlagDisplay } from './FlagDisplay';
+import { MatchedTagChips } from './MatchedTagChips';
 import type { SearchResult, SearchResultType } from '../types/search';
 
 const RESULT_TYPE_LABELS: Record<SearchResultType, string> = {
@@ -204,18 +205,7 @@ export function SearchModal({ isOpen, onClose }: SearchModalProps) {
                             <p className="text-xs text-[var(--text-secondary)] truncate">
                               {result.shortDescription || result.info || result.description}
                             </p>
-                            {result.matchedTags && result.matchedTags.length > 0 && (
-                              <div className="flex flex-wrap gap-1 mt-1">
-                                {result.matchedTags.slice(0, 3).map((tag) => (
-                                  <span
-                                    key={tag}
-                                    className="text-[10px] px-1.5 py-0.5 rounded-full bg-[var(--chip-bg)] text-[var(--text-secondary)]"
-                                  >
-                                    #{tag}
-                                  </span>
-                                ))}
-                              </div>
-                            )}
+                            <MatchedTagChips tags={result.matchedTags} className="mt-1" />
                           </div>
 
                           {/* Arrow */}

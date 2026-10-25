@@ -1,8 +1,10 @@
 import { BlogPostSummary } from '../types/data';
 import { ChevronRight, FileText, Clock, Eye } from 'lucide-react';
+import { MatchedTagChips } from './MatchedTagChips';
 
 interface BlogCardProps {
     post: BlogPostSummary;
+    matchedTags?: string[];
     onClick: () => void;
 }
 
@@ -19,7 +21,7 @@ const CATEGORY_COLORS: Record<string, string> = {
     'Editorial': '#a855f7',
 };
 
-export function BlogCard({ post, onClick }: BlogCardProps) {
+export function BlogCard({ post, matchedTags, onClick }: BlogCardProps) {
     const formattedDate = new Date(post.published_at || post.created_at).toLocaleDateString(undefined, {
         month: 'short',
         day: 'numeric',
@@ -88,6 +90,8 @@ export function BlogCard({ post, onClick }: BlogCardProps) {
                     <p className="text-[13px] text-[var(--text-secondary)] mb-auto line-clamp-2 leading-relaxed">
                         {post.excerpt}
                     </p>
+
+                    <MatchedTagChips tags={matchedTags} className="mt-2" />
 
                     <div className="flex items-center justify-between mt-3 pt-3 border-t" style={{ borderColor: 'var(--divider)' }}>
                         <div className="flex items-center text-[13px] text-[#3b82f6] font-semibold tracking-wide">

@@ -7,6 +7,7 @@ import { StarRating } from './StarRating';
 import { motion } from 'motion/react';
 import { useAccentColor } from '../hooks/useAccentColor';
 import { LoveButton } from './LoveButton';
+import { MatchedTagChips } from './MatchedTagChips';
 
 interface AppGridCardProps {
   appId: string;
@@ -22,6 +23,7 @@ interface AppGridCardProps {
   forkOf?: string;
   upstreamUrl?: string;
   isHighlighted?: boolean;
+  matchedTags?: string[];
   onClick?: () => void;
 }
 
@@ -39,6 +41,7 @@ export function AppGridCard({
   forkOf,
   upstreamUrl,
   isHighlighted,
+  matchedTags,
   onClick,
 }: AppGridCardProps) {
 
@@ -106,6 +109,10 @@ export function AppGridCard({
         <p className="text-[var(--text-secondary)] font-['Inter',sans-serif] mb-2 sm:mb-4 line-clamp-2 text-center sm:text-left overflow-hidden" style={{ fontSize: '12px', lineHeight: '1.5', maxHeight: '3em' }}>
           {description}
         </p>
+        <MatchedTagChips
+          tags={matchedTags}
+          className="justify-center sm:justify-start mb-2"
+        />
       </div>
 
       {/* Rating (Downloads moved to footer) */}

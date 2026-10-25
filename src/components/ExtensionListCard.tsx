@@ -8,14 +8,16 @@ import { LoveButton } from './LoveButton';
 import { AppLogo } from './AppLogo';
 import { TagBadge } from './TagBadge';
 import { RepositoryStatus } from './RepositoryStatus';
+import { MatchedTagChips } from './MatchedTagChips';
 
 interface ExtensionListCardProps {
   extension: ExtensionData;
   isHighlighted?: boolean;
+  matchedTags?: string[];
   onSelect: (extensionId: string) => void;
 }
 
-export function ExtensionListCard({ extension, isHighlighted, onSelect }: ExtensionListCardProps) {
+export function ExtensionListCard({ extension, isHighlighted, matchedTags, onSelect }: ExtensionListCardProps) {
   const handleSelect = () => onSelect(extension.slug || extension.id);
   const accentColor = useAccentColor({
     logoUrl: extension.logoUrl,
@@ -70,6 +72,7 @@ export function ExtensionListCard({ extension, isHighlighted, onSelect }: Extens
             {extension.shortDescription || extension.info}
           </p>
         )}
+        <MatchedTagChips tags={matchedTags} className="mt-1" />
       </div>
 
       {/* Action - Love Button */}

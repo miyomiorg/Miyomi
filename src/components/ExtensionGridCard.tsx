@@ -9,15 +9,17 @@ import { useCachedImage } from '../hooks/useCachedImage';
 import { LoveButton } from './LoveButton';
 import { TagBadge } from './TagBadge';
 import { RepositoryStatus } from './RepositoryStatus';
+import { MatchedTagChips } from './MatchedTagChips';
 
 interface ExtensionGridCardProps {
   key?: string | number;
   extension: ExtensionData;
   isHighlighted?: boolean;
+  matchedTags?: string[];
   onSelect: (extensionId: string) => void;
 }
 
-export function ExtensionGridCard({ extension, isHighlighted, onSelect }: ExtensionGridCardProps) {
+export function ExtensionGridCard({ extension, isHighlighted, matchedTags, onSelect }: ExtensionGridCardProps) {
   const handleSelect = () => onSelect(extension.slug || extension.id);
   const accentColor = useAccentColor({
     logoUrl: extension.logoUrl,
@@ -92,13 +94,17 @@ export function ExtensionGridCard({ extension, isHighlighted, onSelect }: Extens
       </div>
 
 
-      {(extension.shortDescription || extension.info) && (
-        <div className="flex-grow">
+      <div className="flex-grow">
+        {(extension.shortDescription || extension.info) && (
           <p className="text-sm text-[var(--text-secondary)] font-['Inter',sans-serif] line-clamp-2 mb-2 sm:mb-4 text-center sm:text-left overflow-hidden" style={{ fontSize: '12px', lineHeight: '1.5', maxHeight: '3em' }}>
             {extension.shortDescription || extension.info}
           </p>
-        </div>
-      )}
+        )}
+        <MatchedTagChips
+          tags={matchedTags}
+          className="justify-center sm:justify-start mb-2"
+        />
+      </div>
 
       {/* Footer: Love Button and View Details */}
       <div className="mt-auto pt-3 border-t border-[var(--divider)] w-full flex items-center justify-between">

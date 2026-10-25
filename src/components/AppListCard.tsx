@@ -7,6 +7,7 @@ import { StarRating } from './StarRating';
 import { motion } from 'motion/react';
 import { useAccentColor } from '../hooks/useAccentColor';
 import { LoveButton } from './LoveButton';
+import { MatchedTagChips } from './MatchedTagChips';
 
 interface AppListCardProps {
   appId: string;
@@ -22,6 +23,7 @@ interface AppListCardProps {
   forkOf?: string;
   upstreamUrl?: string;
   isHighlighted?: boolean;
+  matchedTags?: string[];
   onClick?: () => void;
 }
 
@@ -39,6 +41,7 @@ export function AppListCard({
   forkOf,
   upstreamUrl,
   isHighlighted,
+  matchedTags,
   onClick,
 }: AppListCardProps) {
   const displayedTags = tags.slice(0, 2);
@@ -104,6 +107,7 @@ export function AppListCard({
         <p className="text-[var(--text-secondary)] font-['Inter',sans-serif] text-xs line-clamp-1">
           {description}
         </p>
+        <MatchedTagChips tags={matchedTags} className="mt-1" />
         {rating && (
           <div className="flex items-center gap-1.5 mt-1">
             <StarRating rating={rating} size="sm" />
