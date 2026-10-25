@@ -120,44 +120,44 @@ export function SearchPage({ onNavigate }: SearchPageProps) {
           </h1>
         </div>
 
-        <div className="mb-6">
-          <SearchBar
-            placeholder="Search apps, extensions, guides, or blog posts..."
-            onSearch={handleSearch}
-          />
+        <div className="flex items-center gap-3 mb-6">
+          <div className="flex-1 min-w-0">
+            <SearchBar
+              placeholder="Search apps, extensions, guides, or blog posts..."
+              onSearch={handleSearch}
+            />
+          </div>
+          <ViewToggle view={view} onViewChange={setView} />
         </div>
 
         {localQuery && (
-          <div className="flex items-center justify-between mb-4 flex-wrap gap-4">
-            <div className="flex items-center gap-3 flex-wrap">
-              <span className="text-sm text-[var(--text-secondary)]">Filter by:</span>
-              <FilterChip
-                label={`All (${resultCounts.all})`}
-                selected={activeFilter === 'all'}
-                onClick={() => setActiveFilter('all')}
-              />
-              <FilterChip
-                label={`Apps (${resultCounts.app})`}
-                selected={activeFilter === 'app'}
-                onClick={() => setActiveFilter('app')}
-              />
-              <FilterChip
-                label={`Extensions (${resultCounts.extension})`}
-                selected={activeFilter === 'extension'}
-                onClick={() => setActiveFilter('extension')}
-              />
-              <FilterChip
-                label={`Guides (${resultCounts.guide})`}
-                selected={activeFilter === 'guide'}
-                onClick={() => setActiveFilter('guide')}
-              />
-              <FilterChip
-                label={`Blog (${resultCounts.blog})`}
-                selected={activeFilter === 'blog'}
-                onClick={() => setActiveFilter('blog')}
-              />
-            </div>
-            <ViewToggle view={view} onViewChange={setView} />
+          <div className="flex items-center gap-3 mb-4 flex-wrap">
+            <span className="text-sm text-[var(--text-secondary)]">Filter by:</span>
+            <FilterChip
+              label={`All (${resultCounts.all})`}
+              selected={activeFilter === 'all'}
+              onClick={() => setActiveFilter('all')}
+            />
+            <FilterChip
+              label={`Apps (${resultCounts.app})`}
+              selected={activeFilter === 'app'}
+              onClick={() => setActiveFilter('app')}
+            />
+            <FilterChip
+              label={`Extensions (${resultCounts.extension})`}
+              selected={activeFilter === 'extension'}
+              onClick={() => setActiveFilter('extension')}
+            />
+            <FilterChip
+              label={`Guides (${resultCounts.guide})`}
+              selected={activeFilter === 'guide'}
+              onClick={() => setActiveFilter('guide')}
+            />
+            <FilterChip
+              label={`Blog (${resultCounts.blog})`}
+              selected={activeFilter === 'blog'}
+              onClick={() => setActiveFilter('blog')}
+            />
           </div>
         )}
       </div>
