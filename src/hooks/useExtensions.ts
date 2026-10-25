@@ -2,7 +2,7 @@ import { useDataCache } from './useDataCache';
 import { extensionsApi } from '@/services/api';
 import type { ExtensionData } from '../types/data';
 
-export function useExtensions(): { extensions: ExtensionData[]; loading: boolean } {
+export function useExtensions(options: { enabled?: boolean } = {}): { extensions: ExtensionData[]; loading: boolean } {
   const fetchExtensions = async (): Promise<ExtensionData[]> => {
     const data = await extensionsApi.list();
 
@@ -37,7 +37,10 @@ export function useExtensions(): { extensions: ExtensionData[]; loading: boolean
       overview: ext.description || undefined,
       github: ext.repo_url,
       website: ext.source_url || undefined,
-      keywords: ext.tags || [],
+      keywords: Array.from(new Set([
+        ...(Array.isArray(ext.tags) ? ext.tags : []),
+        ...(Array.isArray(ext.metadata?.keywords) ? ext.metadata.keywords : []),
+      ])),
       tutorials: Array.isArray(ext.tutorials) ? ext.tutorials : [],
       socialUrls: (Array.isArray(ext.social_urls) && ext.social_urls.length > 0)
         ? ext.social_urls.filter((u: string) => u)
@@ -53,7 +56,7 @@ export function useExtensions(): { extensions: ExtensionData[]; loading: boolean
   const { data: extensions, loading } = useDataCache<ExtensionData[]>(
     'extensions_list_v2',
     fetchExtensions,
-    { ttl: 1000 * 60 * 10 } // 10 minutes fresh
+    { ttl: 1000 * 60 * 10, enabled: options.enabled } // 10 minutes fresh
   );
 
   return { extensions: extensions || [], loading };

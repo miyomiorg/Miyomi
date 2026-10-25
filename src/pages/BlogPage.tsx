@@ -86,9 +86,11 @@ export function BlogPage({ onNavigate }: { onNavigate: (path: string) => void })
 
     const filteredPosts = useMemo(() => {
         if (!posts) return [];
+        const query = search.toLowerCase();
         let result = posts.filter(p =>
-            p.title.toLowerCase().includes(search.toLowerCase()) ||
-            p.excerpt?.toLowerCase().includes(search.toLowerCase())
+            p.title.toLowerCase().includes(query) ||
+            p.excerpt?.toLowerCase().includes(query) ||
+            (p.tags || []).some(tag => tag.toLowerCase().includes(query))
         );
 
         // Sort

@@ -1,117 +1,130 @@
-import { useState, useEffect } from 'react';
-import { dataService } from '../services/dataService';
-import type { AppData, ExtensionData, GuideCategoryData } from '../types/data';
+import { useMemo } from 'react';
+import { useAppMeta } from './useAppMeta';
+import { useBlogPosts } from './useBlogPosts';
+import { useExtensions } from './useExtensions';
+import { useGuideCategories } from './useGuideCategories';
+import type { SearchResult, SearchResultType } from '../types/search';
 
-export type SearchResultType = 'app' | 'extension' | 'guide';
+export type { SearchResult, SearchResultType };
 
-export interface SearchResult {
-  id: string;
-  name: string;
-  description: string;
-  type: SearchResultType;
-  keywords?: readonly string[] | string[];
-  [key: string]: any;
+function asTags(value: readonly string[] | string[] | null | undefined): string[] {
+  return Array.isArray(value)
+    ? value.filter((tag): tag is string => typeof tag === 'string' && tag.trim().length > 0)
+    : [];
 }
 
+function matchesText(value: unknown, query: string): boolean {
+  return typeof value === 'string' && value.toLowerCase().includes(query);
+}
+
+function matchesAny(values: readonly string[] | string[] | null | undefined, query: string): boolean {
+  return Array.isArray(values) && values.some((value) => matchesText(value, query));
+}
+
+function matchingTags(tags: string[], query: string): string[] {
+  return tags.filter((tag) => tag.toLowerCase().includes(query));
+}
+
+/**
+ * Global search across apps, extensions, guides, and blog posts.
+ *
+ * The directory hooks are disabled until a query exists, so the navbar/home
+ * search does not download every directory on page load. When enabled, they
+ * reuse the same localStorage cache as the directory pages.
+ */
 export function useGlobalSearch(query: string): SearchResult[] {
-  const [data, setData] = useState<{
-    apps: AppData[];
-    extensions: ExtensionData[];
-    guideCategories: GuideCategoryData[];
-  } | null>(null);
-
-  const [results, setResults] = useState<SearchResult[]>([]);
   const searching = query.trim().length > 0;
+  const { apps } = useAppMeta({ enabled: searching });
+  const { extensions } = useExtensions({ enabled: searching });
+  const { categories } = useGuideCategories({ enabled: searching });
+  const { posts } = useBlogPosts({ enabled: searching, requirePublished: true });
 
-  useEffect(() => {
-    // Navbar/home search mounts even when unused. Do not fetch three complete
-    // directories until a visitor actually searches.
-    if (!searching || data) return;
-    let cancelled = false;
-    const fetchData = async () => {
-      try {
-        const [apps, extensions, guideCategories] = await Promise.all([
-          dataService.getApps(),
-          dataService.getExtensions(),
-          dataService.getGuideCategories()
-        ]);
-        if (!cancelled) setData({ apps, extensions, guideCategories });
-      } catch (error) {
-        console.error('Failed to fetch search data:', error);
-      }
-    };
-    fetchData();
-    return () => { cancelled = true; };
-  }, [searching, data]);
-
-  useEffect(() => {
-    if (!data || !query || query.trim().length === 0) {
-      setResults([]);
-      return;
-    }
-
+  return useMemo(() => {
     const normalizedQuery = query.toLowerCase().trim();
+    if (!normalizedQuery) return [];
+
     const newResults: SearchResult[] = [];
 
-    data.apps.forEach((app) => {
-      const matchesName = app.name?.toLowerCase().includes(normalizedQuery);
-      const matchesDescription = app.description?.toLowerCase().includes(normalizedQuery);
-      const matchesKeywords = app.keywords?.some((kw) =>
-        kw.toLowerCase().includes(normalizedQuery)
-      );
-      const matchesContentTypes = app.contentTypes?.some((ct) =>
-        ct.toLowerCase().includes(normalizedQuery)
-      );
+    apps.forEach((app) => {
+      const tags = asTags(app.keywords);
+      const matchesName = matchesText(app.name, normalizedQuery);
+      const matchesDescription = matchesText(app.description, normalizedQuery);
+      const matchesTags = matchesAny(tags, normalizedQuery);
+      const matchesContentTypes = matchesAny(app.contentTypes, normalizedQuery);
 
-      if (matchesName || matchesDescription || matchesKeywords || matchesContentTypes) {
-        newResults.push({ ...app, type: 'app' });
-      }
-    });
-
-    data.extensions.forEach((ext) => {
-      const matchesName = ext.name?.toLowerCase().includes(normalizedQuery);
-      const matchesInfo = ext.info?.toLowerCase().includes(normalizedQuery);
-      const matchesKeywords = ext.keywords?.some((kw) =>
-        kw.toLowerCase().includes(normalizedQuery)
-      );
-      const matchesTypes = ext.types?.some((type) =>
-        type.toLowerCase().includes(normalizedQuery)
-      );
-
-      if (matchesName || matchesInfo || matchesKeywords || matchesTypes) {
+      if (matchesName || matchesDescription || matchesTags || matchesContentTypes) {
         newResults.push({
-          ...ext,
-          type: 'extension',
-          description: ext.info || ext.shortDescription || ''
+          ...app,
+          type: 'app',
+          tags,
+          matchedTags: matchingTags(tags, normalizedQuery),
         });
       }
     });
 
-    data.guideCategories.forEach((category) => {
-      category.guides.forEach((guide) => {
-        const matchesTitle = guide.title?.toLowerCase().includes(normalizedQuery);
-        const matchesKeywords = guide.keywords?.some((kw) =>
-          kw.toLowerCase().includes(normalizedQuery)
-        );
-        const matchesCategoryTitle = category.title?.toLowerCase().includes(normalizedQuery);
-        const matchesCategoryDescription = category.description?.toLowerCase().includes(normalizedQuery);
+    extensions.forEach((ext) => {
+      const tags = asTags(ext.keywords);
+      const matchesName = matchesText(ext.name, normalizedQuery);
+      const matchesInfo = matchesText(ext.info, normalizedQuery);
+      const matchesTags = matchesAny(tags, normalizedQuery);
+      const matchesTypes = matchesAny(ext.types, normalizedQuery);
 
-        if (matchesTitle || matchesKeywords || matchesCategoryTitle || matchesCategoryDescription) {
+      if (matchesName || matchesInfo || matchesTags || matchesTypes) {
+        newResults.push({
+          ...ext,
+          type: 'extension',
+          description: ext.info || ext.shortDescription || '',
+          tags,
+          matchedTags: matchingTags(tags, normalizedQuery),
+        });
+      }
+    });
+
+    categories.forEach((category) => {
+      category.guides.forEach((guide) => {
+        const tags = asTags(guide.keywords);
+        const matchesTitle = matchesText(guide.title, normalizedQuery);
+        const matchesSummary = matchesText(guide.summary, normalizedQuery);
+        const matchesTags = matchesAny(tags, normalizedQuery);
+        const matchesCategoryTitle = matchesText(category.title, normalizedQuery);
+        const matchesCategoryDescription = matchesText(category.description, normalizedQuery);
+
+        if (matchesTitle || matchesSummary || matchesTags || matchesCategoryTitle || matchesCategoryDescription) {
           newResults.push({
-            ...guide,
-            type: 'guide',
-            // @ts-ignore - guide doesn't have name, mapping title to name for search result
+            id: guide.id,
             name: guide.title,
-            description: category.description,
+            description: guide.summary || category.description || '',
+            type: 'guide',
+            slug: guide.slug,
+            keywords: guide.keywords,
+            tags,
+            matchedTags: matchingTags(tags, normalizedQuery),
             categoryTitle: category.title,
-            categoryColor: category.color
+            categoryColor: category.color,
           });
         }
       });
     });
 
-    setResults(newResults);
-  }, [query, data]);
+    posts.forEach((post) => {
+      const tags = asTags(post.tags);
+      const matchesTitle = matchesText(post.title, normalizedQuery);
+      const matchesExcerpt = matchesText(post.excerpt, normalizedQuery);
+      const matchesTags = matchesAny(tags, normalizedQuery);
+      const matchesCategory = matchesText(post.category, normalizedQuery);
 
-  return results;
+      if (matchesTitle || matchesExcerpt || matchesTags || matchesCategory) {
+        newResults.push({
+          ...post,
+          type: 'blog',
+          name: post.title,
+          description: post.excerpt || '',
+          tags,
+          matchedTags: matchingTags(tags, normalizedQuery),
+        });
+      }
+    });
+
+    return newResults;
+  }, [query, apps, extensions, categories, posts]);
 }

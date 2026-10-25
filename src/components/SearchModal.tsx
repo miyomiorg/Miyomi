@@ -1,11 +1,25 @@
-import { Search, X, ArrowRight } from 'lucide-react';
+import { BookOpen, FileText, Search, X, ArrowRight } from 'lucide-react';
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { useGlobalSearch } from '../hooks/useGlobalSearch';
-import { TagBadge } from './TagBadge';
 import { AppLogo } from './AppLogo';
 import { FlagDisplay } from './FlagDisplay';
+import type { SearchResult, SearchResultType } from '../types/search';
+
+const RESULT_TYPE_LABELS: Record<SearchResultType, string> = {
+  app: 'App',
+  extension: 'Extension',
+  guide: 'Guide',
+  blog: 'Blog',
+};
+
+const RESULT_TYPE_CLASSES: Record<SearchResultType, string> = {
+  app: 'bg-blue-500/10 text-blue-500',
+  extension: 'bg-purple-500/10 text-purple-500',
+  guide: 'bg-orange-500/10 text-orange-500',
+  blog: 'bg-rose-500/10 text-rose-500',
+};
 
 interface SearchModalProps {
   isOpen: boolean;
@@ -45,7 +59,7 @@ export function SearchModal({ isOpen, onClose }: SearchModalProps) {
   }, [isOpen, onClose]);
 
 
-  const handleResultClick = (result: any) => {
+  const handleResultClick = (result: SearchResult) => {
     onClose();
     setQuery('');
     switch (result.type) {
@@ -58,12 +72,29 @@ export function SearchModal({ isOpen, onClose }: SearchModalProps) {
       case 'guide':
         navigate(`/guides/${result.slug}`);
         break;
+      case 'blog':
+        navigate(`/blog/${result.slug || result.id}`);
+        break;
     }
   };
 
-  const IconForType = ({ type }: { type: string }) => {
-    if (type === 'guide') return <span className="text-xl">📚</span>;
-    return null;
+  const ResultIcon = ({ result }: { result: SearchResult }) => {
+    if (result.type === 'guide') return <BookOpen className="w-5 h-5 text-orange-500" />;
+    if (result.type === 'blog') {
+      return result.thumbnail_url
+        ? <img src={result.thumbnail_url} alt="" className="w-full h-full object-cover" loading="lazy" />
+        : <FileText className="w-5 h-5 text-rose-500" />;
+    }
+    return (
+      <AppLogo
+        name={result.name}
+        logoUrl={result.logoUrl}
+        iconColor={result.accentColor || result.iconColor}
+        className="w-full h-full"
+        roundedClass="rounded-none"
+        textClassName="text-sm"
+      />
+    );
   };
 
   const handleSearch = (e: React.FormEvent) => {
@@ -127,7 +158,7 @@ export function SearchModal({ isOpen, onClose }: SearchModalProps) {
                       type="text"
                       value={query}
                       onChange={(e) => setQuery(e.target.value)}
-                      placeholder="Search apps, extensions, or guides..."
+                      placeholder="Search apps, extensions, guides, or blog posts..."
                       className="flex-1 bg-transparent outline-none text-[var(--text-primary)] placeholder:text-[var(--text-secondary)]"
                     />
                   </div>
@@ -150,18 +181,7 @@ export function SearchModal({ isOpen, onClose }: SearchModalProps) {
                         >
                           {/* Icon */}
                           <div className="w-10 h-10 rounded-lg bg-[var(--bg-elev-2)] flex items-center justify-center flex-shrink-0 overflow-hidden">
-                            {result.type === 'guide' ? (
-                              <IconForType type={result.type} />
-                            ) : (
-                              <AppLogo
-                                name={result.name}
-                                logoUrl={result.logoUrl}
-                                iconColor={result.accentColor || result.iconColor}
-                                className="w-full h-full"
-                                roundedClass="rounded-none"
-                                textClassName="text-sm"
-                              />
-                            )}
+                            <ResultIcon result={result} />
                           </div>
 
                           {/* Info */}
@@ -170,11 +190,8 @@ export function SearchModal({ isOpen, onClose }: SearchModalProps) {
                               <h4 className="font-medium text-[var(--text-primary)] truncate">
                                 {result.name}
                               </h4>
-                              <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium uppercase
-                                                ${result.type === 'app' ? 'bg-blue-500/10 text-blue-500' :
-                                  result.type === 'extension' ? 'bg-purple-500/10 text-purple-500' :
-                                    'bg-orange-500/10 text-orange-500'}`}>
-                                {result.type}
+                              <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium uppercase ${RESULT_TYPE_CLASSES[result.type]}`}>
+                                {RESULT_TYPE_LABELS[result.type]}
                               </span>
                             </div>
                             {result.type === 'extension' && (
@@ -187,6 +204,18 @@ export function SearchModal({ isOpen, onClose }: SearchModalProps) {
                             <p className="text-xs text-[var(--text-secondary)] truncate">
                               {result.shortDescription || result.info || result.description}
                             </p>
+                            {result.matchedTags && result.matchedTags.length > 0 && (
+                              <div className="flex flex-wrap gap-1 mt-1">
+                                {result.matchedTags.slice(0, 3).map((tag) => (
+                                  <span
+                                    key={tag}
+                                    className="text-[10px] px-1.5 py-0.5 rounded-full bg-[var(--chip-bg)] text-[var(--text-secondary)]"
+                                  >
+                                    #{tag}
+                                  </span>
+                                ))}
+                              </div>
+                            )}
                           </div>
 
                           {/* Arrow */}

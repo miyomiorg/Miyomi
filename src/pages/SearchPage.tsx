@@ -3,13 +3,15 @@ import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useGlobalSearch, SearchResultType } from '../hooks/useGlobalSearch';
 import { AppListCard } from '../components/AppListCard';
 import { AppGridCard } from '../components/AppGridCard';
+import { BlogCard } from '../components/BlogCard';
 import { ExtensionListCard } from '../components/ExtensionListCard';
 import { ExtensionGridCard } from '../components/ExtensionGridCard';
-import { Search, Filter, Smartphone, Puzzle, BookOpen } from 'lucide-react';
+import { Search, Smartphone, Puzzle, BookOpen, FileText } from 'lucide-react';
 import { SearchBar } from '../components/SearchBar';
 import { FilterChip } from '../components/FilterChip';
 import { ViewToggle } from '../components/ViewToggle';
 import { motion } from 'motion/react';
+import type { BlogPostSummary } from '../types/data';
 
 interface SearchPageProps {
   onNavigate: (path: string) => void;
@@ -89,6 +91,9 @@ export function SearchPage({ onNavigate }: SearchPageProps) {
       case 'guide':
         onNavigate(`/guides/${result.slug}`);
         break;
+      case 'blog':
+        onNavigate(`/blog/${result.slug || result.id}`);
+        break;
     }
   };
 
@@ -98,10 +103,11 @@ export function SearchPage({ onNavigate }: SearchPageProps) {
       app: results.filter(r => r.type === 'app').length,
       extension: results.filter(r => r.type === 'extension').length,
       guide: results.filter(r => r.type === 'guide').length,
+      blog: results.filter(r => r.type === 'blog').length,
     };
   }, [results]);
 
-  const popularTerms = ['aniyomi', 'mihon', 'dantotsu', 'cloudstream', 'manga', 'anime', 'light novel'];
+  const popularTerms = ['aniyomi', 'mihon', 'dantotsu', 'cloudstream', 'manga', 'anime', 'light novel', 'news'];
 
   return (
     <div className="max-w-6xl mx-auto">
@@ -115,7 +121,7 @@ export function SearchPage({ onNavigate }: SearchPageProps) {
 
         <div className="mb-6">
           <SearchBar
-            placeholder="Search apps, extensions, or guides..."
+            placeholder="Search apps, extensions, guides, or blog posts..."
             onSearch={handleSearch}
           />
         </div>
@@ -144,6 +150,11 @@ export function SearchPage({ onNavigate }: SearchPageProps) {
                 selected={activeFilter === 'guide'}
                 onClick={() => setActiveFilter('guide')}
               />
+              <FilterChip
+                label={`Blog (${resultCounts.blog})`}
+                selected={activeFilter === 'blog'}
+                onClick={() => setActiveFilter('blog')}
+              />
             </div>
             <ViewToggle view={view} onViewChange={setView} />
           </div>
@@ -157,7 +168,7 @@ export function SearchPage({ onNavigate }: SearchPageProps) {
             <h2 className="text-sm font-semibold text-[var(--text-secondary)] mb-4 uppercase tracking-wider">
               Browse Categories
             </h2>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               <button
                 onClick={() => onNavigate('/software')}
                 className="flex items-start gap-4 p-5 bg-[var(--bg-surface)] border border-[var(--divider)] rounded-2xl hover:shadow-md hover:border-[var(--brand)] hover:scale-[1.02] transition-all text-left focus:outline-none"
@@ -205,6 +216,22 @@ export function SearchPage({ onNavigate }: SearchPageProps) {
                   </p>
                 </div>
               </button>
+
+              <button
+                onClick={() => onNavigate('/blog')}
+                className="flex items-start gap-4 p-5 bg-[var(--bg-surface)] border border-[var(--divider)] rounded-2xl hover:shadow-md hover:border-[var(--brand)] hover:scale-[1.02] transition-all text-left focus:outline-none"
+                style={{ boxShadow: '0 4px 12px 0 rgba(0,0,0,0.03)' }}
+              >
+                <div className="w-12 h-12 rounded-xl bg-rose-500/10 text-rose-500 flex items-center justify-center flex-shrink-0">
+                  <FileText className="w-6 h-6" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-[var(--text-primary)] mb-1">Blog</h3>
+                  <p className="text-xs text-[var(--text-secondary)] leading-relaxed">
+                    Catch up on announcements, updates, devlogs, and community stories.
+                  </p>
+                </div>
+              </button>
             </div>
           </div>
 
@@ -245,6 +272,18 @@ export function SearchPage({ onNavigate }: SearchPageProps) {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.05 }}
             >
+              {result.matchedTags && result.matchedTags.length > 0 && (
+                <div className="flex flex-wrap gap-1 mb-2 px-1">
+                  {result.matchedTags.slice(0, 4).map((tag) => (
+                    <span
+                      key={tag}
+                      className="text-[10px] px-2 py-0.5 rounded-full bg-[var(--chip-bg)] text-[var(--text-secondary)]"
+                    >
+                      #{tag}
+                    </span>
+                  ))}
+                </div>
+              )}
               {result.type === 'app' && (
                 view === 'grid' ? (
                   <AppGridCard
@@ -316,6 +355,43 @@ export function SearchPage({ onNavigate }: SearchPageProps) {
                     </p>
                   </div>
                 </button>
+              )}
+              {result.type === 'blog' && (
+                view === 'grid' ? (
+                  <BlogCard
+                    post={result as unknown as BlogPostSummary}
+                    onClick={() => handleResultClick(result)}
+                  />
+                ) : (
+                  <button
+                    onClick={() => handleResultClick(result)}
+                    className="flex items-start gap-4 p-4 bg-[var(--bg-surface)] border border-[var(--divider)] rounded-xl hover:shadow-lg hover:border-[var(--brand)] transition-all w-full text-left group"
+                  >
+                    <div className="w-16 h-16 rounded-lg overflow-hidden bg-[var(--bg-elev-1)] flex items-center justify-center flex-shrink-0">
+                      {result.thumbnail_url ? (
+                        <img
+                          src={result.thumbnail_url}
+                          alt=""
+                          className="w-full h-full object-cover"
+                          loading="lazy"
+                        />
+                      ) : (
+                        <FileText className="w-6 h-6 text-rose-500" />
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-xs text-[var(--text-secondary)] mb-1">
+                        {result.category}
+                      </div>
+                      <h3 className="font-semibold text-[var(--text-primary)] mb-1">
+                        {result.name}
+                      </h3>
+                      <p className="text-sm text-[var(--text-secondary)] line-clamp-2">
+                        {result.description}
+                      </p>
+                    </div>
+                  </button>
+                )
               )}
             </motion.div>
           ))}

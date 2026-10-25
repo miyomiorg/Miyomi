@@ -2,7 +2,7 @@ import { useDataCache } from './useDataCache';
 import { appsApi } from '@/services/api';
 import type { AppData } from '../types/data';
 
-export function useAppMeta(): { apps: AppData[]; loading: boolean } {
+export function useAppMeta(options: { enabled?: boolean } = {}): { apps: AppData[]; loading: boolean } {
   const fetchApps = async (): Promise<AppData[]> => {
     const data = await appsApi.list();
 
@@ -20,7 +20,10 @@ export function useAppMeta(): { apps: AppData[]; loading: boolean } {
       accentColor: app.icon_color || app.accent_color,
       logoUrl: app.icon_url,
       author: app.author,
-      keywords: app.tags || [],
+      keywords: Array.from(new Set([
+        ...(Array.isArray(app.tags) ? app.tags : []),
+        ...(Array.isArray(app.metadata?.keywords) ? app.metadata.keywords : []),
+      ])),
       supportedExtensions: app.compatible_with || [],
       lastUpdated: app.last_release_date || app.updated_at || app.created_at,
       githubUrl: app.repo_url,
@@ -43,7 +46,7 @@ export function useAppMeta(): { apps: AppData[]; loading: boolean } {
   const { data: apps, loading } = useDataCache<AppData[]>(
     'apps_list_meta',
     fetchApps,
-    { ttl: 1000 * 60 * 5 } // 5 minutes fresh
+    { ttl: 1000 * 60 * 5, enabled: options.enabled } // 5 minutes fresh
   );
 
   return { apps: apps || [], loading };

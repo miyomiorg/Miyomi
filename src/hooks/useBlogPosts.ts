@@ -8,13 +8,14 @@ interface UseBlogPostsOptions {
   pinned?: boolean;
   limit?: number;
   requirePublished?: boolean;
+  enabled?: boolean;
 }
 
 export function useBlogPosts(options: UseBlogPostsOptions = {}) {
   // Filters operate on the same public list; changing categories or mounting
   // related-post cards should not download the entire list again.
   const { data, loading, error, refetch } = useDataCache<BlogPostSummary[]>(
-    'blog_list', () => blogApi.list() as unknown as Promise<BlogPostSummary[]>, { ttl: 60_000 },
+    'blog_list', () => blogApi.list() as unknown as Promise<BlogPostSummary[]>, { ttl: 60_000, enabled: options.enabled },
   );
   let posts = data || [];
   if (options.category && options.category !== 'All') posts = posts.filter(p => p.category === options.category);

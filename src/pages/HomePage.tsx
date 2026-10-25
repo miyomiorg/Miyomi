@@ -54,6 +54,8 @@ export function HomePage({ onNavigate }: HomePageProps) {
       onNavigate?.(`/extensions/${result.slug || result.id}`);
     } else if (result.type === 'guide') {
       onNavigate?.(`/guides/${result.slug}`);
+    } else if (result.type === 'blog') {
+      onNavigate?.(`/blog/${result.slug || result.id}`);
     }
   };
 
@@ -136,7 +138,7 @@ export function HomePage({ onNavigate }: HomePageProps) {
                 id="hero-search-input"
                 type="text"
                 readOnly
-                placeholder="Search apps, extensions, guides..."
+                placeholder="Search apps, extensions, guides, blogs..."
                 value={searchQuery}
                 onClick={(e) => {
                   e.currentTarget.blur();
@@ -181,14 +183,18 @@ export function HomePage({ onNavigate }: HomePageProps) {
                             ? 'App'
                             : result.type === 'extension'
                               ? 'Extension'
-                              : 'Guide';
+                              : result.type === 'guide'
+                                ? 'Guide'
+                                : 'Blog';
 
                         const typeBgColor =
                           result.type === 'app'
                             ? 'bg-blue-500/10 text-blue-500'
                             : result.type === 'extension'
                               ? 'bg-purple-500/10 text-purple-500'
-                              : 'bg-amber-500/10 text-amber-500';
+                              : result.type === 'guide'
+                                ? 'bg-amber-500/10 text-amber-500'
+                                : 'bg-rose-500/10 text-rose-500';
 
                         return (
                           <button

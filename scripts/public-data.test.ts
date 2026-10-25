@@ -58,9 +58,37 @@ it('does not fetch search directories until a search is entered', async () => {
   await act(async () => root.render(createElement(Search, { query: '' })));
   expect(fetcher).not.toHaveBeenCalled();
   await act(async () => root.render(createElement(Search, { query: 'manga' })));
-  expect(fetcher).toHaveBeenCalledTimes(3);
+  expect(fetcher).toHaveBeenCalledTimes(4);
   await act(async () => root.render(createElement(Search, { query: 'anime' })));
-  expect(fetcher).toHaveBeenCalledTimes(3);
+  expect(fetcher).toHaveBeenCalledTimes(4);
+});
+
+it('includes blog posts and matches tags in global search', async () => {
+  const fetcher = vi.fn(async (url: string) => {
+    if (url === '/api/apps') return response([{
+      id: 'app-1', name: 'Reader', description: 'A reader', tags: ['Manga'],
+      content_types: ['Manga'], platforms: ['Android'], compatible_with: [],
+    }]);
+    if (url === '/api/extensions' || url === '/api/guides') return response([]);
+    if (url === '/api/blog') return response([{
+      id: 'post-1', title: 'Manga release notes', slug: 'manga-release-notes',
+      excerpt: 'What changed this month.', category: 'News', tags: ['Manga', 'Release'],
+      status: 'published', is_pinned: false, views: 0, created_at: '2026-01-01',
+      updated_at: '2026-01-01', content_format: 'html', readingMinutes: 2,
+    }]);
+    return response([]);
+  });
+  vi.stubGlobal('fetch', fetcher);
+  function Search({ query }: { query: string }) {
+    const results = useGlobalSearch(query);
+    return createElement('span', null, results.map(result => `${result.type}:${result.name}:${(result.matchedTags || []).join(',')}`).join('|'));
+  }
+
+  await act(async () => root.render(createElement(Search, { query: 'manga' })));
+  await vi.waitFor(() => {
+    expect(container.textContent).toContain('app:Reader:Manga');
+    expect(container.textContent).toContain('blog:Manga release notes:Manga');
+  });
 });
 
 it('dismisses only the current entry/revision; edited and sticky notices reappear', async () => {

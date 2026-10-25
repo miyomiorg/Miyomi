@@ -169,8 +169,10 @@ export function GuidesPage({ onNavigate }: GuidesPageProps) {
     );
 
     return allGuides.filter(guide => {
-      const matchesSearch = guide.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (guide.summary && guide.summary.toLowerCase().includes(searchQuery.toLowerCase()));
+      const query = searchQuery.toLowerCase();
+      const matchesSearch = guide.title.toLowerCase().includes(query) ||
+        (guide.summary && guide.summary.toLowerCase().includes(query)) ||
+        (guide.keywords || []).some(keyword => keyword.toLowerCase().includes(query));
       const matchesCategory = activeCategoryId === 'all' || guide.categoryObj.id === activeCategoryId;
       return matchesSearch && matchesCategory;
     });

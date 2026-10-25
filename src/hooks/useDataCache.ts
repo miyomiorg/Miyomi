@@ -5,19 +5,21 @@ interface CacheOptions<T> {
     ttl?: number;
     initialData?: T;
     refreshOnExpiry?: boolean;
+    /** Skip fetching until the consumer actually needs the data. */
+    enabled?: boolean;
 }
 
 // Share simultaneous mounts (including StrictMode's effect replay).
 const pending = new Map<string, Promise<unknown>>();
 
 export function useDataCache<T>(key: string, fetcher: () => Promise<T>, options: CacheOptions<T> = {}) {
-    const { ttl, refreshOnExpiry = false } = options;
+    const { ttl, refreshOnExpiry = false, enabled = true } = options;
     const fetcherRef = useRef(fetcher);
     fetcherRef.current = fetcher;
     const generation = useRef(0);
     const [state, setState] = useState(() => {
         const data = CacheManager.get<T>(key, ttl) ?? options.initialData ?? null;
-        return { key, data, loading: data === null, error: null as Error | null };
+        return { key, data, loading: enabled && data === null, error: null as Error | null };
     });
 
     const fetchData = useCallback(async () => {
@@ -46,6 +48,7 @@ export function useDataCache<T>(key: string, fetcher: () => Promise<T>, options:
     }, [key]);
 
     useEffect(() => {
+        if (!enabled) return;
         const cached = CacheManager.get<T>(key, ttl);
         if (cached !== null) {
             setState({ key, data: cached, loading: false, error: null });
@@ -54,9 +57,10 @@ export function useDataCache<T>(key: string, fetcher: () => Promise<T>, options:
         }
         // Prevent late responses for a previous key/unmounted hook from winning.
         return () => { generation.current++; };
-    }, [key, ttl, fetchData]);
+    }, [key, ttl, fetchData, enabled]);
 
     useEffect(() => {
+        if (!enabled) return;
         const refresh = () => { void fetchData(); };
         const check = () => {
             if (document.visibilityState !== 'hidden' && CacheManager.get(key, ttl) === null) refresh();
@@ -71,11 +75,11 @@ export function useDataCache<T>(key: string, fetcher: () => Promise<T>, options:
             document.removeEventListener('visibilitychange', check);
             window.clearInterval(timer);
         };
-    }, [key, ttl, refreshOnExpiry, fetchData]);
+    }, [key, ttl, refreshOnExpiry, fetchData, enabled]);
 
     return {
         data: state.key === key ? state.data : null,
-        loading: state.key !== key || state.loading,
+        loading: enabled && (state.key !== key || state.loading),
         error: state.key === key ? state.error : null,
         refetch: fetchData,
     };
