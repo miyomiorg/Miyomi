@@ -237,7 +237,7 @@ export function BlogPage({ onNavigate }: { onNavigate: (path: string) => void })
                                             </p>
                                             <div className="flex items-center gap-3 text-xs text-[var(--text-secondary)]">
                                                 <span>{pinnedDate}</span>
-                                                {pinnedPost.views !== undefined && (
+                                                {pinnedPost.views != null && (
                                                     <>
                                                         <span className="text-[var(--divider)] -mx-1">•</span>
                                                         <span className="flex items-center gap-1 font-medium">

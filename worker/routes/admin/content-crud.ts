@@ -205,6 +205,7 @@ export function makeContentRouter(kind: ContentKind) {
           if (body[key] !== undefined) values[key] = body[key];
         }
         if (kind === 'blog') {
+          values.views = 0;
           if (body.isPinned !== undefined) values.isPinned = body.isPinned;
           if (body.authorId !== undefined) values.authorId = body.authorId;
         }

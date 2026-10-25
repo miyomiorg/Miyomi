@@ -94,7 +94,7 @@ export function BlogCard({ post, onClick }: BlogCardProps) {
                             Read more <ChevronRight className="w-4 h-4 ml-0.5 group-hover:translate-x-1 transition-transform" />
                         </div>
                         <div className="flex items-center gap-3">
-                            {post.views !== undefined && (
+                            {post.views != null && (
                                 <div className="flex items-center gap-1.5 text-[12px] text-[var(--text-secondary)] font-medium">
                                     <Eye className="w-4 h-4" />
                                     {post.views.toLocaleString()}

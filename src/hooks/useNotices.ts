@@ -1,25 +1,12 @@
-import { useState, useEffect } from 'react';
+import { useDataCache } from './useDataCache';
 import { noticesApi } from '@/services/api';
 import type { Tables } from '@/types/db';
 
 export function useNotices() {
-  const [notices, setNotices] = useState<Tables<'notices'>[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    async function fetchNotices() {
-      try {
-        const data = await noticesApi.list();
-        setNotices(data || []);
-      } catch (error) {
-        console.error('Failed to fetch notices:', error);
-        setNotices([]);
-      } finally {
-        setLoading(false);
-      }
-    }
-    fetchNotices();
-  }, []);
-
-  return { notices, loading };
+  // Reuse the existing content cache. Refresh expired data on return/focus and
+  // invalidate after admin saves, without adding a polling loop.
+  const { data, loading } = useDataCache<Tables<'notices'>[]>(
+    'public_notices', () => noticesApi.list(), { ttl: 60_000 },
+  );
+  return { notices: data || [], loading };
 }

@@ -21,6 +21,10 @@ blogRouter.get('/', async (c) => {
     // Cards need reading time, not every article body (hundreds of KB).
     return ok(c, rows.map(({ content, ...post }) => ({
       ...post,
+      // Rows created before the counter existed can have NULL views; keep the
+      // public shape numeric so cards can always format it.
+      views: post.views ?? 0,
+      isPinned: post.isPinned ?? false,
       readingMinutes: Math.max(1, Math.ceil((content || '').replace(/<[^>]*>/g, '').split(/\s+/).filter(Boolean).length / 200)),
     })));
   } catch (error) {

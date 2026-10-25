@@ -3,6 +3,9 @@ import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { act, createElement } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { EntryNotice } from '../src/components/EntryNotice';
+import { BlogCard } from '../src/components/BlogCard';
+import { RepositoryNote } from '../src/components/RepositoryNote';
+import type { BlogPostSummary } from '../src/types/data';
 import { useDonations } from '../src/hooks/useDonations';
 import { useBlogPost } from '../src/hooks/useBlogPost';
 import { useBlogPosts } from '../src/hooks/useBlogPosts';
@@ -22,6 +25,31 @@ afterEach(async () => {
   await act(async () => root.unmount()); container.remove(); vi.unstubAllGlobals(); vi.restoreAllMocks();
 });
 const response = (data: unknown, status = 200) => new Response(JSON.stringify(status === 200 ? { success: true, data } : { success: false, error: 'Temporary error' }), { status });
+
+it.each(['app', 'extension'] as const)('saves the selected %s notice severity and discards cancelled severity changes', async targetType => {
+  const fetcher = vi.fn(async () => response({ id: 'entry' }));
+  vi.stubGlobal('fetch', fetcher);
+  await act(async () => root.render(createElement(RepositoryNote, {
+    id: 'entry', note: 'Please read', severity: 'warning', targetType, canEdit: true,
+  })));
+  await act(async () => container.querySelector('button')!.click());
+  const critical = document.querySelector<HTMLInputElement>('input[type="radio"][value="danger"]')!;
+  await act(async () => critical.click());
+  expect(critical.checked).toBe(true);
+  const save = [...document.querySelectorAll('button')].find(b => b.textContent === 'Save notice')!;
+  await act(async () => save.click());
+  const [path, init] = (fetcher.mock.calls as unknown as [string, RequestInit][])[0];
+  expect(path).toBe(`/api/admin/${targetType === 'app' ? 'apps' : 'extensions'}/entry/note`);
+  expect(JSON.parse(init.body as string)).toMatchObject({ note: 'Please read', severity: 'danger', sticky: false });
+  expect(container.querySelector('button')!.getAttribute('aria-label')).toBe('Critical notice');
+
+  await act(async () => container.querySelector('button')!.click());
+  await act(async () => document.querySelector<HTMLInputElement>('input[value="info"]')!.click());
+  await act(async () => [...document.querySelectorAll('button')].find(b => b.textContent === 'Close')!.click());
+  await act(async () => container.querySelector('button')!.click());
+  expect(document.querySelector<HTMLInputElement>('input[value="danger"]')!.checked).toBe(true);
+  expect(fetcher).toHaveBeenCalledTimes(1);
+});
 
 it('does not fetch search directories until a search is entered', async () => {
   const fetcher = vi.fn(async () => response([]));
@@ -88,6 +116,18 @@ it('resets an auto-calculated donation goal when there are no public donors', as
   function Donors() { const data = useDonations(); return createElement('span', null, data.goal.currentAmount); }
   await act(async () => root.render(createElement(Donors)));
   expect(container.textContent).toBe('0');
+});
+
+it('renders blog cards when a newly published post has NULL views', async () => {
+  const post = {
+    id: 'new-post', title: 'New post', slug: 'new-post', excerpt: 'Summary',
+    content_format: 'html', category: 'News', tags: [], status: 'published',
+    is_pinned: false, views: null, created_at: '2026-10-25', updated_at: '2026-10-25',
+    reading_minutes: 1,
+  } as unknown as BlogPostSummary;
+  await act(async () => root.render(createElement(BlogCard, { post, onClick: () => {} })));
+  expect(container.textContent).toContain('New post');
+  expect(container.textContent).not.toContain('null');
 });
 
 it('reuses blog lists across filters and invalidates browser content after an admin save', async () => {

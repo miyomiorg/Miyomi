@@ -2,6 +2,14 @@ import { useState, useEffect } from 'react';
 import { X, Info, AlertTriangle, AlertCircle } from 'lucide-react';
 import { useNotices } from '@/hooks/useNotices';
 import { motion, AnimatePresence } from 'motion/react';
+import type { Tables } from '@/types/db';
+
+// Legacy ID-only dismissals cannot identify which content the visitor saw.
+// Use a new format so those notices can be seen and dismissed once again.
+const DISMISSED_KEY = 'miyomi-dismissed-notices-v2';
+const noticeRevision = (notice: Tables<'notices'>) => JSON.stringify([
+  notice.title, notice.message, notice.type,
+]);
 
 const typeConfig: Record<string, { icon: typeof Info; bg: string; border: string; text: string }> = {
   info: { icon: Info, bg: 'bg-[var(--bg-elev-1)]', border: 'border-[var(--brand)]', text: 'text-[var(--text-primary)]' },
@@ -11,18 +19,20 @@ const typeConfig: Record<string, { icon: typeof Info; bg: string; border: string
 
 export function NoticeBanner() {
   const { notices } = useNotices();
-  const [dismissed, setDismissed] = useState<Set<string>>(() => {
+  const [dismissed, setDismissed] = useState<Map<string, string>>(() => {
     try {
-      const saved = localStorage.getItem('miyomi-dismissed-notices');
-      return new Set(saved ? JSON.parse(saved) : []);
-    } catch { return new Set(); }
+      const saved = JSON.parse(localStorage.getItem(DISMISSED_KEY) || '{}');
+      if (!saved || typeof saved !== 'object' || Array.isArray(saved)) return new Map();
+      return new Map(Object.entries(saved).filter((entry): entry is [string, string] => typeof entry[1] === 'string'));
+    } catch { return new Map(); }
   });
 
   useEffect(() => {
-    localStorage.setItem('miyomi-dismissed-notices', JSON.stringify([...dismissed]));
+    try { localStorage.setItem(DISMISSED_KEY, JSON.stringify(Object.fromEntries(dismissed))); }
+    catch { /* Dismissal still works for this session if storage is unavailable. */ }
   }, [dismissed]);
 
-  const visibleNotices = notices.filter(n => !dismissed.has(n.id));
+  const visibleNotices = notices.filter(n => !n.dismissible || dismissed.get(n.id) !== noticeRevision(n));
   if (visibleNotices.length === 0) return null;
 
   return (
@@ -45,7 +55,7 @@ export function NoticeBanner() {
                 <p className={`text-sm opacity-80 ${config.text}`}>{notice.message}</p>
               </div>
               {notice.dismissible && (
-                <button onClick={() => setDismissed(prev => new Set([...prev, notice.id]))} className={`flex-shrink-0 p-1 rounded hover:bg-black/5 dark:hover:bg-white/5 ${config.text}`}>
+                <button type="button" aria-label={`Dismiss notice: ${notice.title}`} onClick={() => setDismissed(prev => new Map(prev).set(notice.id, noticeRevision(notice)))} className={`flex-shrink-0 p-1 rounded hover:bg-black/5 dark:hover:bg-white/5 ${config.text}`}>
                   <X className="w-4 h-4" />
                 </button>
               )}
