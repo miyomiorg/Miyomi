@@ -10,19 +10,18 @@ import {
 interface SupporterRowProps {
   item: SupporterLeaderboardItem;
   showAmounts: boolean;
+  counter: number;
   className?: string;
 }
 
-export function SupporterRow({ item, showAmounts, className = '' }: SupporterRowProps) {
+export function SupporterRow({ item, showAmounts, counter, className = '' }: SupporterRowProps) {
   const hidden = !showAmounts || item.amount_hidden || item.total_usd === null;
   const amount = formatSupporterAmount(item.total_usd, item.amount_hidden, showAmounts);
   const dateTitle = formatAbsoluteDonationDate(item.latest_donation_at);
 
   return (
     <div className={`flex min-w-0 items-center gap-2.5 rounded-lg px-2 py-3 transition-colors hover:bg-[var(--bg-elev-1)]/60 sm:gap-4 sm:px-3 ${className}`}>
-      {item.rank !== null && item.rank <= 3 && (
-        <SupporterRankBadge rank={item.rank} />
-      )}
+      <SupporterRankBadge rank={item.rank ?? counter} />
       <SupporterAvatar name={item.display_name} size={36} />
       <div className="min-w-0 flex-1">
         <div className="flex min-w-0 items-baseline justify-between gap-2">

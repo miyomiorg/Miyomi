@@ -77,7 +77,8 @@ it('renders the top-three podium, recent supporters, and an inline load-more but
   expect(container.textContent).toContain('Private');
   expect(container.textContent).toContain('Dave');
   expect(container.textContent).toContain('Frank');
-  expect(container.querySelector('[aria-label="Rank 4"]')).toBeNull();
+  expect(container.querySelector('[aria-label="Supporter 4"]')).not.toBeNull();
+  expect(container.querySelector('[aria-label="Supporter 4"]')?.textContent).toBe('4');
   expect(Array.from(container.querySelectorAll('button')).some(button => button.textContent?.includes('View all'))).toBe(false);
   expect(container.textContent).not.toContain('All Supporters');
 

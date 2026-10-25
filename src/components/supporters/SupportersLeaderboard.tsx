@@ -154,11 +154,12 @@ export function SupportersLeaderboard({
           </div>
 
           <div className="divide-y divide-[var(--divider)]/60 md:hidden">
-            {mobileItems.map(item => (
+            {mobileItems.map((item, index) => (
               <SupporterRow
                 key={item.key}
                 item={item}
                 showAmounts={showAmounts}
+                counter={index + 1}
               />
             ))}
           </div>

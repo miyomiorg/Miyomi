@@ -34,8 +34,9 @@ export function SupporterRankBadge({ rank, large = false }: SupporterRankBadgePr
 
   return (
     <span
-      className={`inline-flex shrink-0 items-center justify-center text-sm font-semibold tabular-nums text-[var(--text-secondary)] ${box}`}
-      aria-label={`Rank ${rank}`}
+      className={`inline-flex shrink-0 items-center justify-center rounded-full bg-[var(--chip-bg)] text-sm font-semibold tabular-nums text-[var(--text-secondary)] ${box}`}
+      title={`Supporter ${rank}`}
+      aria-label={`Supporter ${rank}`}
     >
       {rank}
     </span>
