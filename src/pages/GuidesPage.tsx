@@ -266,15 +266,12 @@ export function GuidesPage({ onNavigate }: GuidesPageProps) {
           </div>
         ) : filteredGuides.length > 0 ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredGuides.map((guide, index) => {
+            {filteredGuides.map((guide) => {
               const Icon = iconMap[guide.categoryObj.icon] || FileText;
 
               return (
-                <motion.button
+                <button
                   key={guide.id}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: Math.min(index * 0.05, 0.3) }}
                   onClick={() => handleGuideClick(guide.slug)}
                   className="group relative flex flex-col items-start p-6 bg-[var(--bg-surface)] border border-[var(--divider)] hover:border-[var(--brand)] rounded-2xl transition-all text-left overflow-hidden hover:-translate-y-1 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-[var(--brand)]"
                 >
@@ -316,7 +313,7 @@ export function GuidesPage({ onNavigate }: GuidesPageProps) {
                       Read Guide <ArrowRight className="w-4 h-4" />
                     </div>
                   </div>
-                </motion.button>
+                </button>
               );
             })}
           </div>
