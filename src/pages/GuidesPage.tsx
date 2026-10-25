@@ -1,5 +1,5 @@
-import { useEffect, useState, useRef, useMemo } from 'react';
-import { BookOpen, Download, Settings, HelpCircle, ArrowRight, Search, Clock, FileText } from 'lucide-react';
+import { useEffect, useState, useRef, useMemo, type MouseEvent as ReactMouseEvent } from 'react';
+import { BookOpen, Download, Settings, HelpCircle, ArrowRight, Search, Clock, FileText, X } from 'lucide-react';
 import { useLocation, useNavigationType } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { useGuideCategories } from '@/hooks/useGuideCategories';
@@ -11,6 +11,30 @@ interface GuidesPageProps {
 }
 
 const STORAGE_KEY = 'miyomi-guides-state';
+const GUIDE_NOTICE_DISMISS_KEY = 'miyomi-guide-notice-dismissed-v1';
+const GUIDE_NOTICE_DISMISS_TTL_MS = 24 * 60 * 60 * 1000;
+
+interface DismissedGuideNotice {
+  revision: string;
+  expiresAt: number;
+}
+
+function readDismissedGuideNotice(): DismissedGuideNotice | null {
+  try {
+    const saved = JSON.parse(localStorage.getItem(GUIDE_NOTICE_DISMISS_KEY) || 'null');
+    if (!saved || typeof saved.revision !== 'string' || typeof saved.expiresAt !== 'number') return null;
+    return saved;
+  } catch {
+    return null;
+  }
+}
+
+function isDismissButton(button: HTMLButtonElement): boolean {
+  const label = `${button.getAttribute('title') || ''} ${button.getAttribute('aria-label') || ''}`;
+  return /dismiss|close/i.test(label) ||
+    button.hasAttribute('data-dismiss') ||
+    Boolean(button.querySelector('.lucide-x'));
+}
 
 export function GuidesPage({ onNavigate }: GuidesPageProps) {
   const location = useLocation();
@@ -22,10 +46,52 @@ export function GuidesPage({ onNavigate }: GuidesPageProps) {
   const [activeCategoryId, setActiveCategoryId] = useState<string>('all');
   const [isSearchFocused, setIsSearchFocused] = useState(false);
   const searchContainerRef = useRef<HTMLDivElement>(null);
-  const [noticeDismissed, setNoticeDismissed] = useState(false);
+  const noticeRef = useRef<HTMLDivElement>(null);
+  const [dismissedNotice, setDismissedNotice] = useState<DismissedGuideNotice | null>(() => readDismissedGuideNotice());
+  const [noticeHasDismissButton, setNoticeHasDismissButton] = useState<boolean | null>(null);
 
   const noticeEnabled = settings?.guide_notice_enabled === 'true' || settings?.guide_notice_enabled === true;
   const noticeContent = typeof settings?.guide_notice_content === 'string' ? settings.guide_notice_content : '';
+  const noticeIsDismissed = Boolean(
+    dismissedNotice &&
+    dismissedNotice.revision === noticeContent &&
+    dismissedNotice.expiresAt > Date.now(),
+  );
+
+  useEffect(() => {
+    if (!dismissedNotice || dismissedNotice.expiresAt > Date.now()) return;
+    setDismissedNotice(null);
+    try { localStorage.removeItem(GUIDE_NOTICE_DISMISS_KEY); } catch { /* Storage is optional. */ }
+  }, [dismissedNotice]);
+
+  const dismissGuideNotice = () => {
+    const record: DismissedGuideNotice = {
+      revision: noticeContent,
+      expiresAt: Date.now() + GUIDE_NOTICE_DISMISS_TTL_MS,
+    };
+    setDismissedNotice(record);
+    try { localStorage.setItem(GUIDE_NOTICE_DISMISS_KEY, JSON.stringify(record)); } catch { /* Storage is optional. */ }
+  };
+
+  useEffect(() => {
+    if (!noticeEnabled || !noticeContent || noticeIsDismissed || !noticeRef.current) {
+      setNoticeHasDismissButton(null);
+      return;
+    }
+    const buttons = Array.from(noticeRef.current.querySelectorAll('button'));
+    setNoticeHasDismissButton(buttons.some(isDismissButton));
+  }, [noticeEnabled, noticeContent, noticeIsDismissed]);
+
+  const handleNoticeClick = (event: ReactMouseEvent<HTMLDivElement>) => {
+    const target = event.target;
+    if (!(target instanceof Element)) return;
+    const button = target.closest('button');
+    if (!button || !isDismissButton(button)) return;
+
+    event.preventDefault();
+    event.stopPropagation();
+    dismissGuideNotice();
+  };
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -113,16 +179,19 @@ export function GuidesPage({ onNavigate }: GuidesPageProps) {
   return (
     <div className="max-w-7xl mx-auto" ref={scrollContainerRef}>
       {/* Notice Banner */}
-      {noticeEnabled && noticeContent && !noticeDismissed && (
-        <div className="mb-6 relative group">
-          <div dangerouslySetInnerHTML={{ __html: noticeContent }} />
-          <button
-            onClick={() => setNoticeDismissed(true)}
-            className="absolute top-3 right-4 p-1 rounded-md transition-colors hover:bg-[var(--bg-elev-2)] text-[var(--text-secondary)] opacity-0 group-hover:opacity-100"
-            title="Dismiss"
-          >
-            <span className="sr-only">Close</span>
-          </button>
+      {noticeEnabled && noticeContent && !noticeIsDismissed && (
+        <div className="mb-6 relative" onClick={handleNoticeClick}>
+          <div ref={noticeRef} dangerouslySetInnerHTML={{ __html: noticeContent }} />
+          {noticeHasDismissButton === false && (
+            <button
+              type="button"
+              title="Dismiss"
+              aria-label="Dismiss guide notice"
+              className="absolute top-3 right-3 p-1 rounded-md transition-colors hover:bg-[var(--bg-elev-2)] text-[var(--text-secondary)]"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          )}
         </div>
       )}
 
