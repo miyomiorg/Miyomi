@@ -8,6 +8,7 @@
  */
 import { http } from './http';
 import type { Tables } from '@/types/db';
+import type { SupporterLeaderboardPage } from '@/types/donations';
 import type {
   AnalyticsData,
   ContributorRow,
@@ -84,6 +85,13 @@ export const donationsApi = {
       rows.push(...page);
       if (page.length < 200) return rows;
     }
+  },
+  leaderboard: (params: { limit?: number; cursor?: string | null } = {}) => {
+    const search = new URLSearchParams();
+    if (params.limit) search.set('limit', String(params.limit));
+    if (params.cursor) search.set('cursor', params.cursor);
+    const query = search.toString();
+    return http.get<SupporterLeaderboardPage>(`/donations/leaderboard${query ? `?${query}` : ''}`);
   },
   settings: () => http.get<Tables<'donation_settings'>[]>('/donation-settings'),
 };

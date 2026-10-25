@@ -6,6 +6,7 @@ import { guidesRouter } from './guides.ts';
 import { blogRouter } from './blog.ts';
 import { faqsRouter } from './faqs.ts';
 import { miscRouter } from './misc.ts';
+import { supportersRouter } from './supporters.ts';
 import { likesRouter } from './likes.ts';
 import { submitRouter } from './submit.ts';
 import { statsRouter } from './stats.ts';
@@ -22,6 +23,7 @@ publicRouter.route('/guides', guidesRouter);
 publicRouter.route('/blog', blogRouter);
 publicRouter.route('/faqs', faqsRouter);
 publicRouter.route('/likes', likesRouter);
+publicRouter.route('/donations/leaderboard', supportersRouter);
 publicRouter.route('/', miscRouter); // settings, notices, themes, donations, groups, contributors
 publicRouter.route('/', submitRouter); // feedback, reports, submissions
 publicRouter.route('/stats', statsRouter);

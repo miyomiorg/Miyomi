@@ -8,8 +8,11 @@ function policy(path: string): { ttl: number; query: string[] } | null {
   if (/^\/api\/(apps|extensions)(\/[^/]+(\/compatible)?)?$/.test(path)) return { ttl: 60, query: [] };
   if (/^\/api\/guides(\/[^/]+)?$/.test(path)) return { ttl: 60, query: ['category'] };
   if (path === '/api/faqs') return { ttl: 60, query: [] };
-  // Donations change via the admin panel and must show new donors immediately,
-  // so they are intentionally excluded from edge caching.
+  // Ranked aggregates are cached briefly; successful admin writes invalidate
+  // public entries in the current isolate, and other locations refresh on TTL.
+  if (path === '/api/donations/leaderboard') return { ttl: 60, query: ['limit', 'cursor'] };
+  // The raw donation list changes via the admin panel and must show new donors
+  // immediately, so it is intentionally excluded from edge caching.
   if (/^\/api\/(blog|settings\/public|notices|themes|donation-settings|groups|contributors)$/.test(path)) {
     return { ttl: 60, query: [] };
   }
@@ -72,7 +75,7 @@ export const publicCache: MiddlewareHandler<AppEnv> = async (c, next) => {
     if (value !== null) url.searchParams.set(name, value);
   }
   // Version the cache namespace when response contracts change.
-  url.searchParams.set('__public_cache', 'v5');
+  url.searchParams.set('__public_cache', 'v7');
   const key = new Request(url.toString());
   const generation = scope.generation;
   for (const [url, expires] of scope.keys) if (expires <= Date.now()) scope.keys.delete(url);

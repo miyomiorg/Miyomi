@@ -7,6 +7,7 @@ import { BlogCard } from '../src/components/BlogCard';
 import { RepositoryNote } from '../src/components/RepositoryNote';
 import type { BlogPostSummary } from '../src/types/data';
 import { useDonations } from '../src/hooks/useDonations';
+import { useSupportersLeaderboard } from '../src/hooks/useSupportersLeaderboard';
 import { useBlogPost } from '../src/hooks/useBlogPost';
 import { useBlogPosts } from '../src/hooks/useBlogPosts';
 import { useGlobalSearch } from '../src/hooks/useGlobalSearch';
@@ -16,7 +17,7 @@ import { CacheManager } from '../src/utils/cache';
 let root: Root;
 let container: HTMLDivElement;
 beforeEach(() => {
-  (globalThis as any).IS_REACT_ACT_ENVIRONMENT = true;
+  (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
   localStorage.clear();
   container = document.createElement('div'); document.body.append(container);
   root = createRoot(container);
@@ -114,18 +115,19 @@ it('dismisses only the current entry/revision; edited and sticky notices reappea
   expect(container.textContent).toBe('First');
 });
 
-it('loads every donor page through the real adapter and computes the full goal total', async () => {
-  const rows = Array.from({ length: 205 }, (_, id) => ({ id: String(id), donorName: `Donor ${id}`, amount: 2, currency: 'USD', isPublic: true, showAmount: true }));
+it('loads donation settings without downloading the full donation history', async () => {
   const fetcher = vi.fn(async (url: string) => {
-    if (url === '/api/donation-settings') return response([{ key: 'goal', value: { autoCalc: true, currentAmount: 999 } }]);
-    const offset = Number(new URL(url, 'https://test.invalid').searchParams.get('offset'));
-    return response(rows.slice(offset, offset + 200));
+    expect(url).toBe('/api/donation-settings');
+    return response([{ key: 'goal', value: { autoCalc: true, currentAmount: 999 } }]);
   });
   vi.stubGlobal('fetch', fetcher);
-  function Donors() { const data = useDonations(); return createElement('span', null, `${data.donators.length}:${data.goal.currentAmount}:${data.donators[0]?.name}`); }
-  await act(async () => root.render(createElement(Donors)));
-  expect(container.textContent).toBe('205:410:Donor 0');
-  expect(fetcher.mock.calls.map(c => c[0])).toContain('/api/donations?limit=200&offset=200');
+  function Settings() {
+    const data = useDonations();
+    return createElement('span', null, `${data.goal.currentAmount}:${data.loading}`);
+  }
+  await act(async () => root.render(createElement(Settings)));
+  expect(container.textContent).toBe('999:false');
+  expect(fetcher).toHaveBeenCalledTimes(1);
 });
 
 it('recovers blog detail after a failed request when navigating to another post', async () => {
@@ -138,12 +140,104 @@ it('recovers blog detail after a failed request when navigating to another post'
   expect(container.textContent).toBe('Recovered');
 });
 
-it('resets an auto-calculated donation goal when there are no public donors', async () => {
-  vi.stubGlobal('fetch', vi.fn(async (url: string) => response(url.endsWith('donation-settings')
-    ? [{ key: 'goal', value: { autoCalc: true, currentAmount: 999 } }] : [])));
-  function Donors() { const data = useDonations(); return createElement('span', null, data.goal.currentAmount); }
-  await act(async () => root.render(createElement(Donors)));
-  expect(container.textContent).toBe('0');
+it('loads the ranked aggregate and its total through the dedicated endpoint', async () => {
+  const fetcher = vi.fn(async () => response({
+    top: [{
+      key: 'name:top',
+      rank: 1,
+      displayName: 'Top supporter',
+      totalUsd: 12.5,
+      donationCount: 2,
+      latestDonationAt: '2026-10-01',
+      amountHidden: false,
+    }],
+    items: [{
+      key: 'name:recent',
+      rank: null,
+      displayName: 'Recent supporter',
+      totalUsd: 3,
+      donationCount: 1,
+      latestDonationAt: '2026-10-02',
+      amountHidden: false,
+    }],
+    total: 2,
+    totalRaisedUsd: 15.5,
+    nextCursor: null,
+  }));
+  vi.stubGlobal('fetch', fetcher);
+  function Supporters() {
+    const data = useSupportersLeaderboard(6);
+    return createElement('span', null, `${data.top.length}:${data.items.length}:${data.total}:${data.totalRaisedUsd}:${data.top[0]?.display_name}:${data.items[0]?.display_name}:${data.loading}`);
+  }
+  await act(async () => root.render(createElement(Supporters)));
+  expect(container.textContent).toBe('1:1:2:15.5:Top supporter:Recent supporter:false');
+  expect(fetcher.mock.calls[0][0]).toBe('/api/donations/leaderboard?limit=6');
+});
+
+it('appends cursor pages without duplicates and stops when exhausted', async () => {
+  const fetcher = vi.fn()
+    .mockResolvedValueOnce(response({
+      top: [{
+        key: 'name:top',
+        rank: 1,
+        displayName: 'Top supporter',
+        totalUsd: 12.5,
+        donationCount: 2,
+        latestDonationAt: '2026-10-01',
+        amountHidden: false,
+      }],
+      items: [{
+        key: 'name:a',
+        rank: null,
+        displayName: 'A',
+        totalUsd: 4,
+        donationCount: 1,
+        latestDonationAt: '2026-10-02',
+        amountHidden: false,
+      }],
+      total: 3,
+      totalRaisedUsd: 20,
+      nextCursor: 'next',
+    }))
+    .mockResolvedValueOnce(response({
+      top: [],
+      items: [
+        {
+          key: 'name:a',
+          rank: null,
+          displayName: 'A',
+          totalUsd: 4,
+          donationCount: 1,
+          latestDonationAt: '2026-10-02',
+          amountHidden: false,
+        },
+        {
+          key: 'name:b',
+          rank: null,
+          displayName: 'B',
+          totalUsd: 3,
+          donationCount: 1,
+          latestDonationAt: '2026-10-03',
+          amountHidden: false,
+        },
+      ],
+      total: 3,
+      totalRaisedUsd: 20,
+      nextCursor: null,
+    }));
+  vi.stubGlobal('fetch', fetcher);
+  let latest: ReturnType<typeof useSupportersLeaderboard>;
+  function Supporters() {
+    latest = useSupportersLeaderboard(20);
+    return null;
+  }
+  await act(async () => root.render(createElement(Supporters)));
+  expect(latest!.items.map(item => item.display_name)).toEqual(['A']);
+  expect(latest!.hasMore).toBe(true);
+  await act(async () => { await latest!.loadMore(); });
+  expect(latest!.items.map(item => item.display_name)).toEqual(['A', 'B']);
+  expect(latest!.hasMore).toBe(false);
+  expect(fetcher.mock.calls[1][0]).toBe('/api/donations/leaderboard?limit=20&cursor=next');
 });
 
 it('renders blog cards when a newly published post has NULL views', async () => {

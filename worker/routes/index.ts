@@ -10,7 +10,7 @@ import { adminRouter } from './admin/index.ts';
  *   /api/health       liveness probe
  *   /api/apps, /api/extensions, /api/guides, /api/blog, /api/faqs,
  *   /api/likes, /api/settings/public, /api/notices, /api/themes,
- *   /api/donations, /api/donation-settings, /api/groups,
+ *   /api/donations, /api/donations/leaderboard, /api/donation-settings, /api/groups,
  *   /api/contributors, /api/stats, /api/feedback, /api/reports,
  *   /api/submissions  public (unauthenticated)
  *   /api/admin/*      admin (session-guarded; /api/admin/auth public)

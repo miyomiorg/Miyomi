@@ -7,8 +7,8 @@
  * The Drizzle layer keys rows by camelCase property names; the frontend's
  * existing `Tables<'...'>` types (and all admin pages) use snake_case. This
  * layer therefore snake_cases the *top-level* keys of the data payload
- * (recursing into arrays, but leaving nested objects — JSON/JSONB columns —
- * untouched). Aggregate responses can opt out with `preserveKeys`.
+ * (recursing into `items`/`top` arrays, but leaving nested objects — JSON/JSONB
+ * columns — untouched). Aggregate responses can opt out with `preserveKeys`.
  */
 
 import { CacheManager } from '@/utils/cache';
@@ -41,7 +41,7 @@ function snakeify(value: unknown): unknown {
     for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
       // convert key; leave the value untouched (nested objects are JSON columns)
       out[k.replace(/[A-Z]/g, (m) => `_${m.toLowerCase()}`)] =
-        k === 'items' && Array.isArray(v) ? v.map(snakeify) : v;
+        (k === 'items' || k === 'top') && Array.isArray(v) ? v.map(snakeify) : v;
     }
     return out;
   }

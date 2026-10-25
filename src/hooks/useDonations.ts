@@ -2,26 +2,12 @@ import { useState, useEffect } from 'react';
 import { donationsApi } from '@/services/api';
 import type { PaymentMethod, TransparencyItem, DonationGoal } from '@/types/donations';
 
-export interface Donator {
-  id?: string;
-  name: string;
-  amount: number;
-  currency: string;
-  message: string;
-  date: string;
-  isPublic: boolean;
-  showAmount: boolean;
-  paymentMethod?: string;
-  usdAmount?: number;
-}
-
 export interface FundAllocationItem {
   label: string;
   value: string;
 }
 
 interface UseDonationsReturn {
-  donators: Donator[];
   goal: DonationGoal;
   paymentMethods: PaymentMethod[];
   transparencyItems: TransparencyItem[];
@@ -35,11 +21,12 @@ interface UseDonationsReturn {
 const DEFAULT_GOAL: DonationGoal = { title: '', description: '', targetAmount: 0, currentAmount: 0, currency: 'USD' };
 
 /**
- * Fully database-driven hook (reads donation_settings + donations via the API).
+ * Loads the public donation settings only. Donation history and the ranked
+ * supporter aggregate are fetched separately by `useSupportersLeaderboard`,
+ * so visiting the donate page never downloads the full donation table.
  */
 export function useDonations(): UseDonationsReturn {
   const [data, setData] = useState<UseDonationsReturn>({
-    donators: [],
     goal: DEFAULT_GOAL,
     paymentMethods: [],
     transparencyItems: [],
@@ -54,21 +41,16 @@ export function useDonations(): UseDonationsReturn {
     let cancelled = false;
 
     (async () => {
-      let donators: Donator[] = [];
       let goal: DonationGoal = DEFAULT_GOAL;
       let methods: PaymentMethod[] = [];
       let transparency: TransparencyItem[] = [];
       let whereFundsGo: FundAllocationItem[] = [];
-      let currencies: { code: string; rate: number }[] = [];
       let showAmounts = true;
       let showGoal = false;
       let lastUpdated = '';
 
       try {
-        const [settings, rows] = await Promise.all([
-          donationsApi.settings(),
-          donationsApi.list(),
-        ]);
+        const settings = await donationsApi.settings();
 
         if (settings) {
           for (const s of settings) {
@@ -82,47 +64,14 @@ export function useDonations(): UseDonationsReturn {
               showGoal = val.showGoal ?? false;
               lastUpdated = val.transparencyLastUpdated ?? '';
             }
-            if (s.key === 'currencies' && Array.isArray(val)) currencies = val;
           }
         }
-
-        if (rows && rows.length > 0) {
-          donators = rows.map((r: any) => {
-            const amt = Number(r.amount);
-            const cur = r.currency || 'USD';
-            const rate = currencies.find(c => c.code === cur)?.rate || 1;
-            return {
-              id: r.id,
-              name: r.donor_name,
-              amount: amt,
-              currency: cur,
-              message: r.message || '',
-              date: r.date || '',
-              isPublic: r.is_public,
-              showAmount: r.show_amount,
-              paymentMethod: r.payment_method || '',
-              usdAmount: Math.round((amt / rate) * 100) / 100,
-            };
-          });
-        }
-
-        if (goal.autoCalc) {
-          goal = {
-            ...goal,
-            currentAmount: donators.reduce((sum, d) => {
-              const rate = currencies.find(c => c.code === d.currency)?.rate || 1;
-              return sum + (d.amount / rate);
-            }, 0),
-          };
-          goal.currentAmount = Math.round(goal.currentAmount * 100) / 100;
-        }
       } catch (e) {
-        console.warn('Failed to load donations:', e);
+        console.warn('Failed to load donation settings:', e);
       }
 
       if (!cancelled) {
         setData({
-          donators,
           goal,
           paymentMethods: methods,
           transparencyItems: transparency,

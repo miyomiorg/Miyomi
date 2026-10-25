@@ -150,9 +150,57 @@ try {
   const donors = (await (await request('/api/donations?limit=200&offset=0')).response.json()).data;
   assert.equal(donors.length, 55);
   assert.ok(donors.every((d: any) => d.id !== 'private-donor'));
-  const added = await request('/api/admin/donations', { ...write({ donorName: 'New donor', amount: 3, isPublic: true }), method: 'POST' });
+
+  const leaderboard = await request('/api/donations/leaderboard?limit=3');
+  assert.equal(leaderboard.queries, 2, 'one aggregate page + one summary query');
+  const leaderboardPage = (await leaderboard.response.json()).data;
+  assert.equal(leaderboardPage.total, 55);
+  assert.equal(leaderboardPage.totalRaisedUsd, 55);
+  assert.equal(leaderboardPage.top.length, 3);
+  assert.deepEqual(leaderboardPage.top.map((item: any) => item.rank), [1, 2, 3]);
+  assert.equal(leaderboardPage.items.length, 3);
+  assert.ok(leaderboardPage.items.every((item: any) => item.rank === null), 'recent entries are not ranked');
+  assert.equal(leaderboardPage.top[0].totalUsd, null, 'hidden per-donor amounts must not be returned');
+  assert.equal(leaderboardPage.top[0].amountHidden, true);
+  assert.ok(leaderboardPage.nextCursor, 'more supporters should produce a cursor');
+  assert.equal((await request('/api/donations/leaderboard?limit=3')).queries, 0, 'leaderboard cache hit must use zero D1 queries');
+
+  const nextPage = await request(`/api/donations/leaderboard?limit=3&cursor=${encodeURIComponent(leaderboardPage.nextCursor)}`);
+  assert.equal(nextPage.queries, 2);
+  const nextPageBody = (await nextPage.response.json()).data;
+  assert.equal(nextPageBody.top.length, 0, 'later pages must not repeat the podium');
+  assert.equal(nextPageBody.items.length, 3);
+  const seenKeys = new Set([...leaderboardPage.top, ...leaderboardPage.items, ...nextPageBody.items].map((item: any) => item.key));
+  assert.equal(seenKeys.size, 9, 'cursor pagination must not duplicate supporters');
+
+  const added = await request('/api/admin/donations', { ...write({ donorName: 'New donor', amount: 3, isPublic: true, showAmount: true }), method: 'POST' });
   assert.equal(added.response.status, 201);
   assert.equal((await (await request('/api/donations?limit=200')).response.json()).data.length, 56);
+
+  const refreshedLeaderboard = await request('/api/donations/leaderboard?limit=3');
+  assert.equal(refreshedLeaderboard.queries, 2, 'admin donation writes invalidate the leaderboard cache');
+  const refreshedPage = (await refreshedLeaderboard.response.json()).data;
+  assert.equal(refreshedPage.total, 56);
+  assert.equal(refreshedPage.totalRaisedUsd, 58);
+  assert.equal(refreshedPage.top[0].displayName, 'New donor');
+  assert.equal(refreshedPage.top[0].totalUsd, 3);
+  assert.equal(refreshedPage.top[0].rank, 1);
+
+  sqlite.exec(`INSERT INTO donations (id, donor_name, is_public, amount, show_amount) VALUES
+    ('anon-a', 'Anonymous', 1, 5, 1),
+    ('anon-b', 'Anonymous', 1, 7, 1),
+    ('hidden-name', 'Private Tester', 1, 100, 0);`);
+  const edgePage = (await (await request('/api/donations/leaderboard?limit=50')).response.json()).data;
+  const allEdgeItems = [...edgePage.top, ...edgePage.items];
+  const anonymous = allEdgeItems.filter((item: any) => item.displayName === 'Anonymous');
+  assert.equal(anonymous.length, 2, 'generic anonymous donations must remain separate supporters');
+  assert.deepEqual(anonymous.map((item: any) => item.totalUsd).sort((a: number, b: number) => a - b), [5, 7]);
+  const hiddenSupporter = allEdgeItems.find((item: any) => item.displayName === 'Private Tester');
+  assert.equal(hiddenSupporter.rank, 1);
+  assert.equal(hiddenSupporter.amountHidden, true);
+  assert.equal(hiddenSupporter.totalUsd, null, 'a hidden supporter total must not leak through the API');
+  sqlite.exec("DELETE FROM donations WHERE id IN ('anon-a', 'anon-b', 'hidden-name');");
+
   const profile = { name: 'Writer', role: 'Editor', avatar: 'https://example.test/avatar.png' };
   assert.equal((await request('/api/admin/author-profile', write(profile))).response.status, 200);
   assert.deepEqual((await (await request('/api/admin/author-profile', auth)).response.json()).data, profile);

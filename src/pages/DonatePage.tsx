@@ -30,7 +30,8 @@ import {
 import { motion, AnimatePresence } from 'motion/react';
 import { useState } from 'react';
 import { useDonations } from '../hooks/useDonations';
-import type { Donator } from '../hooks/useDonations';
+import { useSupportersLeaderboard } from '../hooks/useSupportersLeaderboard';
+import { SupportersLeaderboard } from '../components/supporters/SupportersLeaderboard';
 import type { PaymentMethod } from '@/types/donations';
 
 /* ───── brand colors per payment provider ───── */
@@ -118,72 +119,6 @@ function Card({
     </div>
   );
 }
-
-/* ───── Donator Card ───── */
-interface DonatorCardProps {
-  donator: Donator;
-  index: number;
-  showDonationAmounts: boolean;
-}
-
-/* generate a consistent random avatar URL from the donor name */
-function avatarUrl(name: string) {
-  const seed = encodeURIComponent(name.trim().toLowerCase());
-  return `https://api.dicebear.com/9.x/adventurer-neutral/svg?seed=${seed}&backgroundColor=b6e3f4,c0aede,d1d4f9,ffd5dc,ffdfbf`;
-}
-
-const DonatorCard: React.FC<DonatorCardProps> = ({ donator, index, showDonationAmounts }) => {
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 10 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true }}
-      transition={{ duration: 0.25, delay: Math.min(index * 0.03, 0.6) }}
-      className="h-full"
-    >
-      <div className="flex gap-3 p-3 bg-[var(--bg-surface)] border border-[var(--divider)] rounded-xl hover:border-[var(--brand)]/30 transition-colors h-full">
-        {/* Avatar */}
-        <img
-          src={avatarUrl(donator.name)}
-          alt={donator.name}
-          className="w-9 h-9 rounded-full flex-shrink-0 bg-[var(--chip-bg)] mt-0.5"
-          loading="lazy"
-        />
-
-        <div className="flex-1 min-w-0 flex flex-col">
-          {/* Row 1: Name */}
-          <span className="font-['Poppins',sans-serif] text-[var(--text-primary)] text-[13px] font-semibold truncate leading-tight">
-            {donator.name}
-          </span>
-
-          {/* Row 2: Badges (amount + method + date) */}
-          <div className="flex items-center gap-1.5 flex-wrap mt-1">
-            {showDonationAmounts && donator.showAmount && (
-              <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-[var(--chip-bg)] text-[var(--brand)] font-medium leading-none">
-                ${donator.usdAmount ?? donator.amount}
-              </span>
-            )}
-            {donator.paymentMethod && (
-              <span className="text-[10px] px-1.5 py-0.5 rounded-full border border-[var(--divider)] text-[var(--text-secondary)] font-medium leading-none">
-                {donator.paymentMethod}
-              </span>
-            )}
-            {donator.date && (
-              <span className="text-[10px] text-[var(--text-secondary)] opacity-50 leading-none">
-                {donator.date}
-              </span>
-            )}
-          </div>
-
-          {/* Row 3: Message (always reserve space) */}
-          <p className="text-[var(--text-secondary)] text-[11px] mt-1 leading-snug line-clamp-1 min-h-[15px]">
-            {donator.message ? `"${donator.message}"` : '\u00A0'}
-          </p>
-        </div>
-      </div>
-    </motion.div>
-  );
-};
 
 /* ───── Copyable Field ───── */
 function CopyableField({ label, value, icon: Icon }: { label: string; value: string; icon: React.ElementType }) {
@@ -335,17 +270,32 @@ function PaymentDetailModal({ method, onClose }: { method: PaymentMethod | null;
    ═══════════════════════════════════════════════ */
 export function DonatePage() {
   const {
-    donators,
-    goal: donationGoal,
+    goal: storedGoal,
     paymentMethods,
     transparencyItems,
     whereFundsGoItems,
     showDonationAmounts,
     showGoal,
     transparencyLastUpdated,
-    loading,
   } = useDonations();
+  const {
+    top: topSupporters,
+    items: recentSupporters,
+    total: supporterCount,
+    totalRaisedUsd,
+    loading: supportersLoading,
+    loadingMore: supportersLoadingMore,
+    error: supportersError,
+    moreError: supportersMoreError,
+    hasMore: supportersHasMore,
+    loadMore: loadMoreSupporters,
+    refetch: refetchSupporters,
+  } = useSupportersLeaderboard(20);
   const [selectedMethod, setSelectedMethod] = useState<PaymentMethod | null>(null);
+
+  const donationGoal = storedGoal.autoCalc && totalRaisedUsd !== null
+    ? { ...storedGoal, currentAmount: totalRaisedUsd }
+    : storedGoal;
 
   const progressPercent = donationGoal.targetAmount > 0
     ? Math.min((donationGoal.currentAmount / donationGoal.targetAmount) * 100, 100)
@@ -370,12 +320,6 @@ export function DonatePage() {
 
   const displayWhereFundsGo = whereFundsGoItems;
   const hasWhereFundsGo = displayWhereFundsGo.length > 0;
-
-  const sortedDonators = [...donators].sort((a, b) => {
-    const amountA = a.usdAmount ?? a.amount;
-    const amountB = b.usdAmount ?? b.amount;
-    return amountB - amountA;
-  });
 
   return (
     <div className="max-w-7xl mx-auto px-4 md:px-6 py-6 md:py-12 space-y-6">
@@ -634,7 +578,7 @@ export function DonatePage() {
         </Card>
       </motion.section>
 
-      {/* ── DONATORS WALL ── */}
+      {/* ── SUPPORTER LEADERBOARD ── */}
       <motion.section
         initial={{ opacity: 0, y: 12 }}
         whileInView={{ opacity: 1, y: 0 }}
@@ -642,41 +586,19 @@ export function DonatePage() {
         transition={{ duration: 0.4 }}
       >
         <Card>
-          <div className="mb-4">
-            <div className="flex items-center gap-2 mb-1">
-              <Users className="w-5 h-5 text-[var(--brand)]" />
-              <h2 className="font-['Poppins',sans-serif] text-[var(--text-primary)] text-lg font-semibold">
-                Recent Supporters
-              </h2>
-            </div>
-            <p className="text-[var(--text-secondary)] text-sm">
-              Thanks to everyone who supports Miyomi.
-            </p>
-          </div>
-
-          {loading ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-              {[...Array(8)].map((_, i) => (
-                <div
-                  key={i}
-                  className="h-[100px] rounded-xl bg-[var(--chip-bg)] animate-pulse"
-                />
-              ))}
-            </div>
-          ) : donators.length === 0 ? (
-            <div className="text-center py-6 border border-[var(--divider)] rounded-xl">
-              <Heart className="w-8 h-8 text-[var(--text-secondary)] opacity-30 mx-auto mb-2" />
-              <p className="text-[var(--text-secondary)] text-sm">
-                Be the first!
-              </p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-              {sortedDonators.map((donator, i) => (
-                <DonatorCard key={i} donator={donator} index={i} showDonationAmounts={showDonationAmounts} />
-              ))}
-            </div>
-          )}
+          <SupportersLeaderboard
+            top={topSupporters}
+            items={recentSupporters}
+            total={supporterCount}
+            loading={supportersLoading}
+            loadingMore={supportersLoadingMore}
+            error={supportersError}
+            moreError={supportersMoreError}
+            hasMore={supportersHasMore}
+            onLoadMore={loadMoreSupporters}
+            onRetry={refetchSupporters}
+            showAmounts={showDonationAmounts}
+          />
         </Card>
       </motion.section>
 
