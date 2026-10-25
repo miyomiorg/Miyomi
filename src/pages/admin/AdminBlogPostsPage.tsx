@@ -19,8 +19,24 @@ export function AdminBlogPostsPage() {
 
   const filtered = useMemo(() => {
     if (!blogPosts) return [];
-    return blogPosts.filter(b => b.title?.toLowerCase().includes(search.toLowerCase()) || b.slug?.toLowerCase().includes(search.toLowerCase()));
+    const timestamp = (post: any) => {
+      const value = post.published_at || post.created_at;
+      const time = value ? new Date(value).getTime() : 0;
+      return Number.isNaN(time) ? 0 : time;
+    };
+    return blogPosts
+      .filter(b => b.title?.toLowerCase().includes(search.toLowerCase()) || b.slug?.toLowerCase().includes(search.toLowerCase()))
+      .sort((a, b) => timestamp(b) - timestamp(a));
   }, [blogPosts, search]);
+
+  function formatDate(post: any) {
+    const value = post.published_at || post.created_at;
+    if (!value) return '—';
+    const date = new Date(value);
+    return Number.isNaN(date.getTime())
+      ? '—'
+      : date.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+  }
 
   function openCreate() {
     navigate('/admin/blog-posts/new');
@@ -65,17 +81,18 @@ export function AdminBlogPostsPage() {
                 <th className="px-6 py-4 font-semibold whitespace-nowrap">Title</th>
                 <th className="px-6 py-4 font-semibold whitespace-nowrap">Category</th>
                 <th className="px-6 py-4 font-semibold whitespace-nowrap">Status</th>
+                <th className="px-6 py-4 font-semibold whitespace-nowrap">Date</th>
                 <th className="px-6 py-4 font-semibold whitespace-nowrap text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[var(--divider)]">
               {loading ? (
                 <tr>
-                  <td colSpan={4} className="px-6 py-8 text-center text-[var(--text-secondary)]">Loading posts...</td>
+                  <td colSpan={5} className="px-6 py-8 text-center text-[var(--text-secondary)]">Loading posts...</td>
                 </tr>
               ) : filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={4} className="px-6 py-12">
+                  <td colSpan={5} className="px-6 py-12">
                     <EmptyState
                       icon={FileText}
                       title="No blog posts found"
@@ -90,6 +107,9 @@ export function AdminBlogPostsPage() {
                     <td className="px-6 py-4 text-[var(--text-secondary)]">{b.category}</td>
                     <td className="px-6 py-4">
                       <StatusBadge status={b.status} />
+                    </td>
+                    <td className="px-6 py-4 text-[var(--text-secondary)] whitespace-nowrap" title={b.published_at ? 'Published' : 'Created'}>
+                      {formatDate(b)}
                     </td>
                     <td className="px-6 py-4 text-right space-x-2">
                       <button onClick={() => openEdit(b)} className="p-2 hover:bg-[var(--bg-elev-1)] rounded-lg text-[var(--text-secondary)] hover:text-[var(--brand)] transition-colors"><Pencil className="w-4 h-4" /></button>
