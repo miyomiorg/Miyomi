@@ -165,7 +165,7 @@ export function BlogPage({ onNavigate }: { onNavigate: (path: string) => void })
                 {/* Main Content */}
                 <div className="flex-1 min-w-0">
                     {/* Search & Sort Row */}
-                    <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 mb-6">
+                    <div className="flex items-center gap-2 sm:gap-4 mb-6">
                         <div className="flex-1 relative group min-w-0">
                             <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none">
                                 <Search className="w-4 h-4 text-[var(--text-secondary)] group-focus-within:text-[var(--brand)] transition-colors" />
@@ -174,11 +174,11 @@ export function BlogPage({ onNavigate }: { onNavigate: (path: string) => void })
                                 type="text"
                                 value={search}
                                 onChange={e => setSearch(e.target.value)}
-                                placeholder="Search articles..."
+                                placeholder="Search posts..."
                                 className="w-full h-[42px] sm:h-[44px] bg-[var(--bg-elev-1)] border-transparent text-[var(--text-primary)] rounded-xl py-2 sm:py-2.5 pl-11 pr-4 focus:outline-none focus:border-[var(--brand)] border transition-all font-['Inter',sans-serif] text-sm shadow-sm"
                             />
                         </div>
-                        <div className="relative flex-shrink-0 w-auto self-end sm:self-auto">
+                        <div className="relative flex-shrink-0">
                             <BlogSortDropdown
                                 value={sortMode}
                                 onChange={(val) => setSortMode(val as SortMode)}
