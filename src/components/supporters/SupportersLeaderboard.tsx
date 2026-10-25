@@ -97,7 +97,7 @@ export function SupportersLeaderboard({
         <div className="flex items-center gap-2">
           <Users className="h-5 w-5 text-[var(--brand)]" />
           <h2 className="font-['Poppins',sans-serif] text-lg font-semibold text-[var(--text-primary)]">
-            Top Supporters
+            Supporters
           </h2>
         </div>
         <p className="text-sm text-[var(--text-secondary)]">
