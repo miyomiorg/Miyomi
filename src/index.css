@@ -272,6 +272,42 @@ html {
   animation: fade-in 0.2s ease-out forwards;
 }
 
+/* Desktop-only playful nudge for the recent-supporter grid. */
+@keyframes supporter-card-bump {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) rotate(0deg);
+  }
+
+  18% {
+    transform: translate3d(-1px, -2px, 0) rotate(-0.3deg);
+  }
+
+  42% {
+    transform: translate3d(1px, 1px, 0) rotate(0.25deg);
+  }
+
+  66% {
+    transform: translate3d(-1px, 0, 0) rotate(-0.15deg);
+  }
+
+  84% {
+    transform: translate3d(1px, -1px, 0) rotate(0.15deg);
+  }
+}
+
+@media (min-width: 768px) and (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
+  .supporter-card-bump {
+    animation: supporter-card-bump 7s ease-in-out infinite;
+    transform-origin: center;
+    will-change: transform;
+  }
+
+  .supporter-card-bump:hover {
+    animation-play-state: paused;
+  }
+}
+
 .delay-300 {
   animation-delay: 300ms;
 }

@@ -141,11 +141,12 @@ export function SupportersLeaderboard({
 
             {items.length > 0 && (
               <div className="mt-6 grid gap-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
-                {items.map(item => (
+                {items.map((item, index) => (
                   <SupporterCard
                     key={item.key}
                     item={item}
                     showAmounts={showAmounts}
+                    index={index}
                   />
                 ))}
               </div>
