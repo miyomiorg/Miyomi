@@ -57,11 +57,12 @@ export function makeContentRouter(kind: ContentKind) {
       try {
         const body = await c.req.json();
         if (!body || typeof body.note !== 'string' || body.note.length > 2000 ||
-          !['info', 'warning', 'danger'].includes(body.severity)) return fail(c, 400, 'Invalid repository note');
+          !['info', 'warning', 'danger'].includes(body.severity) ||
+          (body.sticky !== undefined && typeof body.sticky !== 'boolean')) return fail(c, 400, 'Invalid repository note');
         const [row] = await createDb(c.env.DB).update(noteTable).set({
           moderatorNote: body.note.trim() || null,
           noteSeverity: body.note.trim() ? body.severity : null,
-          noticeSticky: body.sticky === true,
+          ...(body.sticky === undefined ? {} : { noticeSticky: body.sticky }),
           updatedAt: isoNow(),
         }).where(eq(noteTable.id, c.req.param('id'))).returning({ id: noteTable.id });
         if (!row) return fail(c, 404, 'Repository not found');

@@ -1,8 +1,8 @@
-import { BlogPostData } from '../types/data';
+import { BlogPostSummary } from '../types/data';
 import { ChevronRight, FileText, Clock, Eye } from 'lucide-react';
 
 interface BlogCardProps {
-    post: BlogPostData;
+    post: BlogPostSummary;
     onClick: () => void;
 }
 
@@ -29,9 +29,7 @@ export function BlogCard({ post, onClick }: BlogCardProps) {
     const catColor = CATEGORY_COLORS[post.category] || 'var(--brand)';
 
     // Estimate read time
-    const text = (post.content || post.excerpt || '').replace(/<[^>]*>?/gm, '');
-    const wordCount = text.split(/\s+/).filter(w => w.length > 0).length;
-    const readTime = Math.ceil(wordCount / 200) || 1;
+    const readTime = post.reading_minutes || 1;
 
     return (
         <>

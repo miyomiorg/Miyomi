@@ -69,7 +69,7 @@ export function BlogDetailPage({ onNavigate }: { onNavigate?: (path: string) => 
     };
 
     useEffect(() => {
-        if (!post?.content) return;
+        if (!post?.content) { setHeadings([]); setFinalHtml(''); return; }
 
         const sanitized = DOMPurify.sanitize(post.content, { ALLOWED_URI_REGEXP });
 
@@ -104,8 +104,9 @@ export function BlogDetailPage({ onNavigate }: { onNavigate?: (path: string) => 
     if (error || !post) {
         return (
             <div className="max-w-4xl mx-auto py-24 text-center">
-                <h1 className="text-3xl font-bold text-[var(--text-primary)] mb-4">Post Not Found</h1>
-                <p className="text-[var(--text-secondary)] mb-8">The blog post you're looking for doesn't exist or has been removed.</p>
+                <h1 className="text-3xl font-bold text-[var(--text-primary)] mb-4">{error ? 'Unable to Load Post' : 'Post Not Found'}</h1>
+                <p className="text-[var(--text-secondary)] mb-8">{error ? 'Please try again. The server could not load this post.' : "The blog post you're looking for doesn't exist or has been removed."}</p>
+                {error && <button type="button" onClick={() => window.location.reload()} className="mb-4 underline">Retry</button>}
                 <BackButton onClick={() => { if (onNavigate) onNavigate('/blog'); else window.history.back(); }} />
             </div>
         );

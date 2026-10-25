@@ -79,7 +79,7 @@ export function BlogPage({ onNavigate }: { onNavigate: (path: string) => void })
 
     const { notices } = useNotices();
 
-    const { posts, loading } = useBlogPosts({
+    const { posts, loading, error, refetch } = useBlogPosts({
         category: selectedCategory === 'All' ? undefined : selectedCategory,
         requirePublished: true
     });
@@ -116,16 +116,16 @@ export function BlogPage({ onNavigate }: { onNavigate: (path: string) => void })
         month: 'short', day: 'numeric', year: 'numeric'
     }) : '';
 
-    const pinnedReadTime = pinnedPost ? (() => {
-        const text = (pinnedPost.content || pinnedPost.excerpt || '').replace(/<[^>]*>?/gm, '');
-        const wordCount = text.split(/\s+/).filter(w => w.length > 0).length;
-        return Math.ceil(wordCount / 200) || 1;
-    })() : 0;
+    const pinnedReadTime = pinnedPost?.reading_minutes || 1;
 
     const catColor = (cat: string) => CATEGORY_COLORS[cat] || 'var(--brand)';
 
     return (
         <div className="max-w-7xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-700">
+            {error && <div role="alert" className="mb-4 rounded-xl border p-4">
+                <p>Unable to load blog posts. Please try again.</p>
+                <button type="button" onClick={() => void refetch()} className="mt-2 underline">Retry</button>
+            </div>}
 
             {/* Hero Banner */}
             <div

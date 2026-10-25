@@ -21,6 +21,7 @@ Object.defineProperty(globalThis, 'caches', { configurable: true, value: { defau
     const ttl = Number(response.headers.get('Cache-Control')?.match(/max-age=(\d+)/)?.[1]);
     entries.set(key.url, { response: new Response(await response.text(), response), expires: now + ttl * 1000 });
   },
+  async delete(key: Request) { return entries.delete(key.url); },
 } } });
 const env = {
   SITE_URL: 'https://miyomi.test', SESSION_SECRET: 'test-only-session-secret',
@@ -67,6 +68,18 @@ try {
   assert.equal((await result.response.json()).data[0].id, 'app');
   now += 61_000;
   assert.equal((await request('/api/apps')).queries, 1, 'expired entries must query again');
+  entries.clear();
+  const burstBefore = queries;
+  const burst = await Promise.all(Array.from({ length: 20 }, () => request('/api/apps')));
+  console.log(`Concurrent cold app-list requests: ${queries - burstBefore} SQL statements for 20 requests`);
+  assert.equal(queries - burstBefore, 1, 'concurrent cold misses should share one handler');
+  assert.ok(burst.every(r => r.response.status === 200));
+  now += 61_000;
+  const expiredBefore = queries;
+  await Promise.all(Array.from({ length: 20 }, (_, i) => request('/api/apps', { headers: { Origin: `https://caller-${i}.test` } }).then(r => {
+    assert.equal(r.response.headers.get('Access-Control-Allow-Origin'), `https://caller-${i}.test`);
+  })));
+  assert.equal(queries - expiredBefore, 1, 'expired-cache bursts must also coalesce');
   assert.equal((await request('/api/apps', { headers: { Cookie: 'miyomi_session=editor' } })).queries, 1);
   assert.equal((await request('/api/apps', { headers: { Authorization: 'Bearer editor' } })).queries, 1);
 
@@ -86,6 +99,21 @@ try {
   assert.equal((await request('/software/app')).queries, 0);
   assert.equal((await request('/api/likes/registry?fingerprint=first')).queries, 3);
   assert.equal((await request('/api/likes/registry?fingerprint=second')).queries, 3);
+  sqlite.exec(`INSERT INTO likes (id, item_id, item_type, device_fingerprint) VALUES ('like-a', 'app', 'app', 'first');`);
+  const countsBefore = queries;
+  await Promise.all(Array.from({ length: 20 }, () => request('/api/likes/counts')));
+  assert.equal(queries - countsBefore, 2, '20 public count requests need only two table reads');
+  assert.equal((await request('/api/likes/counts')).queries, 0);
+  for (const fingerprint of ['first', 'second']) {
+    const mine = await request(`/api/likes/mine?fingerprint=${fingerprint}`);
+    assert.equal(mine.queries, 1, 'only the indexed personal lookup is per visitor');
+    assert.equal(mine.response.headers.get('Cache-Control'), 'private, no-store');
+    assert.equal(mine.response.headers.get('X-Cache'), null);
+    assert.deepEqual((await mine.response.json()).data, fingerprint === 'first' ? ['app'] : []);
+  }
+  const blogList = (await (await request('/api/blog')).response.json()).data;
+  assert.equal(blogList[0].content, undefined, 'list must not download article bodies');
+  assert.equal(blogList[0].readingMinutes, 1);
   for (let views = 1; views <= 2; views++) {
     result = await request('/api/blog/post');
     assert.equal(result.queries, 1);
@@ -106,6 +134,25 @@ try {
   assert.equal(result.response.status, 200);
   assert.equal(result.queries, 3, 'one admin read + role + settings; no duplicate 2FA read');
   const write = (body: unknown) => ({ method: 'PUT', headers: { ...auth.headers, 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+  // Prime BOTH list and detail before writes, then verify invalidation.
+  await request('/api/apps');
+  await request('/api/apps/app');
+  assert.equal((await request('/api/admin/apps/app/note', write({ note: 'Fresh notice', severity: 'info' }))).response.status, 200);
+  assert.equal((await (await request('/api/apps/app')).response.json()).data.moderatorNote, 'Fresh notice');
+  assert.equal((await (await request('/api/apps')).response.json()).data[0].moderatorNote, 'Fresh notice');
+  assert.equal((await request('/api/apps')).queries, 0, 'updated responses are reusable');
+  // Failed/unauthorized writes must not evict good public data.
+  assert.equal((await request('/api/admin/apps/app/note', { method: 'PUT', body: '{}' })).response.status, 401);
+  assert.equal((await request('/api/apps')).queries, 0);
+
+  for (let i = 0; i < 55; i++) sqlite.prepare('INSERT INTO donations (id, donor_name, is_public, amount) VALUES (?, ?, 1, 1)').run(`donor-${i}`, `Donor ${i}`);
+  sqlite.exec("INSERT INTO donations (id, donor_name, is_public) VALUES ('private-donor', 'Private', 0)");
+  const donors = (await (await request('/api/donations?limit=200&offset=0')).response.json()).data;
+  assert.equal(donors.length, 55);
+  assert.ok(donors.every((d: any) => d.id !== 'private-donor'));
+  const added = await request('/api/admin/donations', { ...write({ donorName: 'New donor', amount: 3, isPublic: true }), method: 'POST' });
+  assert.equal(added.response.status, 201);
+  assert.equal((await (await request('/api/donations?limit=200')).response.json()).data.length, 56);
   const profile = { name: 'Writer', role: 'Editor', avatar: 'https://example.test/avatar.png' };
   assert.equal((await request('/api/admin/author-profile', write(profile))).response.status, 200);
   assert.deepEqual((await (await request('/api/admin/author-profile', auth)).response.json()).data, profile);

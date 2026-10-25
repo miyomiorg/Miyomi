@@ -340,21 +340,34 @@ Main table groups:
   sitemap has a 5-minute TTL and Cloudflare analytics stats have a 1-hour TTL.
 - Cache keys keep meaningful filters/pagination and ignore tracking parameters.
   `X-Cache: HIT` means the handler executed no D1 queries. Cache entries are
-  per Cloudflare location, not globally shared; concurrent cold misses can
-  still query D1 independently.
+  per Cloudflare location, not globally shared. Concurrent cold/expired misses
+  coalesce within one Worker isolate (`X-Cache: COALESCED`). Independent isolates
+  can still miss concurrently. No second response-cache store was added.
 - Authenticated public requests bypass edge caching. Admin routes, personalized
-  likes, writes, failures, and blog detail API reads are excluded. Blog detail
-  reads increment views using one atomic `UPDATE RETURNING` statement.
-- Public changes become visible after TTL expiry; there is no global purge on
-  writes. Browser data hooks additionally honor their existing 5-minute app and
-  10-minute extension TTLs and share in-flight requests. Explicit `refetch()`
-  refreshes the browser cache but may still receive fresh edge-cached content.
+  likes, donations, writes, failures, and blog detail API reads are excluded. Blog detail
+  reads increment views using one atomic `UPDATE RETURNING` statement. The browser
+  loads shared `/api/likes/counts` separately from private `/api/likes/mine`.
+- Successful admin writes invalidate recently observed public keys in the serving
+  isolate/location. A generation check prevents an older in-flight response from
+  refilling the cache after that write. This is **not a global purge**: other
+  locations/isolates retain their bounded TTL (normally 60 seconds).
+- Browser content caches use the `miyomi-data:` prefix, share in-flight requests,
+  and invalidate on successful admin writes (including notifications to other tabs).
+  App/extension detail data expires after 60 seconds with visible-page refresh
+  checks; list hooks retain their configured TTL. Expired data refreshes on focus.
+  Old in-flight browser responses cannot overwrite post-edit data. A refetch can
+  still encounter an edge entry at another location until its TTL expires.
+- Stale-while-revalidate is intentionally not enabled: extending stale visibility
+  would conflict with moderation/notice freshness without global invalidation.
 - Rate limiting uses one conditional atomic upsert per attempt. Admin 2FA checks
   reuse the admin record loaded in the same request (no cross-request auth cache).
 - Migration `0003_lying_bromley.sql` adds a covering fingerprint/item index for
   likes-registry hydration. Apply it with `npm run d1:migrate:remote` during release.
 - Run `npm run verify:query-cache` for isolated query-count/cache/SQL-plan checks
   and browser hook regression tests; neither test suite touches production data.
+- Historical investigation and measurements: `docs/d1-read-audit-2026-10-25.md`.
+  `node scripts/audit-d1-usage.mjs <start-ISO> <end-ISO>` retrieves read-only
+  Cloudflare analytics using `CLOUDFLARE_API_TOKEN` or the Windows Wrangler login.
 
 ### Preparing the D1 data import
 

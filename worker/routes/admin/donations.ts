@@ -14,7 +14,7 @@ donationsRouter.get('/', requireAdmin(), requireResource('donations', 'read'), a
     const rows = await db
       .select()
       .from(donations)
-      .orderBy(desc(donations.createdAt))
+      .orderBy(desc(donations.createdAt), desc(donations.id))
       .limit(limit)
       .offset(offset);
     return ok(c, rows);

@@ -171,6 +171,8 @@ export interface WebsiteData {
     keywords?: readonly string[];
 }
 
+export type BlogPostSummary = Omit<BlogPostData, 'content'> & { reading_minutes: number };
+
 export interface BlogPostData {
     id: string;
     title: string;

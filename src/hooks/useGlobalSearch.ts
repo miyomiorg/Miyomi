@@ -21,8 +21,13 @@ export function useGlobalSearch(query: string): SearchResult[] {
   } | null>(null);
 
   const [results, setResults] = useState<SearchResult[]>([]);
+  const searching = query.trim().length > 0;
 
   useEffect(() => {
+    // Navbar/home search mounts even when unused. Do not fetch three complete
+    // directories until a visitor actually searches.
+    if (!searching || data) return;
+    let cancelled = false;
     const fetchData = async () => {
       try {
         const [apps, extensions, guideCategories] = await Promise.all([
@@ -30,13 +35,14 @@ export function useGlobalSearch(query: string): SearchResult[] {
           dataService.getExtensions(),
           dataService.getGuideCategories()
         ]);
-        setData({ apps, extensions, guideCategories });
+        if (!cancelled) setData({ apps, extensions, guideCategories });
       } catch (error) {
         console.error('Failed to fetch search data:', error);
       }
     };
     fetchData();
-  }, []);
+    return () => { cancelled = true; };
+  }, [searching, data]);
 
   useEffect(() => {
     if (!data || !query || query.trim().length === 0) {

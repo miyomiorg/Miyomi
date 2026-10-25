@@ -15,6 +15,8 @@ export function useBlogPost(idOrSlug: string | undefined, options: UseBlogPostOp
 
   useEffect(() => {
     let isMounted = true;
+    setError(null);
+    setPost(null);
 
     async function fetchPost() {
       if (!idOrSlug) {
@@ -28,6 +30,7 @@ export function useBlogPost(idOrSlug: string | undefined, options: UseBlogPostOp
         const data = await blogApi.get(idOrSlug);
 
         if (isMounted) {
+          setError(null);
           setPost(data as unknown as BlogPostData);
         }
       } catch (err: any) {

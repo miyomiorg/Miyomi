@@ -55,7 +55,7 @@ export function useApp(appId: string): { app: AppData | null; loading: boolean }
   const { data: app, loading } = useDataCache<AppData | null>(
     `app_details_${appId}`,
     fetchApp,
-    { ttl: 1000 * 60 * 5 } // 5 minutes fresh
+    { ttl: 60_000, refreshOnExpiry: true }
   );
 
   return { app, loading };

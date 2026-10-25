@@ -106,7 +106,7 @@ export function useDonations(): UseDonationsReturn {
           });
         }
 
-        if (goal.autoCalc && donators.length > 0) {
+        if (goal.autoCalc) {
           goal = {
             ...goal,
             currentAmount: donators.reduce((sum, d) => {

@@ -18,7 +18,11 @@ blogRouter.get('/', async (c) => {
       .from(blogPosts)
       .where(eq(blogPosts.status, 'published'))
       .orderBy(sql`is_pinned DESC`, desc(blogPosts.publishedAt), desc(blogPosts.createdAt));
-    return ok(c, rows);
+    // Cards need reading time, not every article body (hundreds of KB).
+    return ok(c, rows.map(({ content, ...post }) => ({
+      ...post,
+      readingMinutes: Math.max(1, Math.ceil((content || '').replace(/<[^>]*>/g, '').split(/\s+/).filter(Boolean).length / 200)),
+    })));
   } catch (error) {
     console.error('[blog] list failed:', error);
     return fail(c, 500, 'Failed to fetch blog posts');

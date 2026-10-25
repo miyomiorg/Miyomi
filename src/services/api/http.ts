@@ -11,6 +11,8 @@
  * untouched). Aggregate responses can opt out with `preserveKeys`.
  */
 
+import { CacheManager } from '@/utils/cache';
+
 export class ApiError extends Error {
   constructor(
     public readonly status: number,
@@ -62,6 +64,7 @@ async function request<T>(path: string, init?: RequestInit, preserveKeys = false
   if (!res.ok || !body || body.success !== true) {
     throw new ApiError(res.status, body?.error || `Request failed (${res.status})`);
   }
+  if (path.startsWith('/admin/') && init?.method && !['GET', 'HEAD'].includes(init.method)) CacheManager.invalidate();
   return (preserveKeys ? body.data : snakeify(body.data)) as T;
 }
 

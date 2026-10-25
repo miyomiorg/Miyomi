@@ -54,7 +54,7 @@ export const guidesApi = {
 };
 
 export const blogApi = {
-  list: () => http.get<Tables<'blog_posts'>[]>('/blog'),
+  list: () => http.get<Array<Omit<Tables<'blog_posts'>, 'content'> & { reading_minutes: number }>>('/blog'),
   get: (idOrSlug: string) => http.get<Tables<'blog_posts'>>(`/blog/${encodeURIComponent(idOrSlug)}`),
 };
 
@@ -77,7 +77,14 @@ export const themesApi = {
 };
 
 export const donationsApi = {
-  list: () => http.get<Tables<'donations'>[]>('/donations'),
+  list: async () => {
+    const rows: Tables<'donations'>[] = [];
+    while (true) {
+      const page = await http.get<Tables<'donations'>[]>(`/donations?limit=200&offset=${rows.length}`);
+      rows.push(...page);
+      if (page.length < 200) return rows;
+    }
+  },
   settings: () => http.get<Tables<'donation_settings'>[]>('/donation-settings'),
 };
 
@@ -93,10 +100,14 @@ export const contributorsApi = {
 
 export const likesApi = {
   /** Full registry keyed by item id: { [itemId]: { count, loved } } */
-  registry: (fingerprint: string) =>
-    http.get<Record<string, { count: number; loved: boolean }>>(
-      `/likes/registry?fingerprint=${encodeURIComponent(fingerprint)}`,
-    ),
+  registry: async (fingerprint: string): Promise<Record<string, { count: number; loved: boolean }>> => {
+    const [counts, mine] = await Promise.all([
+      http.get<Record<string, number>>('/likes/counts', { preserveKeys: true }),
+      http.get<string[]>(`/likes/mine?fingerprint=${encodeURIComponent(fingerprint)}`),
+    ]);
+    const loved = new Set(mine);
+    return Object.fromEntries(Object.entries(counts).map(([id, count]) => [id, { count, loved: loved.has(id) }]));
+  },
   /** Toggle a like; returns the server-confirmed state. */
   like: (body: { itemId: string; itemType: 'app' | 'extension'; fingerprint: string; device?: Record<string, unknown> }) =>
     http.post<{ loved: boolean; count: number; total: number; liked: boolean }>('/likes', body),

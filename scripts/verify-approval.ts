@@ -36,7 +36,7 @@ const env = {
     },
   },
 } as unknown as Bindings;
-Object.defineProperty(globalThis, 'caches', { configurable: true, value: { default: { async match() { return undefined; }, async put() {} } } });
+Object.defineProperty(globalThis, 'caches', { configurable: true, value: { default: { async match() { return undefined; }, async put() {}, async delete() { return true; } } } });
 
 async function request(path: string, init?: RequestInit) {
   return app.request(`https://miyomi.test${path}`, init, env, {
@@ -56,6 +56,7 @@ try {
   `);
   sqlite.prepare(`INSERT INTO apps (id, name, slug, status, description, short_description, author, icon_url, icon_color, repo_url, website_url, download_url, likes_count, download_count) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
     .run('app-1', 'Test App', 'test-app', 'approved', 'Original description', 'Original short', 'tester', 'https://img.example/logo.png', '#ff0000', 'https://github.com/test/app', 'https://example.com', 'https://example.com/download', 80, 10);
+  sqlite.exec("UPDATE apps SET moderator_note = 'Public notice', note_severity = 'warning', notice_sticky = 1 WHERE id = 'app-1'");
 
   const token = await signSession({ sub: 'admin' }, env.SESSION_SECRET, 60);
   const auth = { 'Content-Type': 'application/json', Cookie: `miyomi_session=${token}` };
@@ -86,6 +87,8 @@ try {
     assert.equal(appRow.likes_count, 80, 'likes were reset');
     assert.equal(appRow.download_count, 10, 'download count was reset');
     assert.equal(appRow.status, 'approved', 'status changed');
+    assert.equal(appRow.moderator_note, 'Public notice', 'ordinary approval must preserve the notice');
+    assert.equal(appRow.notice_sticky, 1, 'ordinary approval must preserve dismissibility');
   }
 
   // ── Scenario 2: full snake_case edit that changes a snake_case field ──

@@ -62,7 +62,7 @@ export function useExtension(extensionId: string): { extension: ExtensionData | 
   const { data: extension, loading } = useDataCache<ExtensionData | null>(
     `extension_details_${extensionId}`,
     fetchExtension,
-    { ttl: 1000 * 60 * 5 }, // 5 minutes fresh, matching useApp
+    { ttl: 60_000, refreshOnExpiry: true },
   );
 
   return { extension, loading };

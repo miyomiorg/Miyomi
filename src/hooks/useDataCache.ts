@@ -1,16 +1,17 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { CacheManager } from '../utils/cache';
+import { CacheManager, CACHE_INVALIDATED } from '../utils/cache';
 
 interface CacheOptions<T> {
     ttl?: number;
     initialData?: T;
+    refreshOnExpiry?: boolean;
 }
 
 // Share simultaneous mounts (including StrictMode's effect replay).
 const pending = new Map<string, Promise<unknown>>();
 
 export function useDataCache<T>(key: string, fetcher: () => Promise<T>, options: CacheOptions<T> = {}) {
-    const { ttl } = options;
+    const { ttl, refreshOnExpiry = false } = options;
     const fetcherRef = useRef(fetcher);
     fetcherRef.current = fetcher;
     const generation = useRef(0);
@@ -21,17 +22,19 @@ export function useDataCache<T>(key: string, fetcher: () => Promise<T>, options:
 
     const fetchData = useCallback(async () => {
         const current = ++generation.current;
-        setState(s => ({ key, data: s.key === key ? s.data : null, loading: true, error: null }));
+        setState(s => ({ key, data: s.key === key ? s.data : null, loading: s.key !== key || s.data === null, error: null }));
         try {
-            let task = pending.get(key) as Promise<T> | undefined;
+            const revision = CacheManager.revision;
+            const pendingKey = `${revision}:${key}`;
+            let task = pending.get(pendingKey) as Promise<T> | undefined;
             if (!task) {
                 const load = fetcherRef.current;
                 task = Promise.resolve().then(load).then(data => {
                     // Refresh the timestamp even when the response is unchanged.
-                    CacheManager.set(key, data);
+                    if (revision === CacheManager.revision) CacheManager.set(key, data);
                     return data;
-                }).finally(() => pending.delete(key));
-                pending.set(key, task);
+                }).finally(() => pending.delete(pendingKey));
+                pending.set(pendingKey, task);
             }
             const data = await task;
             if (current === generation.current) setState({ key, data, loading: false, error: null });
@@ -52,6 +55,23 @@ export function useDataCache<T>(key: string, fetcher: () => Promise<T>, options:
         // Prevent late responses for a previous key/unmounted hook from winning.
         return () => { generation.current++; };
     }, [key, ttl, fetchData]);
+
+    useEffect(() => {
+        const refresh = () => { void fetchData(); };
+        const check = () => {
+            if (document.visibilityState !== 'hidden' && CacheManager.get(key, ttl) === null) refresh();
+        };
+        window.addEventListener(CACHE_INVALIDATED, refresh);
+        window.addEventListener('focus', check);
+        document.addEventListener('visibilitychange', check);
+        const timer = refreshOnExpiry && ttl ? window.setInterval(check, ttl) : undefined;
+        return () => {
+            window.removeEventListener(CACHE_INVALIDATED, refresh);
+            window.removeEventListener('focus', check);
+            document.removeEventListener('visibilitychange', check);
+            window.clearInterval(timer);
+        };
+    }, [key, ttl, refreshOnExpiry, fetchData]);
 
     return {
         data: state.key === key ? state.data : null,

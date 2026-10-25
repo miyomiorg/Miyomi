@@ -9,7 +9,7 @@ let root: Root;
 let container: HTMLDivElement;
 let latest: ReturnType<typeof useDataCache<string>>;
 function Probe({ cacheKey, load }: { cacheKey: string; load: () => Promise<string> }) {
-  latest = useDataCache(cacheKey, load, { ttl: 1000 });
+  latest = useDataCache(cacheKey, load, { ttl: 1000, refreshOnExpiry: true });
   return createElement('span', null, latest.data);
 }
 beforeEach(() => {
@@ -23,6 +23,28 @@ afterEach(async () => {
   await act(async () => root.unmount());
   container.remove();
   vi.restoreAllMocks();
+  vi.useRealTimers();
+});
+
+it('refreshes mounted detail data at expiry and on focus without a loading flash', async () => {
+  vi.useFakeTimers();
+  const load = vi.fn().mockResolvedValueOnce('old').mockResolvedValue('new');
+  await act(async () => root.render(createElement(Probe, { cacheKey: 'notice', load })));
+  expect(container.textContent).toBe('old');
+  await act(async () => { await vi.advanceTimersByTimeAsync(1000); });
+  expect(container.textContent).toBe('new');
+  expect(latest.loading).toBe(false);
+  expect(load).toHaveBeenCalledTimes(2);
+});
+
+it('does not resurrect an old in-flight response after invalidation', async () => {
+  let resolve!: (value: string) => void;
+  const load = vi.fn().mockImplementationOnce(() => new Promise<string>(r => { resolve = r; })).mockResolvedValue('new');
+  await act(async () => root.render(createElement(Probe, { cacheKey: 'edit', load })));
+  await act(async () => CacheManager.invalidate());
+  await act(async () => resolve('old'));
+  expect(container.textContent).toBe('new');
+  expect(CacheManager.get('edit')).toBe('new');
 });
 
 it('uses fresh data without a request, expires it, and refreshes identical data timestamps', async () => {

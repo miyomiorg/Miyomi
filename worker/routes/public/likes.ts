@@ -7,6 +7,29 @@ import { apps, extensions, likes } from '../../db/schema.ts';
 
 export const likesRouter = new Hono<AppEnv>();
 
+/** Public counts can share the ordinary public cache; personal state never can. */
+likesRouter.get('/counts', async (c) => {
+  try {
+    const db = createDb(c.env.DB);
+    const [appRows, extRows] = await Promise.all([
+      db.select({ id: apps.id, count: apps.likesCount }).from(apps).where(eq(apps.status, 'approved')),
+      db.select({ id: extensions.id, count: extensions.likesCount }).from(extensions).where(eq(extensions.status, 'approved')),
+    ]);
+    return ok(c, Object.fromEntries([...appRows, ...extRows].map(r => [r.id, r.count ?? 0])));
+  } catch { return fail(c, 500, 'Failed to fetch like counts'); }
+});
+
+likesRouter.get('/mine', async (c) => {
+  c.header('Cache-Control', 'private, no-store');
+  try {
+    const fingerprint = (c.req.query('fingerprint') ?? '').trim();
+    if (!fingerprint || fingerprint.length > 256) return fail(c, 400, 'A valid fingerprint is required');
+    const rows = await createDb(c.env.DB).select({ itemId: likes.itemId }).from(likes)
+      .where(eq(likes.deviceFingerprint, fingerprint));
+    return ok(c, rows.map(r => r.itemId));
+  } catch { return fail(c, 500, 'Failed to fetch liked items'); }
+});
+
 const ITEM_TYPES = ['app', 'extension'] as const;
 type ItemType = (typeof ITEM_TYPES)[number];
 

@@ -71,7 +71,7 @@ miscRouter.get('/donations', async (c) => {
       .select()
       .from(donations)
       .where(eq(donations.isPublic, true))
-      .orderBy(desc(donations.createdAt))
+      .orderBy(desc(donations.createdAt), desc(donations.id))
       .limit(limit)
       .offset(offset);
     return ok(c, rows);
