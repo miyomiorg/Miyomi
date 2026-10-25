@@ -174,6 +174,7 @@ export function BlogPage({ onNavigate }: { onNavigate: (path: string) => void })
                             </div>
                             <input
                                 type="text"
+                                autoComplete="off"
                                 value={search}
                                 onChange={e => setSearch(e.target.value)}
                                 placeholder="Search posts..."
