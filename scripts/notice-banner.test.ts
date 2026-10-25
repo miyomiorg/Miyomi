@@ -3,13 +3,17 @@ import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { act, createElement, type ReactNode } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { NoticeBanner } from '../src/components/NoticeBanner';
+import { noticeTypeOptions, noticeTypeStyles } from '../src/components/noticeTypes';
 import { useNotices } from '../src/hooks/useNotices';
 import { CacheManager } from '../src/utils/cache';
 import type { Tables } from '../src/types/db';
 
 // Keep assertions about notice state independent of exit-animation timing.
 vi.mock('motion/react', () => ({
-  motion: { div: ({ children }: { children: ReactNode }) => createElement('div', null, children) },
+  motion: {
+    div: ({ children, className, role, ...props }: { children: ReactNode; className?: string; role?: string; [key: string]: unknown }) =>
+      createElement('div', { className, role, 'data-notice-type': props['data-notice-type'] }, children),
+  },
   AnimatePresence: ({ children }: { children: ReactNode }) => children,
 }));
 
@@ -37,6 +41,26 @@ afterEach(async () => {
 const render = () => act(async () => root.render(createElement(NoticeBanner)));
 const dismiss = () => act(async () => container.querySelector('button')!.click());
 const refresh = () => act(async () => CacheManager.invalidate());
+
+it('defines a distinct icon, label, and tone for every notice type', () => {
+  expect(new Set(noticeTypeOptions.map(type => noticeTypeStyles[type].icon)).size).toBe(4);
+  expect(new Set(noticeTypeOptions.map(type => noticeTypeStyles[type].label)).size).toBe(4);
+  expect(new Set(noticeTypeOptions.map(type => noticeTypeStyles[type].tone)).size).toBe(4);
+});
+
+it.each([
+  ['info', 'border-blue-300'],
+  ['warning', 'border-amber-300'],
+  ['error', 'border-red-300'],
+  ['success', 'border-emerald-300'],
+] as const)('renders %s notices with their own color and icon', async (type, tone) => {
+  notices[0] = { ...notices[0], type };
+  await render();
+  const banner = container.querySelector<HTMLElement>('[role="alert"]')!;
+  expect(banner.dataset.noticeType).toBe(type);
+  expect(banner.className).toContain(tone);
+  expect(banner.querySelector('svg')).not.toBeNull();
+});
 
 it('remembers an unchanged dismissal across mounts and ignores timestamp/priority-only edits', async () => {
   await render(); await dismiss();

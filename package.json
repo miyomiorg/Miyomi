@@ -130,7 +130,7 @@
         "test:import": "node --test scripts/test-d1-import.mjs",
         "verify:cron": "node scripts/verify-cron.ts",
         "verify:approval": "node scripts/verify-approval.ts",
-        "verify:query-cache": "node scripts/verify-query-cache.ts && node scripts/verify-cache-races.ts && vitest run scripts/use-data-cache.test.ts scripts/repository-ui.test.ts scripts/public-data.test.ts scripts/notice-banner.test.ts",
+        "verify:query-cache": "node scripts/verify-query-cache.ts && node scripts/verify-cache-races.ts && vitest run scripts/use-data-cache.test.ts scripts/repository-ui.test.ts scripts/public-data.test.ts scripts/notice-banner.test.ts scripts/admin-notices.test.ts",
         "verify:worker": "powershell -ExecutionPolicy Bypass -File scripts/verify-worker.ps1",
         "verify:2fa": "node scripts/verify-2fa.mjs",
         "verify:analytics": "node scripts/verify-analytics.mjs",
