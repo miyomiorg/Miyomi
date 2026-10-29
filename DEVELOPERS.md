@@ -365,8 +365,7 @@ Main table groups:
   likes-registry hydration. Apply it with `npm run d1:migrate:remote` during release.
 - Run `npm run verify:query-cache` for isolated query-count/cache/SQL-plan checks
   and browser hook regression tests; neither test suite touches production data.
-- Historical investigation and measurements: `docs/d1-read-audit-2026-10-25.md`.
-  `node scripts/audit-d1-usage.mjs <start-ISO> <end-ISO>` retrieves read-only
+- `node scripts/audit-d1-usage.mjs <start-ISO> <end-ISO>` retrieves read-only
   Cloudflare analytics using `CLOUDFLARE_API_TOKEN` or the Windows Wrangler login.
 
 ### Preparing the D1 data import
@@ -408,7 +407,9 @@ Use `npm run test:import` to verify the importer against disposable fixtures.
   input is clamped to 48 (`worker/routes/admin/content-crud.ts` `searchCond`).
 - **One `wrangler dev` at a time** — two instances sharing the local D1 file
   cause `SQLITE_BUSY` (and don't mix `wrangler d1 execute --local` with a
-  crashing dev session).
+  crashing dev session). If it persists after closing the terminal, an orphaned
+  `wrangler` **node** process is still running and respawning `workerd` (sometimes
+  on port 8788) — stop that node process, not just `workerd`.
 - **API adapter contract**: `src/services/api/http.ts` snake_cases top-level row
   keys (recursing into `items` arrays) but leaves nested objects untouched — so
   Worker joins must emit snake_case keys *inside* nested objects. Aggregate DTOs
