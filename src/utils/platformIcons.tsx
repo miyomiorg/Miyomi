@@ -111,7 +111,7 @@ const LinuxTuxIcon = ({ className }: { className: string }) => (
 );
 
 
-const iOSDeviceIcon = ({ className }: { className: string }) => (
+const TabletDeviceIcon = ({ className }: { className: string }) => (
   <svg
     className={className}
     viewBox="0 0 24 24"
@@ -123,14 +123,32 @@ const iOSDeviceIcon = ({ className }: { className: string }) => (
   </svg>
 );
 
+/**
+ * Stored platform names vary ("Mac" / "macOS", "iPadOS", "Android TV" …);
+ * map them case-insensitively onto the canonical names used below.
+ */
+export function canonicalPlatform(platform: string): string {
+  const p = (platform || "").trim().toLowerCase().replace(/\s+/g, " ");
+  if (p === "mac" || p === "macos" || p === "mac os" || p === "osx" || p === "os x") return "Mac";
+  if (p === "ipados" || p === "ipad") return "iPadOS";
+  if (p === "ios" || p === "iphone") return "iOS";
+  if (p === "android") return "Android";
+  if (p === "windows" || p === "win") return "Windows";
+  if (p === "linux") return "Linux";
+  if (p === "web" || p === "browser") return "Web";
+  return platform;
+}
+
 export function getPlatformIcon(platform: string, size: IconSize = "md"): ReactNode {
   const className = sizeClassMap[size];
 
-  switch (platform) {
+  switch (canonicalPlatform(platform)) {
     case "Android":
       return <AndroidRobotIcon className={className} />;
     case "iOS":
       return <AppleIcon className={className} />;
+    case "iPadOS":
+      return <TabletDeviceIcon className={className} />;
     case "Mac":
       return <MacIcon className={className} />;
     case "Windows":
@@ -145,7 +163,7 @@ export function getPlatformIcon(platform: string, size: IconSize = "md"): ReactN
 }
 
 export function getPlatformAccentClass(platform: string): string {
-  switch (platform) {
+  switch (canonicalPlatform(platform)) {
     case "Android":
       return "text-[#3DDC84]";
     case "Windows":

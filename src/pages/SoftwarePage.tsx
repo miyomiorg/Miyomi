@@ -10,6 +10,7 @@ import { useAppMeta } from '../hooks/useAppMeta';
 import { useFeedbackState } from '../hooks/useFeedbackState';
 import { useLikes } from '../context/LikeContext';
 import { Skeleton } from '../components/ui/skeleton';
+import { canonicalPlatform } from '../utils/platformIcons';
 
 interface SoftwarePageProps {
   onNavigate?: (path: string) => void;
@@ -149,6 +150,7 @@ export function SoftwarePage({ onNavigate }: SoftwarePageProps) {
 
   const filteredAndSortedApps = useMemo(() => {
     const query = deferredQuery.trim().toLowerCase();
+    const wantedPlatform = canonicalPlatform(selectedPlatform);
     let filtered = unifiedApps.filter((app: AppData) => {
 
       if (selectedContentType !== 'All') {
@@ -161,7 +163,8 @@ export function SoftwarePage({ onNavigate }: SoftwarePageProps) {
       }
 
 
-      if (selectedPlatform !== 'All' && !app.platforms.includes(selectedPlatform as any)) {
+      // Stored names vary ("Mac" vs "macOS"), so compare canonical forms.
+      if (selectedPlatform !== 'All' && !app.platforms.some((p) => canonicalPlatform(p) === wantedPlatform)) {
         return false;
       }
 
@@ -323,7 +326,8 @@ export function SoftwarePage({ onNavigate }: SoftwarePageProps) {
             <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-secondary)] pointer-events-none flex-shrink-0" />
             <input
               type="text"
-              placeholder="Search software by name, description, or keywords..."
+              placeholder="Search software…"
+              aria-label="Search software by name, description, or keywords"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               enterKeyHint="search"

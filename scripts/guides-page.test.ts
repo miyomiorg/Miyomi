@@ -70,7 +70,9 @@ it('renders guides without waiting for the notice settings request', async () =>
   });
 
   expect(container.querySelector('h1')?.textContent).toBe('Guides');
-  expect(container.querySelector('input')?.getAttribute('placeholder')).toBe('Search guides by title, summary, or keywords...');
+  // Short placeholder fits phone widths; the full description lives in aria-label.
+  expect(container.querySelector('input')?.getAttribute('placeholder')).toBe('Search guides…');
+  expect(container.querySelector('input')?.getAttribute('aria-label')).toBe('Search guides by title, summary, or keywords');
   expect(container.textContent).toContain('All Guides (1)');
   expect(container.textContent).toContain('Install Guide');
   expect(container.textContent).toContain('Setup');

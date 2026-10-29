@@ -1,4 +1,5 @@
-import { and, desc, eq, getTableColumns, or, sql } from 'drizzle-orm';
+import { and, desc, eq, or, sql } from 'drizzle-orm';
+import { readingMinutes } from '../../lib/text.ts';
 import { Hono } from 'hono';
 import { createDb } from '../../lib/db.ts';
 import { fail, isUuid, ok, type AppEnv } from '../../lib/http.ts';
@@ -13,25 +14,21 @@ export const blogRouter = new Hono<AppEnv>();
 blogRouter.get('/', async (c) => {
   try {
     const db = createDb(c.env.DB);
-    // Cards need reading time, not every article body (hundreds of KB): the
-    // word count is estimated in SQL so bodies never leave D1: words ≈ number
-    // of spaces/newlines + 1 (markup inflates it slightly).
-    const { content: _content, ...cardColumns } = getTableColumns(blogPosts);
+    // Bodies are read here only to compute reading time; they are never sent
+    // to the browser (cards don't need hundreds of KB of HTML). The response
+    // is edge-cached, so this work happens at most once per TTL per location.
     const rows = await db
-      .select({
-        ...cardColumns,
-        words: sql<number>`(length(${blogPosts.content}) - length(replace(replace(${blogPosts.content}, ' ', ''), char(10), '')) + 1)`,
-      })
+      .select()
       .from(blogPosts)
       .where(eq(blogPosts.status, 'published'))
       .orderBy(sql`is_pinned DESC`, desc(blogPosts.publishedAt), desc(blogPosts.createdAt));
-    return ok(c, rows.map(({ words, ...post }) => ({
+    return ok(c, rows.map(({ content, ...post }) => ({
       ...post,
       // Rows created before the counter existed can have NULL views; keep the
       // public shape numeric so cards can always format it.
       views: post.views ?? 0,
       isPinned: post.isPinned ?? false,
-      readingMinutes: Math.max(1, Math.ceil((Number(words) || 0) / 200)),
+      readingMinutes: readingMinutes(content),
     })));
   } catch (error) {
     console.error('[blog] list failed:', error);
@@ -52,7 +49,8 @@ blogRouter.get('/:idOrSlug', async (c) => {
     const db = createDb(c.env.DB);
     const [row] = await db.select().from(blogPosts).where(postCond(c.req.param('idOrSlug'))).limit(1);
     if (!row) return fail(c, 404, 'Blog post not found');
-    return ok(c, { ...row, views: row.views ?? 0 });
+    // Same estimate as the list endpoint so card and article always agree.
+    return ok(c, { ...row, views: row.views ?? 0, readingMinutes: readingMinutes(row.content) });
   } catch (error) {
     console.error('[blog] get failed:', error);
     return fail(c, 500, 'Failed to fetch blog post');

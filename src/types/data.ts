@@ -194,6 +194,8 @@ export interface BlogPostData {
     seo_description?: string;
     og_image_url?: string;
     views: number;
+    /** Server-computed reading time (same estimate as the list cards). */
+    reading_minutes?: number;
     published_at?: string;
     created_at: string;
     updated_at: string;

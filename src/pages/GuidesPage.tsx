@@ -210,7 +210,8 @@ export function GuidesPage({ onNavigate }: GuidesPageProps) {
             type="text"
             autoComplete="off"
             className="w-full pl-8 pr-4 py-2 mt-1 bg-[var(--bg-surface)] border border-[var(--divider)] rounded-xl text-[var(--text-primary)] placeholder:text-[var(--text-secondary)] focus:outline-none focus:border-[var(--brand)] transition-colors font-['Inter',sans-serif] text-base sm:text-sm"
-            placeholder="Search guides by title, summary, or keywords..."
+            placeholder="Search guides…"
+            aria-label="Search guides by title, summary, or keywords"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />

@@ -376,7 +376,8 @@ export function ExtensionsPage({ onNavigate }: ExtensionsPageProps) {
             <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-secondary)] pointer-events-none flex-shrink-0" />
             <input
               type="text"
-              placeholder="Search extensions by name, description, or keywords..."
+              placeholder="Search extensions…"
+              aria-label="Search extensions by name, description, or keywords"
               value={searchQuery}
               enterKeyHint="search"
               onChange={(e) => setSearchQuery(e.target.value)}

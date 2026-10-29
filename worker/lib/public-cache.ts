@@ -98,7 +98,7 @@ export const publicCache: MiddlewareHandler<AppEnv> = async (c, next) => {
     if (value !== null) url.searchParams.set(name, value);
   }
   // Version the cache namespace when response contracts change.
-  url.searchParams.set('__public_cache', 'v8');
+  url.searchParams.set('__public_cache', 'v9');
   const key = new Request(url.toString());
   const generation = scope.generation;
   // Expired-key sweep only when the map grows (not a full walk per request).

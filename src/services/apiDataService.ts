@@ -145,6 +145,8 @@ export const apiDataService = {
           title: row.title,
           slug: row.slug || row.id,
           summary: row.description || undefined,
+          // Editor-set reading time (same value the guide page shows).
+          readTime: ((row.metadata || {}) as Record<string, any>).readTime || undefined,
           keywords: (row.tags || []) as any,
           relatedAppIds: (row.related_apps || []) as any,
           relatedExtensionIds: (row.related_extensions || []) as any,

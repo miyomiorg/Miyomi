@@ -47,7 +47,7 @@ export function SearchBar({ placeholder = 'Search apps or extensions', onSearch 
         onKeyDown={handleKeyDown}
         onFocus={() => setIsFocused(true)}
         onBlur={() => setIsFocused(false)}
-        className="flex-1 bg-transparent outline-none text-[var(--text-primary)] placeholder:text-[var(--text-secondary)] text-sm"
+        className="flex-1 min-w-0 bg-transparent outline-none text-[var(--text-primary)] placeholder:text-[var(--text-secondary)] text-base sm:text-sm"
       />
       {value && (
         <button
@@ -55,7 +55,7 @@ export function SearchBar({ placeholder = 'Search apps or extensions', onSearch 
             setValue('');
             onSearch?.('');
           }}
-          className="p-1 hover:bg-[var(--chip-bg)] rounded-full text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors focus:outline-none cursor-pointer"
+          className="p-2.5 -m-1.5 hover:bg-[var(--chip-bg)] rounded-full text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors focus:outline-none cursor-pointer"
           aria-label="Clear search"
         >
           <X className="w-4 h-4" />

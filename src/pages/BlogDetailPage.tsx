@@ -113,9 +113,10 @@ export function BlogDetailPage({ onNavigate }: { onNavigate?: (path: string) => 
         month: 'long', day: 'numeric', year: 'numeric'
     });
 
-    const text = finalHtml.replace(/<[^>]*>?/gm, '');
-    const wordCount = text.split(/\s+/).filter(w => w.length > 0).length;
-    const readTime = Math.ceil(wordCount / 200) || 1;
+    // Computed by the API (same estimate as the blog list cards, ignoring
+    // <style>/<script> contents); local fallback for older cached responses.
+    const readTime = post.reading_minutes
+        ?? (Math.ceil(finalHtml.replace(/<(style|script)\b[^>]*>[\s\S]*?<\/\1\s*>/gi, ' ').replace(/<[^>]*>?/gm, ' ').split(/\s+/).filter(Boolean).length / 200) || 1);
 
     const handleShare = async (title: string, url: string) => {
         try { await navigator.clipboard.writeText(url); } catch (e) { }
@@ -177,7 +178,7 @@ export function BlogDetailPage({ onNavigate }: { onNavigate?: (path: string) => 
     );
 
     return (
-        <div className="max-w-[1200px] mx-auto pb-24 px-4 sm:px-6 lg:px-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
+        <div className="max-w-[1200px] mx-auto pb-24 sm:px-6 lg:px-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
             {/* Top Bar: Back, Share, Report */}
             <div className="flex items-center justify-between mb-8">
                 <BackButton onClick={() => { if (onNavigate) onNavigate('/blog'); else window.history.back(); }} />

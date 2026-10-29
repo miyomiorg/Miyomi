@@ -37,7 +37,8 @@ export function LoveButton({
             <button
                 onClick={handleToggle}
                 className={cn(
-                    "group flex items-center gap-1.5 rounded-full transition-all",
+                    // before: invisible 8px hit-area extension (~44px touch target) without changing the layout
+                    "group relative flex items-center gap-1.5 rounded-full transition-all before:absolute before:-inset-2 before:content-['']",
                     isLarge ? "px-3 py-1.5" : "px-2 py-1",
                     loved
                         ? 'bg-rose-50 text-rose-500 dark:bg-rose-950/30'

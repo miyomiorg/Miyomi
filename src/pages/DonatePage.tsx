@@ -350,7 +350,7 @@ export function DonatePage() {
           transition={{ duration: 0.45, delay: 0.1 }}
           className="text-[var(--text-secondary)] font-['Inter',sans-serif] max-w-2xl mx-auto text-[15.5px] leading-7"
         >
-          Miyomi is a free, community-driven library for apps, extensions, repositories, guides, and tutorials.
+          Miyomi is a free, community-driven library for apps, extensions, repositories, guides, and tutorials.{' '}
           <br className="hidden md:block" />Your support helps keep the project independent and accessible to everyone.
         </motion.p>
       </section>
