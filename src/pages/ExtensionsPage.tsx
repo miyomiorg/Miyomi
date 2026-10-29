@@ -1,4 +1,4 @@
-import { useMemo, useState, useEffect } from 'react';
+import { useMemo, useState, useEffect, useCallback, useDeferredValue } from 'react';
 import { useLocation, useNavigationType } from 'react-router-dom';
 import { Search, SortDesc, SortAsc } from 'lucide-react';
 import { FilterDropdown } from '../components/FilterDropdown';
@@ -131,6 +131,16 @@ export function ExtensionsPage({ onNavigate }: ExtensionsPageProps) {
   const { getLikeData } = useLikes();
   const [highlightedId, setHighlightedId] = useState<string | null>(null);
   const navType = useNavigationType();
+  // See SoftwarePage: deferred search, like-independent ordering, prebuilt index.
+  const deferredQuery = useDeferredValue(searchQuery);
+  const likeSort = sortBy.startsWith('loved') ? getLikeData : null;
+  const searchIndex = useMemo(
+    () => new Map(unifiedExtensions.map((ext) => [ext.id, [
+      ext.name, ...ext.types, ext.language, (ext as any).region, ext.info,
+      ...(ext.supportedApps || []), ...(ext.keywords || []),
+    ].filter(Boolean).join(' ').toLowerCase()])),
+    [unifiedExtensions],
+  );
 
 
   useEffect(() => {
@@ -171,18 +181,19 @@ export function ExtensionsPage({ onNavigate }: ExtensionsPageProps) {
       params.set('sort', sortBy);
     }
     params.set('view', view);
-    if (searchQuery.trim().length > 0) {
-      params.set('search', searchQuery.trim());
+    if (deferredQuery.trim().length > 0) {
+      params.set('search', deferredQuery.trim());
     }
 
     const queryString = params.toString();
     const newUrl = `${window.location.pathname}${queryString ? `?${queryString}` : ''}`;
     const currentUrl = `${window.location.pathname}${window.location.search}`;
 
-    window.history.replaceState({}, '', newUrl);
-  }, [selectedApp, selectedType, selectedLanguage, sortBy, view, searchQuery]);
+    if (newUrl !== currentUrl) window.history.replaceState({}, '', newUrl);
+  }, [selectedApp, selectedType, selectedLanguage, sortBy, view, deferredQuery]);
 
   const filteredAndSortedExtensions = useMemo(() => {
+    const query = deferredQuery.trim().toLowerCase();
     let filtered = unifiedExtensions.filter((ext) => {
 
       if (selectedApp !== 'All') {
@@ -220,19 +231,7 @@ export function ExtensionsPage({ onNavigate }: ExtensionsPageProps) {
         }
       }
 
-      if (searchQuery) {
-        const query = searchQuery.toLowerCase();
-        const searchableText = [
-          ext.name,
-          ...ext.types,
-          ext.language,
-          (ext as any).region,
-          ext.info,
-          ...(ext.supportedApps || []),
-          ...(ext.keywords || []),
-        ].filter(Boolean).join(' ').toLowerCase();
-        if (!searchableText.includes(query)) return false;
-      }
+      if (query && !(searchIndex.get(ext.id) ?? '').includes(query)) return false;
 
       return true;
     });
@@ -252,8 +251,8 @@ export function ExtensionsPage({ onNavigate }: ExtensionsPageProps) {
           return dir * a.lastUpdated.localeCompare(b.lastUpdated);
         }
         case 'loved': {
-          const aLoved = getLikeData(a.id).count;
-          const bLoved = getLikeData(b.id).count;
+          const aLoved = likeSort?.(a.id).count ?? 0;
+          const bLoved = likeSort?.(b.id).count ?? 0;
           return dir * (aLoved - bLoved);
         }
         case 'added': {
@@ -268,7 +267,7 @@ export function ExtensionsPage({ onNavigate }: ExtensionsPageProps) {
     });
 
     return filtered;
-  }, [unifiedExtensions, selectedApp, selectedType, selectedLanguage, searchQuery, sortBy, getLikeData, allApps]);
+  }, [unifiedExtensions, selectedApp, selectedType, selectedLanguage, deferredQuery, searchIndex, sortBy, likeSort, allApps]);
 
 
   useEffect(() => {
@@ -301,13 +300,13 @@ export function ExtensionsPage({ onNavigate }: ExtensionsPageProps) {
     };
   }, [loading, filteredAndSortedExtensions.length, navType]);
 
-  const handleExtensionClick = (extensionId: string) => {
+  const handleExtensionClick = useCallback((extensionId: string) => {
     const currentScrollY = window.scrollY;
     onNavigate?.(`/extensions/${extensionId}`);
 
     sessionStorage.setItem('extensions-scroll-position', currentScrollY.toString());
     sessionStorage.setItem('extensions-last-clicked-id', extensionId);
-  };
+  }, [onNavigate]);
 
   return (
     <div className="max-w-7xl mx-auto">
@@ -379,8 +378,9 @@ export function ExtensionsPage({ onNavigate }: ExtensionsPageProps) {
               type="text"
               placeholder="Search extensions by name, description, or keywords..."
               value={searchQuery}
+              enterKeyHint="search"
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-8 pr-4 py-2 mt-1 bg-[var(--bg-surface)] border border-[var(--divider)] rounded-xl text-[var(--text-primary)] placeholder:text-[var(--text-secondary)] focus:outline-none focus:border-[var(--brand)] transition-colors font-['Inter',sans-serif] text-sm"
+              className="w-full pl-8 pr-4 py-2 mt-1 bg-[var(--bg-surface)] border border-[var(--divider)] rounded-xl text-[var(--text-primary)] placeholder:text-[var(--text-secondary)] focus:outline-none focus:border-[var(--brand)] transition-colors font-['Inter',sans-serif] text-base sm:text-sm"
             />
           </div>
           <ViewToggle view={view} onViewChange={setView} />

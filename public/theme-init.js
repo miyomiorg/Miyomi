@@ -1,0 +1,3 @@
+// Applies the saved theme before first paint. Loaded as a blocking <script>
+// in <head> (external so the Content-Security-Policy needs no inline script).
+(function(){try{const t=localStorage.getItem("miyomi-theme-mode")||"auto",e=localStorage.getItem("miyomi-theme-cache"),m=window.matchMedia("(prefers-color-scheme: dark)").matches,o="dark"===t||"auto"===t&&m;if(o?(document.documentElement.classList.add("dark"),document.documentElement.classList.remove("light")):(document.documentElement.classList.remove("dark"),document.documentElement.classList.add("light")),e){const t=JSON.parse(e),m=o?t.dark:t.light;m&&Object.entries(m).forEach((([t,e])=>{"string"==typeof e&&document.documentElement.style.setProperty(t,e)}))}}catch(t){console.warn("Theme loader failed:",t)}})();

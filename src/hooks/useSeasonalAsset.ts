@@ -1,5 +1,5 @@
-import { useMemo } from 'react';
-import { useThemeEngineContext } from './useThemeEngine';
+import { useContext, useMemo } from 'react';
+import { ThemeEngineContext } from './useThemeEngine';
 
 /**
  * Returns the appropriate asset (logo, avatar) based on the active theme.
@@ -9,21 +9,12 @@ export function useSeasonalAsset(
     assetKey: 'logo' | 'homeAvatar',
     defaultAsset: string
 ): string {
-    let themeAssets: { logo?: string; homeAvatar?: string } | null = null;
-    let hasContext = true;
+    // useContext directly (null outside the provider) instead of a throwing
+    // hook wrapped in try/catch.
+    const themeAssets = useContext(ThemeEngineContext)?.themeAssets ?? null;
 
-    try {
-        const ctx = useThemeEngineContext();
-        themeAssets = ctx.themeAssets;
-    } catch {
-        // Not inside ThemeEngineContext — use default
-        hasContext = false;
-    }
-
-    return useMemo(() => {
-        if (hasContext && themeAssets && themeAssets[assetKey]) {
-            return themeAssets[assetKey]!;
-        }
-        return defaultAsset;
-    }, [hasContext, themeAssets, assetKey, defaultAsset]);
+    return useMemo(
+        () => themeAssets?.[assetKey] || defaultAsset,
+        [themeAssets, assetKey, defaultAsset],
+    );
 }

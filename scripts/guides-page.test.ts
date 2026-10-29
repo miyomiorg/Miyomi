@@ -6,14 +6,19 @@ import { MemoryRouter } from 'react-router-dom';
 import { GuidesPage } from '../src/pages/GuidesPage';
 import { CacheManager } from '../src/utils/cache';
 
-vi.mock('motion/react', () => ({
-  motion: {
+// Components use the LazyMotion `m` export (aliased as `motion`); mock both.
+vi.mock('motion/react', () => {
+  const components = {
     div: ({ children, className }: { children: ReactNode; className?: string }) => createElement('div', { className }, children),
     button: ({ children, className, onClick }: { children: ReactNode; className?: string; onClick?: () => void }) =>
       createElement('button', { className, onClick }, children),
-  },
-  AnimatePresence: ({ children }: { children: ReactNode }) => children,
-}));
+  };
+  return {
+    motion: components,
+    m: components,
+    AnimatePresence: ({ children }: { children: ReactNode }) => children,
+  };
+});
 
 let root: Root;
 let container: HTMLDivElement;

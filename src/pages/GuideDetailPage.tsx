@@ -1,48 +1,13 @@
 import { ArrowLeft, BookOpen, Clock, Tag, List, ThumbsUp, ThumbsDown, X, ChevronRight } from 'lucide-react';
-import { motion, AnimatePresence } from 'motion/react';
+import { m as motion, AnimatePresence } from 'motion/react';
 import { useEffect, useState, useMemo, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import { dataService } from '../services/dataService';
-import DOMPurify from 'dompurify';
+import { sanitizeRichHtml } from '../lib/sanitize';
 import { BackButton } from '../components/BackButton';
 import { DetailActions } from '../components/DetailActions';
 import { ReportModal } from '../components/ReportModal';
 import { toast } from 'sonner';
-
-// Allow deep links
-const ALLOWED_URI_REGEXP = /^(?:(?:(?:f|ht)tps?|mailto|tel|callto|sms|cid|xmpp|mihon|tachiyomi|aniyomi|tachi|cloudstream):|[^a-z]|[a-z+.\-]+(?:[^a-z+.\-:]|$))/i;
-
-let headingCount = 0;
-
-DOMPurify.addHook('uponSanitizeElement', (node, data) => {
-  if (data.tagName === 'h2' || data.tagName === 'h3') {
-    const el = node as Element;
-    if (!el.id) {
-      el.id = `toc-heading-${headingCount++}`;
-    }
-  }
-  if (data.tagName === 'iframe') {
-    const el = node as Element;
-    const src = el.getAttribute('src');
-    if (!src) {
-      node.parentNode?.removeChild(node);
-      return;
-    }
-    const allowedDomains = [
-      'youtube.com', 'youtube-nocookie.com', 'drive.google.com',
-      'facebook.com', 'twitter.com', 'x.com', 'instagram.com',
-      'tiktok.com', 'vimeo.com', 'reddit.com'
-    ];
-    try {
-      const url = new URL(src, window.location.origin);
-      if (!allowedDomains.some(domain => url.hostname.endsWith(domain))) {
-        node.parentNode?.removeChild(node);
-      }
-    } catch {
-      node.parentNode?.removeChild(node);
-    }
-  }
-});
 
 interface GuideDetailPageProps {
   slug?: string;
@@ -109,10 +74,9 @@ export function GuideDetailPage({ slug: propSlug, onNavigate }: GuideDetailPageP
     const timer = setTimeout(() => {
       if (!contentRef.current) return;
       const headings = Array.from(contentRef.current.querySelectorAll('h2, h3')) as HTMLElement[];
-      const newToc = headings.map((el) => {
-        // Ensure ID exists (in case DOMPurify missed it)
+      const newToc = headings.map((el, index) => {
         if (!el.id) {
-          el.id = `toc-heading-${headingCount++}`;
+          el.id = `toc-heading-${index}`;
         }
         return {
           id: el.id,
@@ -129,10 +93,12 @@ export function GuideDetailPage({ slug: propSlug, onNavigate }: GuideDetailPageP
   useEffect(() => {
     if (loading || !guide || toc.length === 0) return;
 
-    const handleScroll = () => {
-      const headings = toc.map(h => document.getElementById(h.id)).filter(Boolean) as HTMLElement[];
+    // Heading elements looked up once; layout read at most once per frame.
+    const headings = toc.map(h => document.getElementById(h.id)).filter(Boolean) as HTMLElement[];
+    let frame = 0;
+    const update = () => {
+      frame = 0;
       const scrollPosition = window.scrollY + 100;
-
       let current = headings[0]?.id || '';
       for (const heading of headings) {
         if (heading.offsetTop <= scrollPosition) {
@@ -143,13 +109,19 @@ export function GuideDetailPage({ slug: propSlug, onNavigate }: GuideDetailPageP
       }
       setActiveHeadingId(current);
     };
+    const handleScroll = () => {
+      if (!frame) frame = requestAnimationFrame(update);
+    };
 
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => {
+      if (frame) cancelAnimationFrame(frame);
+      window.removeEventListener('scroll', handleScroll);
+    };
   }, [loading, guide, toc]);
 
-  // Reset DOMPurify heading count before render
-  headingCount = 0;
+  // Sanitize once per content change (not on every scroll-spy re-render).
+  const contentHtml = useMemo(() => sanitizeRichHtml(guide?.content || ''), [guide?.content]);
 
   if (loading) {
     return (
@@ -281,16 +253,7 @@ export function GuideDetailPage({ slug: propSlug, onNavigate }: GuideDetailPageP
           >
             <div
               className="guide-content prose prose-invert max-w-none prose-headings:font-['Poppins',sans-serif] prose-headings:scroll-mt-24 prose-h2:text-2xl sm:prose-h2:text-3xl prose-h3:text-xl sm:prose-h3:text-2xl prose-h2:mt-6 prose-h2:mb-4 prose-p:font-['Inter',sans-serif] prose-a:text-[var(--brand)] prose-img:rounded-xl prose-img:shadow-lg prose-headings:text-[var(--text-primary)] prose-strong:text-[var(--text-primary)] prose-code:text-[var(--brand)] prose-code:bg-[var(--chip-bg)] prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded-md prose-code:text-xs prose-pre:bg-[var(--bg-elev-1)] prose-pre:border prose-pre:border-[var(--divider)] prose-pre:rounded-xl prose-blockquote:border-l-[var(--brand)] prose-blockquote:bg-[var(--chip-bg)] prose-blockquote:rounded-r-lg prose-blockquote:py-1 prose-blockquote:px-4 prose-hr:border-[var(--divider)] [&>*:first-child]:mt-0"
-              dangerouslySetInnerHTML={{
-                __html: DOMPurify.sanitize(
-                  guide.content || '',
-                  {
-                    ADD_TAGS: ['iframe', 'style', 'div', 'details', 'summary'],
-                    ADD_ATTR: ['allow', 'allowfullscreen', 'frameborder', 'scrolling', 'style', 'class', 'id', 'target', 'open', 'data-callout', 'data-callout-type', 'data-container', 'src', 'width', 'height', 'title'],
-                    ALLOWED_URI_REGEXP,
-                  }
-                )
-              }}
+              dangerouslySetInnerHTML={{ __html: contentHtml }}
             />
           </div>
 

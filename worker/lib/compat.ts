@@ -1,4 +1,4 @@
-import { eq, inArray } from 'drizzle-orm';
+import { and, eq, sql } from 'drizzle-orm';
 import type { createDb } from './db.ts';
 import {
   appGroupMemberships,
@@ -13,108 +13,76 @@ type Db = ReturnType<typeof createDb>;
  * Ports of `src/utils/compatSync.ts` read helpers.
  *
  * Unified compatibility = the entity's own `compatible_with` list, plus all
- * entities that share a compatibility group, plus any entity whose
- * `compatible_with` references this one by name/slug/id.
+ * approved entities that share a compatibility group, plus any approved entity
+ * whose `compatible_with` references this one by name/slug/id.
+ *
+ * Everything runs as ONE D1 batch: group members via a join on the group_id
+ * indexes, and reverse links via json_each in SQL instead of scanning the
+ * whole opposite table in JS.
  */
+
+/** `compatible_with` as a json_each source that tolerates NULL / malformed JSON. */
+const safeJsonArray = (column: unknown) =>
+  sql`(CASE WHEN json_valid(${column}) THEN ${column} ELSE '[]' END)`;
+
 export async function getUnifiedCompatibleExtensionsForApp(db: Db, appId: string): Promise<string[]> {
-  const result = new Set<string>();
-
-  const [app] = await db
-    .select({ name: apps.name, slug: apps.slug, compatibleWith: apps.compatibleWith })
-    .from(apps)
-    .where(eq(apps.id, appId))
-    .limit(1);
-
-  for (const name of app?.compatibleWith ?? []) {
-    if (typeof name === 'string' && name.trim()) result.add(name.trim());
-  }
-
-  // Extensions sharing one of this app's compatibility groups
-  const groupRows = await db
-    .select({ groupId: appGroupMemberships.groupId })
-    .from(appGroupMemberships)
-    .where(eq(appGroupMemberships.appId, appId));
-  const groupIds = [...new Set(groupRows.map((r) => r.groupId))];
-  if (groupIds.length) {
-    const memberRows = await db
-      .select({ extensionId: extensionGroupMemberships.extensionId })
-      .from(extensionGroupMemberships)
-      .where(inArray(extensionGroupMemberships.groupId, groupIds));
-    const extIds = [...new Set(memberRows.map((r) => r.extensionId))];
-    if (extIds.length) {
-      const rows = await db
-        .select({ name: extensions.name })
-        .from(extensions)
-        .where(inArray(extensions.id, extIds));
-      for (const row of rows) if (row.name) result.add(row.name.trim());
-    }
-  }
-
-  // Reverse links: extensions whose compatible_with references this app
-  const allExts = await db
-    .select({ name: extensions.name, compatibleWith: extensions.compatibleWith })
-    .from(extensions);
-  for (const ext of allExts) {
-    const matches = (ext.compatibleWith ?? []).some((item) => {
-      if (typeof item !== 'string') return false;
-      const lower = item.toLowerCase();
-      return (
-        (!!app?.name && lower === app.name.toLowerCase()) ||
-        (!!app?.slug && lower === app.slug.toLowerCase()) ||
-        item === appId
-      );
-    });
-    if (matches && ext.name) result.add(ext.name.trim());
-  }
-
-  return [...result];
+  const agm = appGroupMemberships;
+  const egm = extensionGroupMemberships;
+  const [[app], groupRows, reverseRows] = await db.batch([
+    db.select({ compatibleWith: apps.compatibleWith }).from(apps).where(eq(apps.id, appId)).limit(1),
+    db
+      .selectDistinct({ name: extensions.name })
+      .from(agm)
+      .innerJoin(egm, eq(egm.groupId, agm.groupId))
+      .innerJoin(extensions, eq(extensions.id, egm.extensionId))
+      .where(and(eq(agm.appId, appId), eq(extensions.status, 'approved'))),
+    db
+      .select({ name: extensions.name })
+      .from(extensions)
+      .where(and(
+        eq(extensions.status, 'approved'),
+        sql`EXISTS (SELECT 1 FROM json_each(${safeJsonArray(extensions.compatibleWith)}) j
+          WHERE j.value = ${appId}
+             OR lower(j.value) IN (SELECT lower(name) FROM apps WHERE id = ${appId}
+                                   UNION SELECT lower(slug) FROM apps WHERE id = ${appId} AND slug IS NOT NULL))`,
+      )),
+  ]);
+  return collect(app?.compatibleWith, groupRows, reverseRows);
 }
 
 export async function getUnifiedCompatibleAppsForExtension(db: Db, extId: string): Promise<string[]> {
+  const agm = appGroupMemberships;
+  const egm = extensionGroupMemberships;
+  const [[ext], groupRows, reverseRows] = await db.batch([
+    db.select({ compatibleWith: extensions.compatibleWith }).from(extensions).where(eq(extensions.id, extId)).limit(1),
+    db
+      .selectDistinct({ name: apps.name })
+      .from(egm)
+      .innerJoin(agm, eq(agm.groupId, egm.groupId))
+      .innerJoin(apps, eq(apps.id, agm.appId))
+      .where(and(eq(egm.extensionId, extId), eq(apps.status, 'approved'))),
+    db
+      .select({ name: apps.name })
+      .from(apps)
+      .where(and(
+        eq(apps.status, 'approved'),
+        sql`EXISTS (SELECT 1 FROM json_each(${safeJsonArray(apps.compatibleWith)}) j
+          WHERE j.value = ${extId}
+             OR lower(j.value) IN (SELECT lower(name) FROM extensions WHERE id = ${extId}
+                                   UNION SELECT lower(slug) FROM extensions WHERE id = ${extId} AND slug IS NOT NULL))`,
+      )),
+  ]);
+  return collect(ext?.compatibleWith, groupRows, reverseRows);
+}
+
+function collect(
+  own: string[] | null | undefined,
+  ...lists: Array<Array<{ name: string | null }>>
+): string[] {
   const result = new Set<string>();
-
-  const [ext] = await db
-    .select({ name: extensions.name, slug: extensions.slug, compatibleWith: extensions.compatibleWith })
-    .from(extensions)
-    .where(eq(extensions.id, extId))
-    .limit(1);
-
-  for (const name of ext?.compatibleWith ?? []) {
+  for (const name of own ?? []) {
     if (typeof name === 'string' && name.trim()) result.add(name.trim());
   }
-
-  const groupRows = await db
-    .select({ groupId: extensionGroupMemberships.groupId })
-    .from(extensionGroupMemberships)
-    .where(eq(extensionGroupMemberships.extensionId, extId));
-  const groupIds = [...new Set(groupRows.map((r) => r.groupId))];
-  if (groupIds.length) {
-    const memberRows = await db
-      .select({ appId: appGroupMemberships.appId })
-      .from(appGroupMemberships)
-      .where(inArray(appGroupMemberships.groupId, groupIds));
-    const appIds = [...new Set(memberRows.map((r) => r.appId))];
-    if (appIds.length) {
-      const rows = await db.select({ name: apps.name }).from(apps).where(inArray(apps.id, appIds));
-      for (const row of rows) if (row.name) result.add(row.name.trim());
-    }
-  }
-
-  const allApps = await db
-    .select({ name: apps.name, compatibleWith: apps.compatibleWith })
-    .from(apps);
-  for (const app of allApps) {
-    const matches = (app.compatibleWith ?? []).some((item) => {
-      if (typeof item !== 'string') return false;
-      const lower = item.toLowerCase();
-      return (
-        (!!ext?.name && lower === ext.name.toLowerCase()) ||
-        (!!ext?.slug && lower === ext.slug.toLowerCase()) ||
-        item === extId
-      );
-    });
-    if (matches && app.name) result.add(app.name.trim());
-  }
-
+  for (const list of lists) for (const row of list) if (row.name) result.add(row.name.trim());
   return [...result];
 }

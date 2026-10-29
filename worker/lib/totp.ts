@@ -64,12 +64,21 @@ export async function totpCode(secret: string, forMs: number = Date.now()): Prom
 
 /** Verify a 6-digit code with ±`window` step tolerance (default ±1). */
 export async function verifyTotp(secret: string, code: string, window = 1): Promise<boolean> {
-  if (!/^\d{6}$/.test(code)) return false;
+  return (await matchTotpStep(secret, code, window)) !== null;
+}
+
+/**
+ * Like verifyTotp, but returns the matched 30s time step (or null) so callers
+ * can reject replays of an already-used step.
+ */
+export async function matchTotpStep(secret: string, code: string, window = 1): Promise<number | null> {
+  if (!/^\d{6}$/.test(code)) return null;
   const now = Date.now();
   for (let step = -window; step <= window; step++) {
-    if ((await totpCode(secret, now + step * 30_000)) === code) return true;
+    const at = now + step * 30_000;
+    if ((await totpCode(secret, at)) === code) return Math.floor(at / 30_000);
   }
-  return false;
+  return null;
 }
 
 /** otpauth:// URI for authenticator apps (with QR rendering). */

@@ -1,11 +1,5 @@
-import React from 'react';
 import { Calendar, Tag, Download as DownloadIcon } from 'lucide-react';
 import type { ReleaseData } from '../hooks/useGitHubRelease';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
-import { unified } from 'unified';
-import remarkParse from 'remark-parse';
-import remarkStringify from 'remark-stringify';
 
 interface GitHubReleaseMetaProps {
   release: ReleaseData | null;
@@ -15,6 +9,27 @@ interface GitHubReleaseMetaProps {
   justify?: 'start' | 'center' | 'end';
 }
 
+// Full class names so Tailwind can see them (a template like
+// `sm:justify-${justify}` is never generated).
+const JUSTIFY_CLASS = {
+  start: 'sm:justify-start',
+  center: 'sm:justify-center',
+  end: 'sm:justify-end',
+} as const;
+
+const formatDownloadCount = (value: number) => {
+  if (value >= 1_000_000_000) {
+    return `${(value / 1_000_000_000).toFixed(value >= 10_000_000_000 ? 0 : 1).replace(/\.0$/, '')}B`;
+  }
+  if (value >= 1_000_000) {
+    return `${(value / 1_000_000).toFixed(value >= 10_000_000 ? 0 : 1).replace(/\.0$/, '')}M`;
+  }
+  if (value >= 1_000) {
+    return `${(value / 1_000).toFixed(value >= 10_000 ? 0 : 1).replace(/\.0$/, '')}K`;
+  }
+  return value.toLocaleString();
+};
+
 export function GitHubReleaseMeta({
   release,
   loading = false,
@@ -22,19 +37,6 @@ export function GitHubReleaseMeta({
   className = 'mb-4',
   justify = 'start',
 }: GitHubReleaseMetaProps) {
-  const formatDownloadCount = (value: number) => {
-    if (value >= 1_000_000_000) {
-      return `${(value / 1_000_000_000).toFixed(value >= 10_000_000_000 ? 0 : 1).replace(/\.0$/, '')}B`;
-    }
-    if (value >= 1_000_000) {
-      return `${(value / 1_000_000).toFixed(value >= 10_000_000 ? 0 : 1).replace(/\.0$/, '')}M`;
-    }
-    if (value >= 1_000) {
-      return `${(value / 1_000).toFixed(value >= 10_000 ? 0 : 1).replace(/\.0$/, '')}K`;
-    }
-    return value.toLocaleString();
-  };
-
   // Only show skeleton if we have NO data and we are loading
   const showSkeleton = loading && !release;
 
@@ -45,7 +47,7 @@ export function GitHubReleaseMeta({
   return (
     <div className={className}>
       {release && (
-        <div className={`flex flex-wrap items-center justify-center gap-1 sm:justify-${justify}`}>
+        <div className={`flex flex-wrap items-center justify-center gap-1 ${JUSTIFY_CLASS[justify]}`}>
           {release.version && release.version !== 'N/A' && (
             <div className="inline-flex items-center gap-1.5 rounded-full border border-[var(--divider)] bg-[var(--chip-bg)] px-3 py-1.5">
               <Tag className="w-3.5 h-3.5 text-[var(--brand)]" />
@@ -100,103 +102,6 @@ export function GitHubReleaseMeta({
               className="h-8 w-24 rounded-full border border-[var(--divider)] bg-[var(--chip-bg)] animate-pulse"
             ></div>
           ))}
-        </div>
-      )}
-    </div>
-  );
-}
-
-interface GitHubReleaseNotesProps {
-  notes?: string;
-  releaseUrl?: string;
-  maxLines?: number;
-  className?: string;
-}
-
-function normalizeNotes(input: string) {
-  try {
-    const processed = unified()
-      .use(remarkParse)
-      .use(remarkStringify, {
-        bullet: '-',
-        fences: true,
-        tightDefinitions: true,
-      })
-      .processSync(input);
-    return processed.toString().trim();
-  } catch (error) {
-    console.warn('Failed to normalize release notes', error);
-    return input.trim();
-  }
-}
-
-export function GitHubReleaseNotes({
-  notes,
-  releaseUrl,
-  maxLines = 10,
-  className = '',
-}: GitHubReleaseNotesProps) {
-  if (!notes) {
-    return null;
-  }
-
-  const normalized = normalizeNotes(notes);
-  const lines = normalized.split('\n');
-
-  const condensedLines: string[] = [];
-  for (const line of lines) {
-    const isEmpty = line.trim() === '';
-    if (isEmpty) {
-      if (condensedLines.length === 0) continue;
-      if (condensedLines[condensedLines.length - 1] === '') continue;
-      condensedLines.push('');
-    } else {
-      condensedLines.push(line);
-    }
-  }
-
-  const previewLines = condensedLines.slice(0, maxLines);
-  const preview = previewLines.join('\n').trimEnd();
-  const hasMore = condensedLines.length > maxLines;
-
-  const wrapperClasses = `prose prose-sm max-w-none text-[var(--text-secondary)] font-['Inter',sans-serif] ${className}`.trim();
-
-  return (
-    <div className={wrapperClasses}>
-      <div
-        className="release-notes"
-        style={{
-          fontSize: '14px',
-          lineHeight: '1.6',
-          wordBreak: 'break-word',
-        }}
-      >
-        <ReactMarkdown
-          remarkPlugins={[remarkGfm]}
-          components={{
-            a: (props) => (
-              <a
-                {...props}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-[var(--brand)] hover:text-[var(--brand-strong)] transition-colors"
-              />
-            ),
-          }}
-        >
-          {preview}
-        </ReactMarkdown>
-      </div>
-      {hasMore && releaseUrl && (
-        <div className="mt-3">
-          <a
-            href={releaseUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-[var(--brand)] hover:text-[var(--brand-strong)] transition-colors text-sm"
-          >
-            Read more →
-          </a>
         </div>
       )}
     </div>

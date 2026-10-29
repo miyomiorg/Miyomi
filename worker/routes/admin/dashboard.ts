@@ -8,7 +8,6 @@ import {
   apps,
   extensions,
   guides,
-  likes,
   notices,
   submissions,
 } from '../../db/schema.ts';
@@ -26,27 +25,6 @@ dashboardRouter.get('/', requireAdmin(), requireMinRole('admin'), async (c) => {
     const adminId = c.get('adminId')!;
     const isSuperAdmin = c.get('role') === 'super_admin';
 
-    const [
-      [approvedApps],
-      [approvedExts],
-      [publishedGuides],
-      [pendingSubs],
-      [activeNotices],
-      [likesTotal],
-    ] = await Promise.all([
-      db.select({ n: sql<number>`count(*)` }).from(apps).where(eq(apps.status, 'approved')),
-      db.select({ n: sql<number>`count(*)` }).from(extensions).where(eq(extensions.status, 'approved')),
-      db.select({ n: sql<number>`count(*)` }).from(guides).where(inArray(guides.status, ['approved', 'published'])),
-      db.select({ n: sql<number>`count(*)` }).from(submissions).where(eq(submissions.status, 'pending')),
-      db.select({ n: sql<number>`count(*)` }).from(notices).where(eq(notices.active, true)),
-      db.select({ n: sql<number>`count(*)` }).from(likes),
-    ]);
-
-    const [recentApps, recentExts] = await Promise.all([
-      db.select({ name: apps.name, updatedAt: apps.updatedAt }).from(apps).orderBy(desc(apps.updatedAt)).limit(3),
-      db.select({ name: extensions.name, updatedAt: extensions.updatedAt }).from(extensions).orderBy(desc(extensions.updatedAt)).limit(3),
-    ]);
-
     // ── Contribution stats ──
     const ownLogsWhere = eq(adminLogs.adminId, adminId);
 
@@ -62,7 +40,32 @@ dashboardRouter.get('/', requireAdmin(), requireMinRole('admin'), async (c) => {
       .from(adminLogs)
       .innerJoin(admins, eq(adminLogs.adminId, admins.id));
 
-    const [[totalActions], actionBreakdown, recentLogs, topContributors] = await Promise.all([
+    // Every query in one D1 round trip. Total likes are summed from the small
+    // apps/extensions counters instead of counting the whole likes table.
+    const [
+      [approvedApps],
+      [approvedExts],
+      [publishedGuides],
+      [pendingSubs],
+      [activeNotices],
+      [likesTotal],
+      recentApps,
+      recentExts,
+      [totalActions],
+      actionBreakdown,
+      recentLogs,
+      topContributorRows,
+    ] = await db.batch([
+      db.select({ n: sql<number>`count(*)` }).from(apps).where(eq(apps.status, 'approved')),
+      db.select({ n: sql<number>`count(*)` }).from(extensions).where(eq(extensions.status, 'approved')),
+      db.select({ n: sql<number>`count(*)` }).from(guides).where(inArray(guides.status, ['approved', 'published'])),
+      db.select({ n: sql<number>`count(*)` }).from(submissions).where(eq(submissions.status, 'pending')),
+      db.select({ n: sql<number>`count(*)` }).from(notices).where(eq(notices.active, true)),
+      db.select({
+        n: sql<number>`(SELECT COALESCE(SUM(likes_count), 0) FROM apps) + (SELECT COALESCE(SUM(likes_count), 0) FROM extensions)`,
+      }).from(sql`(SELECT 1)`),
+      db.select({ name: apps.name, updatedAt: apps.updatedAt }).from(apps).orderBy(desc(apps.updatedAt)).limit(3),
+      db.select({ name: extensions.name, updatedAt: extensions.updatedAt }).from(extensions).orderBy(desc(extensions.updatedAt)).limit(3),
       db.select({ n: sql<number>`count(*)` }).from(adminLogs).where(ownLogsWhere),
       db
         .select({ action: adminLogs.action, count: sql<number>`count(*)` })
@@ -72,16 +75,15 @@ dashboardRouter.get('/', requireAdmin(), requireMinRole('admin'), async (c) => {
       isSuperAdmin
         ? recentLogsSelect.orderBy(desc(adminLogs.createdAt)).limit(10)
         : recentLogsSelect.where(ownLogsWhere).orderBy(desc(adminLogs.createdAt)).limit(10),
-      isSuperAdmin
-        ? db
-            .select({ adminEmail: admins.email, totalActions: sql<number>`count(*)` })
-            .from(adminLogs)
-            .innerJoin(admins, eq(adminLogs.adminId, admins.id))
-            .groupBy(admins.email)
-            .orderBy(desc(sql`count(*)`))
-            .limit(5)
-        : Promise.resolve([] as Array<{ adminEmail: string; totalActions: number }>),
+      db
+        .select({ adminEmail: admins.email, totalActions: sql<number>`count(*)` })
+        .from(adminLogs)
+        .innerJoin(admins, eq(adminLogs.adminId, admins.id))
+        .groupBy(admins.email)
+        .orderBy(desc(sql`count(*)`))
+        .limit(isSuperAdmin ? 5 : 0),
     ]);
+    const topContributors = isSuperAdmin ? topContributorRows : [];
 
     return ok(c, {
       counts: {

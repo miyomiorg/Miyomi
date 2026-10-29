@@ -11,7 +11,7 @@ import { Search, Smartphone, Puzzle, BookOpen, FileText } from 'lucide-react';
 import { SearchBar } from '../components/SearchBar';
 import { FilterChip } from '../components/FilterChip';
 import { ViewToggle } from '../components/ViewToggle';
-import { motion } from 'motion/react';
+import { m as motion } from 'motion/react';
 import type { BlogPostSummary } from '../types/data';
 
 interface SearchPageProps {
@@ -289,6 +289,7 @@ export function SearchPage({ onNavigate }: SearchPageProps) {
                     forkOf={result.forkOf}
                     upstreamUrl={result.upstreamUrl}
                     matchedTags={result.matchedTags}
+                    href={`/software/${result.slug || result.id}`}
                     onClick={() => handleResultClick(result)}
                   />
                 ) : (
@@ -306,6 +307,7 @@ export function SearchPage({ onNavigate }: SearchPageProps) {
                     forkOf={result.forkOf}
                     upstreamUrl={result.upstreamUrl}
                     matchedTags={result.matchedTags}
+                    href={`/software/${result.slug || result.id}`}
                     onClick={() => handleResultClick(result)}
                   />
                 )

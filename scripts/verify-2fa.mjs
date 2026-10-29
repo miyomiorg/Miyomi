@@ -24,7 +24,7 @@ const PASSWORD = process.env.ADMIN_PASSWORD || 'MiomiLocal123!';
 const resetLocalTotp = () => {
   const safeEmail = EMAIL.replace(/'/g, "''");
   execSync(
-    `npx wrangler d1 execute miyomi-db --local --command "UPDATE admins SET totp_secret = NULL WHERE email = '${safeEmail}';"`,
+    `npx wrangler d1 execute miyomi-db --local --command "UPDATE admins SET totp_secret = NULL, totp_last_step = NULL WHERE email = '${safeEmail}'; DELETE FROM rate_limits WHERE endpoint IN ('totp-fail', '/api/admin/auth/login', '/api/admin/auth/login/complete');"`,
     { stdio: 'ignore' },
   );
 };
@@ -46,9 +46,10 @@ resetLocalTotp();
 const login = await post('/api/admin/auth/login', { email: EMAIL, password: PASSWORD });
 assert.equal(login.status, 200, JSON.stringify(await login.clone().json()));
 const loginBody = await login.json();
-check('unconfigured admin logs in with a session', 'token' in (loginBody.data ?? {}));
+check('unconfigured admin logs in with a session cookie', /miyomi_session=[^;]+/.test(login.headers.get('set-cookie') ?? ''));
+check('session token is never returned in the body', !('token' in (loginBody.data ?? {})));
 check('session reports totpEnabled=false', loginBody.data?.admin?.totpEnabled === false);
-const cookie = login.headers.get('set-cookie').split(';')[0];
+let cookie = login.headers.get('set-cookie').split(';')[0];
 
 // 2. Admin sections are gated until enrolled (403, not 401).
 const gated = await get('/api/admin/apps', cookie);
@@ -77,6 +78,12 @@ const verify = await post('/api/admin/auth/2fa/enroll/verify', {
   currentPassword: PASSWORD,
 }, cookie);
 check('enrolment completes with a valid code', verify.status === 200 && (await verify.json()).data?.enabled === true);
+// Enrolment revokes older sessions and re-issues the caller's cookie.
+const oldCookie = cookie;
+const reissued = verify.headers.get('set-cookie');
+check('enrolment re-issues the current session cookie', Boolean(reissued));
+if (reissued) cookie = reissued.split(';')[0];
+check('pre-enrolment session is revoked', (await get('/api/admin/auth/me', oldCookie)).status === 401);
 
 const me1 = await get('/api/admin/auth/me', cookie);
 check('/me reports totpEnabled=true after enrolment', (await me1.json()).data?.admin?.totpEnabled === true);
@@ -89,24 +96,44 @@ const relogin = await post('/api/admin/auth/login', { email: EMAIL, password: PA
 const reloginBody = await relogin.json();
 check('configured login requires the 2FA stage', reloginBody.data?.loginStage === '2fa_required');
 
+// The pending 2FA ticket must never work as a session (C1 regression).
+const bearerPending = await fetch(base + '/api/admin/auth/me', {
+  headers: { authorization: `Bearer ${reloginBody.data.pendingToken}` },
+});
+check('pending 2FA token is rejected as a session', bearerPending.status === 401);
+const bearerApps = await fetch(base + '/api/admin/apps', {
+  headers: { authorization: `Bearer ${reloginBody.data.pendingToken}` },
+});
+check('pending 2FA token cannot reach admin sections', bearerApps.status === 401);
+
+// The enrolment code's step was consumed; use the next step (accepted by the ±1 window).
+const STEP = 30_000;
+const nextStepCode = () => totpCode(secret, Date.now() + STEP);
+
 const wrongComplete = await post('/api/admin/auth/login/complete', {
   pendingToken: reloginBody.data.pendingToken,
   code: '000000',
 });
 check('login/complete rejects a wrong code', wrongComplete.status === 401);
 
+const completeCode = await nextStepCode();
 const complete = await post('/api/admin/auth/login/complete', {
   pendingToken: reloginBody.data.pendingToken,
-  code: await totpCode(secret),
+  code: completeCode,
 });
 check('login/complete issues the session', complete.status === 200);
 const cookie2 = complete.headers.get('set-cookie').split(';')[0];
 const me2 = await get('/api/admin/auth/me', cookie2);
 check('completed session is authenticated', me2.status === 200);
 
-// 5. One-step login with totpCode in the password call.
-const oneStep = await post('/api/admin/auth/login', { email: EMAIL, password: PASSWORD, totpCode: await totpCode(secret) });
-check('one-step login (password + totpCode) issues a session', oneStep.status === 200 && Boolean((await oneStep.json()).data?.token));
+// Replaying the same code must fail.
+const replay = await post('/api/admin/auth/login', { email: EMAIL, password: PASSWORD, totpCode: completeCode });
+check('a used TOTP code cannot be replayed', replay.status === 401);
+
+// 5. One-step login with totpCode in the password call — wait for a fresh step.
+await new Promise((r) => setTimeout(r, STEP - (Date.now() % STEP) + 500));
+const oneStep = await post('/api/admin/auth/login', { email: EMAIL, password: PASSWORD, totpCode: await nextStepCode() });
+check('one-step login (password + totpCode) issues a session', oneStep.status === 200 && /miyomi_session=/.test(oneStep.headers.get('set-cookie') ?? ''));
 
 // 6. 2FA can never be disabled: the endpoint no longer exists.
 const disable = await post('/api/admin/auth/2fa/disable', { currentPassword: PASSWORD }, cookie);

@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useCallback, useDeferredValue } from 'react';
 import { useLocation, useNavigationType } from 'react-router-dom';
 import { Search, SortDesc, SortAsc } from 'lucide-react';
 import { FilterDropdown } from '../components/FilterDropdown';
@@ -98,6 +98,16 @@ export function SoftwarePage({ onNavigate }: SoftwarePageProps) {
   const { isFeedbackOpen, handleToggle, handleClose } = useFeedbackState();
   const { getLikeData } = useLikes();
   const [highlightedId, setHighlightedId] = useState<string | null>(null);
+  // Filtering runs against a deferred copy so typing stays responsive.
+  const deferredQuery = useDeferredValue(searchQuery);
+  // Likes only affect the order when sorting by "Loved" — otherwise a like
+  // toggle must not re-filter and re-sort the whole list.
+  const likeSort = sortBy.startsWith('loved') ? getLikeData : null;
+  // Lower-cased search text built once per data load, not per keystroke × app.
+  const searchIndex = useMemo(
+    () => new Map(unifiedApps.map((app: AppData) => [app.id, [app.name, app.description, ...(app.keywords || [])].join(' ').toLowerCase()])),
+    [unifiedApps],
+  );
 
 
   useEffect(() => {
@@ -125,8 +135,8 @@ export function SoftwarePage({ onNavigate }: SoftwarePageProps) {
       params.set('sort', sortBy);
     }
     params.set('view', view);
-    if (searchQuery.trim().length > 0) {
-      params.set('search', searchQuery.trim());
+    if (deferredQuery.trim().length > 0) {
+      params.set('search', deferredQuery.trim());
     }
     const queryString = params.toString();
     const newUrl = `${window.location.pathname}${queryString ? `?${queryString}` : ''}`;
@@ -135,9 +145,10 @@ export function SoftwarePage({ onNavigate }: SoftwarePageProps) {
     if (newUrl !== currentUrl) {
       window.history.replaceState({}, '', newUrl);
     }
-  }, [selectedPlatform, selectedContentType, sortBy, view, searchQuery]);
+  }, [selectedPlatform, selectedContentType, sortBy, view, deferredQuery]);
 
   const filteredAndSortedApps = useMemo(() => {
+    const query = deferredQuery.trim().toLowerCase();
     let filtered = unifiedApps.filter((app: AppData) => {
 
       if (selectedContentType !== 'All') {
@@ -155,15 +166,7 @@ export function SoftwarePage({ onNavigate }: SoftwarePageProps) {
       }
 
 
-      if (searchQuery) {
-        const query = searchQuery.toLowerCase();
-        const searchableText = [
-          app.name,
-          app.description,
-          ...(app.keywords || []),
-        ].join(' ').toLowerCase();
-        if (!searchableText.includes(query)) return false;
-      }
+      if (query && !(searchIndex.get(app.id) ?? '').includes(query)) return false;
 
       return true;
     });
@@ -187,8 +190,8 @@ export function SoftwarePage({ onNavigate }: SoftwarePageProps) {
         case 'downloads':
           return dir * ((a.downloads || 0) - (b.downloads || 0));
         case 'loved': {
-          const aLoved = getLikeData(a.id).count;
-          const bLoved = getLikeData(b.id).count;
+          const aLoved = likeSort?.(a.id).count ?? 0;
+          const bLoved = likeSort?.(b.id).count ?? 0;
           return dir * (aLoved - bLoved);
         }
         case 'added': {
@@ -203,7 +206,7 @@ export function SoftwarePage({ onNavigate }: SoftwarePageProps) {
     });
 
     return filtered;
-  }, [unifiedApps, selectedContentType, selectedPlatform, searchQuery, sortBy, getLikeData]);
+  }, [unifiedApps, selectedContentType, selectedPlatform, deferredQuery, searchIndex, sortBy, likeSort]);
 
 
   useEffect(() => {
@@ -239,13 +242,23 @@ export function SoftwarePage({ onNavigate }: SoftwarePageProps) {
     };
   }, [loading, filteredAndSortedApps.length, navType]);
 
-  const handleAppClick = (appId: string) => {
+  const handleAppClick = useCallback((appId: string) => {
     const currentScrollY = window.scrollY;
     onNavigate?.(`/software/${appId}`);
 
     sessionStorage.setItem('software-scroll-position', currentScrollY.toString());
     sessionStorage.setItem('software-last-clicked-id', appId);
-  };
+  }, [onNavigate]);
+
+  // Stable per-item click handlers so memoized cards skip unrelated re-renders.
+  const clickHandlers = useMemo(() => {
+    const map = new Map<string, () => void>();
+    for (const app of unifiedApps) {
+      const ref = app.slug || app.id;
+      map.set(app.id, () => handleAppClick(ref));
+    }
+    return map;
+  }, [unifiedApps, handleAppClick]);
 
   return (
     <div className="max-w-7xl mx-auto">
@@ -313,7 +326,8 @@ export function SoftwarePage({ onNavigate }: SoftwarePageProps) {
               placeholder="Search software by name, description, or keywords..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-8 pr-4 py-2 mt-1 bg-[var(--bg-surface)] border border-[var(--divider)] rounded-xl text-[var(--text-primary)] placeholder:text-[var(--text-secondary)] focus:outline-none focus:border-[var(--brand)] transition-colors font-['Inter',sans-serif] text-sm"
+              enterKeyHint="search"
+              className="w-full pl-8 pr-4 py-2 mt-1 bg-[var(--bg-surface)] border border-[var(--divider)] rounded-xl text-[var(--text-primary)] placeholder:text-[var(--text-secondary)] focus:outline-none focus:border-[var(--brand)] transition-colors font-['Inter',sans-serif] text-base sm:text-sm"
             />
           </div>
           <ViewToggle view={view} onViewChange={setView} />
@@ -360,7 +374,8 @@ export function SoftwarePage({ onNavigate }: SoftwarePageProps) {
                   forkOf={app.forkOf}
                   upstreamUrl={app.upstreamUrl}
                   isHighlighted={highlightedId === app.id || highlightedId === app.slug}
-                  onClick={() => handleAppClick(app.slug || app.id)}
+                  href={`/software/${app.slug || app.id}`}
+                  onClick={clickHandlers.get(app.id)}
                 />
               </React.Fragment>
             ))}
@@ -383,7 +398,8 @@ export function SoftwarePage({ onNavigate }: SoftwarePageProps) {
                   forkOf={app.forkOf}
                   upstreamUrl={app.upstreamUrl}
                   isHighlighted={highlightedId === app.id || highlightedId === app.slug}
-                  onClick={() => handleAppClick(app.slug || app.id)}
+                  href={`/software/${app.slug || app.id}`}
+                  onClick={clickHandlers.get(app.id)}
                 />
               </React.Fragment>
             ))}

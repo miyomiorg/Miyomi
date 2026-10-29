@@ -1,7 +1,7 @@
 import React from 'react';
 import { Home, Smartphone, Puzzle, BookOpen, Menu } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { motion } from 'motion/react';
+import { m as motion } from 'motion/react';
 
 interface BottomNavigationProps {
   onNavigate?: (path: string) => void;
@@ -64,7 +64,7 @@ export function BottomNavigation({
 
   return (
     <div
-      className="fixed bottom-0 left-0 right-0 z-[999] md:hidden bg-[var(--bg-page)]/85 backdrop-blur-xl border-t border-[var(--divider)]/50 shadow-[0_-4px_24px_-4px_rgba(0,0,0,0.08)] flex items-center justify-around px-2"
+      className="fixed bottom-0 left-0 right-0 z-[999] md:hidden bg-[var(--bg-page)]/95 backdrop-blur-sm border-t border-[var(--divider)]/50 shadow-[0_-4px_24px_-4px_rgba(0,0,0,0.08)] flex items-center justify-around px-2"
       style={{
         height: 'calc(4rem + env(safe-area-inset-bottom))',
         paddingBottom: 'env(safe-area-inset-bottom)',

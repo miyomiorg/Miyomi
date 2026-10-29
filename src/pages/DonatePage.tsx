@@ -27,7 +27,7 @@ import {
   Hash,
   Info,
 } from 'lucide-react';
-import { motion, AnimatePresence } from 'motion/react';
+import { m as motion, AnimatePresence } from 'motion/react';
 import { useState } from 'react';
 import { useDonations } from '../hooks/useDonations';
 import { useSupportersLeaderboard } from '../hooks/useSupportersLeaderboard';

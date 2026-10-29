@@ -1,6 +1,7 @@
 ﻿import { and, desc, eq, inArray, sql } from 'drizzle-orm';
 import { Hono } from 'hono';
 import { createDb } from '../../lib/db.ts';
+import { stripSubmitterPrivileged } from '../../lib/sanitize.ts';
 import { fail, isoNow, ok, pagination, requireAdmin, requireResource, requireSuperAdmin, type AppEnv } from '../../lib/http.ts';
 import {
   apps,
@@ -214,8 +215,9 @@ reviewsRouter.post('/suggestions/:id/approve', requireAdmin(), requireResource('
 
     // Form/suggestion payloads arrive in snake_case; the prepare* helpers read
     // camelCase. Convert once so no field is silently dropped on approval.
+    // Stored public data is re-stripped of privileged fields; admin edits are trusted.
     const raw: Record<string, unknown> =
-      (body.editedData as Record<string, unknown>) ?? (s.submittedData as Record<string, unknown>) ?? {};
+      (body.editedData as Record<string, unknown>) ?? stripSubmitterPrivileged(s.submittedData);
     const data = snakeToCamel(raw);
 
     if (s.targetType === 'guide') {

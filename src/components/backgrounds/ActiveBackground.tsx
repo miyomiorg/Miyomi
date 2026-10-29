@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { getPerformanceTier } from '@/utils/performanceTier';
+import { runCanvasLoop } from '@/lib/canvasLoop';
 
 interface ActiveBackgroundProps {
   theme?: 'light' | 'dark';
@@ -54,7 +55,6 @@ export function ActiveBackground({ theme = 'dark' }: ActiveBackgroundProps) {
   const starsRef = useRef<Star[]>([]);
   const circlesRef = useRef<FloatingCircle[]>([]);
   const halftonesRef = useRef<Halftone[]>([]);
-  const animationFrameRef = useRef<number | null>(null);
   const gradientOffsetRef = useRef(0);
   const timeRef = useRef(0);
 
@@ -320,14 +320,13 @@ export function ActiveBackground({ theme = 'dark' }: ActiveBackgroundProps) {
       });
 
       ctx.globalAlpha = 1;
-      animationFrameRef.current = requestAnimationFrame(animate);
     };
 
-    animationFrameRef.current = requestAnimationFrame(animate);
+    const stopLoop = runCanvasLoop(canvas, animate);
 
     return () => {
       window.removeEventListener('resize', resizeCanvas);
-      if (animationFrameRef.current) cancelAnimationFrame(animationFrameRef.current);
+      stopLoop();
     };
   }, [theme]);
 

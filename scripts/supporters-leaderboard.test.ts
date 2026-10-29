@@ -68,7 +68,7 @@ it('renders the top-three podium, recent supporters, and an inline load-more but
     showAmounts: true,
   })));
 
-  expect(container.textContent).toContain('Top Supporters');
+  expect(container.querySelector('h2, h3')?.textContent?.trim()).toBe('Supporters');
   expect(container.textContent).toContain('Top 3 by lifetime support');
   expect(container.querySelector('[aria-label="Gold rank"]')).not.toBeNull();
   expect(container.querySelector('[aria-label="Silver rank"]')).not.toBeNull();

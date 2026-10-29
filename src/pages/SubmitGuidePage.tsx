@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { FileText, Save, ArrowLeft, Loader2, User, HelpCircle } from 'lucide-react';
-import { motion } from 'motion/react';
+import { m as motion } from 'motion/react';
 import { toast } from 'sonner';
 import Turnstile from 'react-turnstile';
 import { guidesApi, submitApi } from '../services/api';

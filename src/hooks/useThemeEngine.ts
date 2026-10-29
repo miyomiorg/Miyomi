@@ -113,7 +113,10 @@ const FALLBACK_THEMES: ThemeRecord[] = [
 ];
 
 // ── Storage keys ───────────────────────────────────────────────────
-const THEME_MODE_KEY = 'miyomi-theme-mode';
+// Seasonal-theme mode (auto | manual | off). Must NOT share a key with the
+// light/dark color mode ('miyomi-theme-mode'), whose values differ.
+const THEME_MODE_KEY = 'miyomi-seasonal-mode';
+const SEASONAL_MODES = ['auto', 'manual', 'off'] as const;
 const ACTIVE_THEME_KEY = 'miyomi-active-theme-slug';
 
 // ── Date helpers ───────────────────────────────────────────────────
@@ -191,7 +194,8 @@ export function useThemeEngine(colorMode: 'light' | 'dark' = 'light'): ThemeEngi
     const [themes, setThemes] = useState<ThemeRecord[]>([]);
     const [themeMode, setThemeModeState] = useState<ThemeMode>(() => {
         try {
-            return (localStorage.getItem(THEME_MODE_KEY) as ThemeMode) || 'auto';
+            const stored = localStorage.getItem(THEME_MODE_KEY);
+            return (SEASONAL_MODES as readonly string[]).includes(stored ?? '') ? (stored as ThemeMode) : 'auto';
         } catch { return 'auto'; }
     });
     const [isLoading, setIsLoading] = useState(true);

@@ -5,15 +5,12 @@ import { useBlogPosts } from '@/hooks/useBlogPosts';
 import { BackButton } from '../components/BackButton';
 import { Globe, Clock, Eye, Calendar, UserCircle, Share, Flag, Sparkles, ChevronRight, ThumbsUp, ThumbsDown, ExternalLink, MessageCircle, Bookmark, Heart, Pin, ArrowUp, Youtube, Github } from 'lucide-react';
 import { SITE_NAME } from '../config/site';
-import DOMPurify from 'dompurify';
+import { sanitizeBlogHtml } from '../lib/sanitize';
 import { ReportModal } from '../components/ReportModal';
 import { FeedbackPanel } from '../components/FeedbackPanel';
 import { DiscordIcon } from '../components/DiscordIcon';
 import { TelegramIcon } from '../components/TelegramIcon';
 import { toast } from 'sonner';
-
-// Allow deep links
-const ALLOWED_URI_REGEXP = /^(?:(?:(?:f|ht)tps?|mailto|tel|callto|sms|cid|xmpp|mihon|tachiyomi|aniyomi|tachi|cloudstream):|[^a-z]|[a-z+.\-]+(?:[^a-z+.\-:]|$))/i;
 
 export function BlogDetailPage({ onNavigate }: { onNavigate?: (path: string) => void }) {
     const { slug } = useParams<{ slug: string }>();
@@ -71,7 +68,7 @@ export function BlogDetailPage({ onNavigate }: { onNavigate?: (path: string) => 
     useEffect(() => {
         if (!post?.content) { setHeadings([]); setFinalHtml(''); return; }
 
-        const sanitized = DOMPurify.sanitize(post.content, { ALLOWED_URI_REGEXP });
+        const sanitized = sanitizeBlogHtml(post.content);
 
         const parser = new DOMParser();
         const doc = parser.parseFromString(sanitized, 'text/html');

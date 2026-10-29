@@ -273,7 +273,15 @@ adminExtraRouter.get('/logs', requireAdmin(), requireMinRole('admin'), async (c)
 /** DELETE /admin/logs — clear all activity logs (super admin only) */
 adminExtraRouter.delete('/logs', requireAdmin(), requireSuperAdmin(), async (c) => {
   try {
-    await createDb(c.env.DB).delete(adminLogs);
+    const db = createDb(c.env.DB);
+    // The clear itself stays on record (audit trail tamper evidence).
+    await db.batch([
+      db.delete(adminLogs),
+      db.insert(adminLogs).values({
+        id: crypto.randomUUID(), adminId: c.get('adminId')!, action: 'logs.clear',
+        resourceType: 'admin_logs', createdAt: isoNow(),
+      }),
+    ]);
     return ok(c, null);
   } catch (error) {
     console.error('[admin/logs] clear failed:', error);
@@ -288,15 +296,17 @@ adminExtraRouter.post('/logs', requireAdmin(), requireMinRole('admin'), async (c
     if (!body || typeof body.action !== 'string' || typeof body.resourceType !== 'string') {
       return fail(c, 400, 'action and resourceType are required');
     }
+    const details = typeof body.details === 'object' && body.details !== null ? (body.details as object) : null;
+    if (details && JSON.stringify(details).length > 10_000) return fail(c, 413, 'details too large');
     const id = crypto.randomUUID();
     await createDb(c.env.DB).insert(adminLogs).values({
       id,
       adminId: c.get('adminId')!,
-      action: body.action,
-      resourceType: body.resourceType,
-      resourceId: typeof body.resourceId === 'string' ? body.resourceId : null,
-      resourceName: typeof body.resourceName === 'string' ? body.resourceName : null,
-      details: typeof body.details === 'object' && body.details !== null ? (body.details as object) : null,
+      action: body.action.slice(0, 100),
+      resourceType: body.resourceType.slice(0, 100),
+      resourceId: typeof body.resourceId === 'string' ? body.resourceId.slice(0, 200) : null,
+      resourceName: typeof body.resourceName === 'string' ? body.resourceName.slice(0, 300) : null,
+      details,
       createdAt: isoNow(),
     });
     return ok(c, { id }, 201);
@@ -306,9 +316,18 @@ adminExtraRouter.post('/logs', requireAdmin(), requireMinRole('admin'), async (c
   }
 });
 
-adminExtraRouter.delete('/logs/:id', requireAdmin(), requireMinRole('admin'), async (c) => {
+// Deleting audit entries is super-admin only, and the deletion is itself logged.
+adminExtraRouter.delete('/logs/:id', requireAdmin(), requireSuperAdmin(), async (c) => {
   try {
-    await createDb(c.env.DB).delete(adminLogs).where(eq(adminLogs.id, c.req.param('id')));
+    const db = createDb(c.env.DB);
+    const id = c.req.param('id');
+    await db.batch([
+      db.delete(adminLogs).where(eq(adminLogs.id, id)),
+      db.insert(adminLogs).values({
+        id: crypto.randomUUID(), adminId: c.get('adminId')!, action: 'logs.delete',
+        resourceType: 'admin_logs', resourceId: id, createdAt: isoNow(),
+      }),
+    ]);
     return ok(c, null);
   } catch (error) {
     console.error('[admin/logs] delete failed:', error);

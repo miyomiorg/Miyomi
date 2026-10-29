@@ -4,10 +4,10 @@ import { PlatformBadge } from './PlatformBadge';
 import { Download, GitFork } from 'lucide-react';
 import { AppLogo } from './AppLogo';
 import { StarRating } from './StarRating';
-import { motion } from 'motion/react';
 import { useAccentColor } from '../hooks/useAccentColor';
 import { LoveButton } from './LoveButton';
 import { MatchedTagChips } from './MatchedTagChips';
+import { CardLink } from './CardLink';
 
 interface AppGridCardProps {
   appId: string;
@@ -24,10 +24,13 @@ interface AppGridCardProps {
   upstreamUrl?: string;
   isHighlighted?: boolean;
   matchedTags?: string[];
+  /** Detail page URL (real link: crawlable, middle-click opens a new tab). */
+  href?: string;
   onClick?: () => void;
 }
 
-export function AppGridCard({
+// Memoized: list pages re-render on every search keystroke / like change.
+export const AppGridCard = React.memo(function AppGridCard({
   appId,
   name,
   description,
@@ -42,6 +45,7 @@ export function AppGridCard({
   upstreamUrl,
   isHighlighted,
   matchedTags,
+  href,
   onClick,
 }: AppGridCardProps) {
 
@@ -51,16 +55,15 @@ export function AppGridCard({
   const showPlatformDivider = displayedTags.length > 0 && platforms.length > 0;
   const colorToUse = useAccentColor({ logoUrl, preferredColor: accentColor });
 
-  // Only use layoutId on desktop for morphing effect
   const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
 
+  // CSS hover/press instead of a per-card animation controller. The title is
+  // a stretched link (CardLink) covering the card; without href the card
+  // falls back to a plain click handler.
   return (
-    <motion.div
-      onClick={onClick}
-      whileHover={{ y: -4 }}
-      whileTap={{ scale: 0.98 }}
-      transition={{ duration: 0.2 }}
-      className={`p-3 sm:p-6 bg-[var(--bg-surface)] border border-[var(--divider)] rounded-2xl hover:shadow-lg hover:border-[var(--brand)] transition-all text-left w-full group flex flex-col cursor-pointer h-full ${isHighlighted
+    <div
+      onClick={href ? undefined : onClick}
+      className={`list-item-cv relative p-3 sm:p-6 bg-[var(--bg-surface)] border border-[var(--divider)] rounded-2xl hover:shadow-lg hover:border-[var(--brand)] [@media(hover:hover)]:hover:-translate-y-1 active:scale-[0.98] transition-[transform,box-shadow,border-color] duration-200 text-left w-full group flex flex-col cursor-pointer h-full focus-within:ring-2 focus-within:ring-[var(--brand)] ${isHighlighted
         ? 'ring-2 ring-[var(--brand)] shadow-[0_8px_30px_rgba(0,0,0,0.12),0_0_0_4px_rgba(var(--brand-rgb),0.2)]'
         : 'shadow-[0_6px_20px_0_rgba(0,0,0,0.08)]'
         }`}
@@ -79,7 +82,7 @@ export function AppGridCard({
         </div>
         <div className="flex-1 min-w-0 text-center sm:text-left w-full">
           <h3 className="font-['Inter',sans-serif] text-[var(--text-primary)] mb-1 sm:mb-1" style={{ fontWeight: 600, fontSize: '14px', lineHeight: '1.3' }}>
-            {name}
+            {href ? <CardLink href={href} onNavigate={onClick}>{name}</CardLink> : name}
           </h3>
           <div className="flex items-center justify-center sm:justify-start gap-1.5 flex-wrap">
             {displayedTags.map((tag, index) => (
@@ -140,6 +143,6 @@ export function AppGridCard({
           </div>
         )}
       </div>
-    </motion.div>
+    </div>
   );
-}
+});

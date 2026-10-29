@@ -7,7 +7,7 @@ import {
   Inbox, Heart, Bell, Palette, Settings, Users, LogOut, Menu, X, ScrollText, Shield, DollarSign,
   PenTool, Flag, MessageSquare, Layers, Bot, FileText, UserCircle, ChevronDown, BarChart3
 } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { Suspense, useState, useEffect } from 'react';
 
 type NavItem = {
   path: string;
@@ -253,7 +253,10 @@ export function AdminLayout() {
 
         <main className="flex-1 overflow-y-auto bg-[var(--bg-page)] p-4 sm:p-6 lg:p-8">
           <div className="max-w-7xl mx-auto">
-            <Outlet />
+            {/* Admin pages are lazy chunks; only the content area suspends. */}
+            <Suspense fallback={<div className="flex items-center justify-center py-24"><div className="h-8 w-8 animate-spin rounded-full border-2 border-[var(--divider)] border-t-[var(--brand)]" /></div>}>
+              <Outlet />
+            </Suspense>
           </div>
         </main>
       </div>

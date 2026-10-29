@@ -2,7 +2,11 @@ import { asc, count, desc, eq } from 'drizzle-orm';
 import { Hono } from 'hono';
 import { createDb } from '../../lib/db.ts';
 import { fail, ok, pagination, type AppEnv } from '../../lib/http.ts';
+import { guideIsPublic } from '../../lib/visibility.ts';
 import {
+  apps,
+  extensions,
+  guides,
   appGroupMemberships,
   compatibilityGroups,
   contributors,
@@ -67,14 +71,29 @@ miscRouter.get('/donations', async (c) => {
   try {
     const db = createDb(c.env.DB);
     const { limit, offset } = pagination(c, 200);
+    // payment_method is never public; amounts only when the donor allowed it.
     const rows = await db
-      .select()
+      .select({
+        id: donations.id,
+        donorName: donations.donorName,
+        message: donations.message,
+        amount: donations.amount,
+        currency: donations.currency,
+        date: donations.date,
+        isPublic: donations.isPublic,
+        showAmount: donations.showAmount,
+        createdAt: donations.createdAt,
+        updatedAt: donations.updatedAt,
+      })
       .from(donations)
       .where(eq(donations.isPublic, true))
       .orderBy(desc(donations.createdAt), desc(donations.id))
       .limit(limit)
       .offset(offset);
-    return ok(c, rows);
+    return ok(
+      c,
+      rows.map((r) => (r.showAmount ? r : { ...r, amount: null, currency: null })),
+    );
   } catch (error) {
     console.error('[donations] list failed:', error);
     return fail(c, 500, 'Failed to fetch donations');
@@ -99,8 +118,8 @@ miscRouter.get('/donation-settings', async (c) => {
 miscRouter.get('/groups', async (c) => {
   try {
     const db = createDb(c.env.DB);
-    const groups = await db.select().from(compatibilityGroups).orderBy(asc(compatibilityGroups.name));
-    const [appRows, extRows] = await Promise.all([
+    const [groups, appRows, extRows] = await db.batch([
+      db.select().from(compatibilityGroups).orderBy(asc(compatibilityGroups.name)),
       db
         .select({ groupId: appGroupMemberships.groupId, n: count() })
         .from(appGroupMemberships)
@@ -126,11 +145,39 @@ miscRouter.get('/groups', async (c) => {
   }
 });
 
+/**
+ * GET /api/counts — public totals for the home page ({ apps, extensions, guides })
+ * so it doesn't download every list just to show three numbers.
+ */
+miscRouter.get('/counts', async (c) => {
+  try {
+    const db = createDb(c.env.DB);
+    const [[appRow], [extRow], [guideRow]] = await db.batch([
+      db.select({ n: count() }).from(apps).where(eq(apps.status, 'approved')),
+      db.select({ n: count() }).from(extensions).where(eq(extensions.status, 'approved')),
+      db.select({ n: count() }).from(guides).where(guideIsPublic()),
+    ]);
+    return ok(c, { apps: appRow?.n ?? 0, extensions: extRow?.n ?? 0, guides: guideRow?.n ?? 0 });
+  } catch (error) {
+    console.error('[counts] failed:', error);
+    return fail(c, 500, 'Failed to fetch counts');
+  }
+});
+
 /** GET /api/contributors */
 miscRouter.get('/contributors', async (c) => {
   try {
     const db = createDb(c.env.DB);
-    const rows = await db.select().from(contributors).orderBy(asc(contributors.name));
+    // email/contact are private submitter details — never public.
+    const rows = await db
+      .select({
+        id: contributors.id,
+        name: contributors.name,
+        contributions: contributors.contributions,
+        createdAt: contributors.createdAt,
+      })
+      .from(contributors)
+      .orderBy(asc(contributors.name));
     return ok(c, rows);
   } catch (error) {
     console.error('[contributors] list failed:', error);

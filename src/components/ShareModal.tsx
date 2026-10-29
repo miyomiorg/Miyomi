@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Copy, Share, X, CheckCircle2 } from 'lucide-react';
-import { motion, AnimatePresence } from 'motion/react';
+import { m as motion, AnimatePresence } from 'motion/react';
 import { toast } from 'sonner';
 
 interface ShareModalProps {

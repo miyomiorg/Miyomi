@@ -11,7 +11,7 @@ export const likesRouter = new Hono<AppEnv>();
 likesRouter.get('/counts', async (c) => {
   try {
     const db = createDb(c.env.DB);
-    const [appRows, extRows] = await Promise.all([
+    const [appRows, extRows] = await db.batch([
       db.select({ id: apps.id, count: apps.likesCount }).from(apps).where(eq(apps.status, 'approved')),
       db.select({ id: extensions.id, count: extensions.likesCount }).from(extensions).where(eq(extensions.status, 'approved')),
     ]);
@@ -32,6 +32,8 @@ likesRouter.get('/mine', async (c) => {
 
 const ITEM_TYPES = ['app', 'extension'] as const;
 type ItemType = (typeof ITEM_TYPES)[number];
+const MAX_FINGERPRINT = 256;
+const MAX_DEVICE_FIELD = 256;
 
 /**
  * GET /api/likes/registry?fingerprint=
@@ -40,21 +42,15 @@ type ItemType = (typeof ITEM_TYPES)[number];
  */
 likesRouter.get('/registry', async (c) => {
   try {
-    const fingerprint = (c.req.query('fingerprint') ?? '').trim();
+    const fingerprint = (c.req.query('fingerprint') ?? '').trim().slice(0, MAX_FINGERPRINT);
     const db = createDb(c.env.DB);
-    const [appRows, extRows] = await Promise.all([
-      db.select({ id: apps.id, likesCount: apps.likesCount }).from(apps),
-      db.select({ id: extensions.id, likesCount: extensions.likesCount }).from(extensions),
-    ]);
+    const appQ = db.select({ id: apps.id, likesCount: apps.likesCount }).from(apps).where(eq(apps.status, 'approved'));
+    const extQ = db.select({ id: extensions.id, likesCount: extensions.likesCount }).from(extensions).where(eq(extensions.status, 'approved'));
+    const [appRows, extRows, mineRows] = fingerprint
+      ? await db.batch([appQ, extQ, db.select({ itemId: likes.itemId }).from(likes).where(eq(likes.deviceFingerprint, fingerprint))])
+      : [...(await db.batch([appQ, extQ])), [] as { itemId: string }[]];
 
-    const loved = new Set<string>();
-    if (fingerprint) {
-      const rows = await db
-        .select({ itemId: likes.itemId })
-        .from(likes)
-        .where(eq(likes.deviceFingerprint, fingerprint));
-      for (const r of rows) loved.add(r.itemId);
-    }
+    const loved = new Set(mineRows.map((r) => r.itemId));
 
     const out: Record<string, { count: number; loved: boolean }> = {};
     for (const r of appRows) out[r.id] = { count: r.likesCount ?? 0, loved: loved.has(r.id) };
@@ -85,83 +81,75 @@ likesRouter.post('/', rateLimit(60, 10), async (c) => {
     const itemType = body?.itemType as ItemType;
     const fingerprint = typeof body?.fingerprint === 'string' ? body.fingerprint.trim() : '';
 
-    if (!itemId || !ITEM_TYPES.includes(itemType) || !fingerprint) {
+    if (!itemId || itemId.length > 64 || !ITEM_TYPES.includes(itemType) || !fingerprint || fingerprint.length > MAX_FINGERPRINT) {
       return fail(c, 400, 'itemId, itemType (app|extension) and fingerprint are required');
     }
 
     const db = createDb(c.env.DB);
     const table = itemType === 'app' ? apps : extensions;
 
-    // The target must exist and be public.
-    const [target] = await db
-      .select({ id: table.id, status: table.status })
-      .from(table)
-      .where(eq(table.id, itemId))
-      .limit(1);
+    // One round trip: the target must exist and be public; find any existing like.
+    // The unique key is (item_id, device_fingerprint) — item_type is not in it.
+    const [[target], [existing]] = await db.batch([
+      db.select({ id: table.id, status: table.status }).from(table).where(eq(table.id, itemId)).limit(1),
+      db.select({ id: likes.id }).from(likes)
+        .where(and(eq(likes.itemId, itemId), eq(likes.deviceFingerprint, fingerprint))).limit(1),
+    ]);
     if (!target || target.status !== 'approved') {
       return fail(c, 404, 'Item not found');
     }
 
-    // The unique key is (item_id, device_fingerprint) — item_type is not in it.
-    const [existing] = await db
-      .select({ id: likes.id })
-      .from(likes)
-      .where(and(eq(likes.itemId, itemId), eq(likes.deviceFingerprint, fingerprint)))
-      .limit(1);
+    // The counter only moves when the preceding statement changed a row
+    // (`changes()`), so concurrent toggles cannot drift likes_count. The batch
+    // runs as one transaction and returns the authoritative count.
+    const delta = existing ? sql`MAX(0, COALESCE(${table.likesCount}, 0) - 1)` : sql`(COALESCE(${table.likesCount}, 0) + 1)`;
+    const bump = db
+      .update(table)
+      .set({ likesCount: delta })
+      .where(and(eq(table.id, itemId), sql`changes() > 0`));
+    const readBack = db.select({ likesCount: table.likesCount }).from(table).where(eq(table.id, itemId)).limit(1);
 
     let loved: boolean;
+    let after: { likesCount: number | null } | undefined;
     if (existing) {
-      await db.delete(likes).where(eq(likes.id, existing.id));
-      await (itemType === 'app'
-        ? db
-            .update(apps)
-            .set({ likesCount: sql`MAX(0, COALESCE(${apps.likesCount}, 0) - 1)` })
-            .where(eq(apps.id, itemId))
-        : db
-            .update(extensions)
-            .set({ likesCount: sql`MAX(0, COALESCE(${extensions.likesCount}, 0) - 1)` })
-            .where(eq(extensions.id, itemId)));
+      const [, , rows] = await db.batch([
+        db.delete(likes).where(eq(likes.id, existing.id)),
+        bump,
+        readBack,
+      ]);
       loved = false;
+      after = rows[0];
     } else {
-      const device = (body.device ?? {}) as Record<string, unknown>;
-      const str = (v: unknown) => (typeof v === 'string' && v ? v : null);
-      await db.insert(likes).values({
-        id: crypto.randomUUID(),
-        itemId,
-        itemType,
-        deviceFingerprint: fingerprint,
-        anonymousId: str(device.anonymousId),
-        os: str(device.os),
-        osVersion: str(device.osVersion),
-        browser: str(device.browser),
-        browserVersion: str(device.browserVersion),
-        deviceType: str(device.deviceType),
-        deviceModel: str(device.deviceModel),
-        deviceVendor: str(device.deviceVendor),
-        userAgent: str(device.userAgent),
-        language: str(device.language),
-        screenResolution: str(device.screenResolution),
-        timezone: str(device.timezone),
-        likedAt: isoNow(),
-      });
-      await (itemType === 'app'
-        ? db
-            .update(apps)
-            .set({ likesCount: sql`(COALESCE(${apps.likesCount}, 0) + 1)` })
-            .where(eq(apps.id, itemId))
-        : db
-            .update(extensions)
-            .set({ likesCount: sql`(COALESCE(${extensions.likesCount}, 0) + 1)` })
-            .where(eq(extensions.id, itemId)));
+      const device = (typeof body?.device === 'object' && body.device !== null ? body.device : {}) as Record<string, unknown>;
+      const str = (v: unknown) => (typeof v === 'string' && v ? v.slice(0, MAX_DEVICE_FIELD) : null);
+      const [, , rows] = await db.batch([
+        db.insert(likes).values({
+          id: crypto.randomUUID(),
+          itemId,
+          itemType,
+          deviceFingerprint: fingerprint,
+          anonymousId: str(device.anonymousId),
+          os: str(device.os),
+          osVersion: str(device.osVersion),
+          browser: str(device.browser),
+          browserVersion: str(device.browserVersion),
+          deviceType: str(device.deviceType),
+          deviceModel: str(device.deviceModel),
+          deviceVendor: str(device.deviceVendor),
+          userAgent: str(device.userAgent),
+          language: str(device.language),
+          screenResolution: str(device.screenResolution),
+          timezone: str(device.timezone),
+          likedAt: isoNow(),
+        }).onConflictDoNothing(),
+        bump,
+        readBack,
+      ]);
       loved = true;
+      after = rows[0];
     }
 
     // The item's likes_count is authoritative (matches the list pages).
-    const [after] = await db
-      .select({ likesCount: table.likesCount })
-      .from(table)
-      .where(eq(table.id, itemId))
-      .limit(1);
     const total = after?.likesCount ?? 0;
 
     return ok(c, { loved, count: total, total, liked: loved });
@@ -184,18 +172,12 @@ likesRouter.get('/status', async (c) => {
       return fail(c, 400, 'itemId, itemType and fingerprint query params are required');
     }
     const db = createDb(c.env.DB);
-    const cond = and(eq(likes.itemId, itemId), eq(likes.itemType, itemType));
-    const [mine] = await db
-      .select({ id: likes.id })
-      .from(likes)
-      .where(and(cond, eq(likes.deviceFingerprint, fingerprint)))
-      .limit(1);
     const table = itemType === 'extension' ? extensions : apps;
-    const [row] = await db
-      .select({ likesCount: table.likesCount })
-      .from(table)
-      .where(eq(table.id, itemId))
-      .limit(1);
+    const [[mine], [row]] = await db.batch([
+      db.select({ id: likes.id }).from(likes)
+        .where(and(eq(likes.itemId, itemId), eq(likes.deviceFingerprint, fingerprint.slice(0, MAX_FINGERPRINT)))).limit(1),
+      db.select({ likesCount: table.likesCount }).from(table).where(eq(table.id, itemId)).limit(1),
+    ]);
     return ok(c, { liked: Boolean(mine), total: row?.likesCount ?? 0 });
   } catch (error) {
     console.error('[likes] status failed:', error);

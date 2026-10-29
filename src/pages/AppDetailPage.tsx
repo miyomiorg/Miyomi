@@ -1,7 +1,7 @@
 import React from 'react';
 import ReactMarkdown from 'react-markdown';
 import { ArrowLeft, Download, Github, Globe, PlayCircle, BookOpen, GitFork, ExternalLink } from 'lucide-react';
-import { motion } from "motion/react";
+import { m as motion } from "motion/react";
 import { useLocation, useNavigate } from 'react-router-dom';
 import { PlatformBadge } from '../components/PlatformBadge';
 import { TagBadge } from './../components/TagBadge';
@@ -162,9 +162,9 @@ export function AppDetailPage({ appId, onNavigate }: AppDetailPageProps) {
     setCount(api.scrollSnapList().length);
     setCurrent(api.selectedScrollSnap() + 1);
 
-    api.on("select", () => {
-      setCurrent(api.selectedScrollSnap() + 1);
-    });
+    const onSelect = () => setCurrent(api.selectedScrollSnap() + 1);
+    api.on("select", onSelect);
+    return () => { api.off("select", onSelect); };
   }, [api]);
 
 

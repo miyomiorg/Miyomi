@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { getPerformanceTier } from '@/utils/performanceTier';
+import { runCanvasLoop } from '@/lib/canvasLoop';
 
 interface WarningBackgroundProps {
   theme?: 'light' | 'dark';
@@ -20,7 +21,6 @@ type Ember = {
 export function WarningBackground({ theme = 'dark', type = 'suspended' }: WarningBackgroundProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const embersRef = useRef<Ember[]>([]);
-  const animationFrameRef = useRef<number | null>(null);
   const timeRef = useRef(0);
 
   useEffect(() => {
@@ -114,14 +114,13 @@ export function WarningBackground({ theme = 'dark', type = 'suspended' }: Warnin
         }
       });
 
-      animationFrameRef.current = requestAnimationFrame(animate);
     };
 
-    animationFrameRef.current = requestAnimationFrame(animate);
+    const stopLoop = runCanvasLoop(canvas, animate);
 
     return () => {
       window.removeEventListener('resize', resizeCanvas);
-      if (animationFrameRef.current) cancelAnimationFrame(animationFrameRef.current);
+      stopLoop();
     };
   }, [theme, type]);
 

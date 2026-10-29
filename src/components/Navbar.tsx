@@ -26,18 +26,13 @@ interface NavbarProps {
 }
 
 function NavbarParticles() {
-  try {
-    const tier = getPerformanceTier();
-    if (tier === 'low') return null;
+  // Hooks run unconditionally (rules of hooks); bail out afterwards.
+  const { particleConfig } = useThemeEngineContext();
+  const tier = getPerformanceTier();
+  if (tier === 'low' || !particleConfig || particleConfig.type === 'none') return null;
 
-    const { particleConfig } = useThemeEngineContext();
-    if (!particleConfig || particleConfig.type === 'none') return null;
-
-    const countOverride = tier === 'medium' ? 8 : 15;
-    return <ParticleEffect className="absolute inset-0 z-0" config={particleConfig} countOverride={countOverride} />;
-  } catch {
-    return null;
-  }
+  const countOverride = tier === 'medium' ? 8 : 15;
+  return <ParticleEffect className="absolute inset-0 z-0" config={particleConfig} countOverride={countOverride} />;
 }
 
 export function Navbar({
@@ -63,17 +58,24 @@ export function Navbar({
   const location = useLocation();
 
   useEffect(() => {
+    // One state check per animation frame at most; passive so it never blocks scrolling.
+    let frame = 0;
     const handleScroll = () => {
-      setScrolled(window.scrollY > 20);
+      if (frame) return;
+      frame = requestAnimationFrame(() => {
+        frame = 0;
+        setScrolled(window.scrollY > 20);
+      });
     };
 
     const handleOpenSearchModal = () => setSearchModalOpen(true);
 
-    handleScroll();
-    window.addEventListener('scroll', handleScroll);
+    setScrolled(window.scrollY > 20);
+    window.addEventListener('scroll', handleScroll, { passive: true });
     window.addEventListener('open-search-modal', handleOpenSearchModal);
 
     return () => {
+      if (frame) cancelAnimationFrame(frame);
       window.removeEventListener('scroll', handleScroll);
       window.removeEventListener('open-search-modal', handleOpenSearchModal);
     };
@@ -219,12 +221,15 @@ export function Navbar({
         <FeedbackPanel page="global" onClose={() => setIsFeedbackOpen(false)} />
       )}
 
+      {/* Safe-area padding keeps the bar clear of the iOS status bar / notch
+          (index.html uses viewport-fit=cover). Phones get a lighter blur:
+          a large fixed blur layer is re-composited on every scroll frame. */}
       <nav
-        className={`h-16 fixed top-0 left-0 right-0 z-[999] transition-all duration-300 ${scrolled
-          ? 'bg-[var(--bg-page)]/80 backdrop-blur-xl border-b border-[var(--divider)]/50 shadow-sm'
+        className={`fixed top-0 left-0 right-0 z-[999] transition-colors duration-300 ${scrolled
+          ? 'bg-[var(--bg-page)]/90 md:bg-[var(--bg-page)]/80 backdrop-blur-sm md:backdrop-blur-xl border-b border-[var(--divider)]/50 shadow-sm'
           : 'bg-transparent'
           }`}
-        style={{ willChange: scrolled ? 'transform, backdrop-filter' : 'auto' }}
+        style={{ paddingTop: 'env(safe-area-inset-top)' }}
       >
         {/* Background Particles Wrapper */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
@@ -232,7 +237,7 @@ export function Navbar({
         </div>
 
         {/* Navbar Content */}
-        <div className="relative z-10 h-full px-4 sm:px-6 lg:px-8 flex items-center justify-between w-full gap-2 lg:gap-4">
+        <div className="relative z-10 h-16 px-4 sm:px-6 lg:px-8 flex items-center justify-between w-full gap-2 lg:gap-4">
           {/* Left Section: Logo & Segmented Nav */}
           <div className="flex items-center gap-4 lg:gap-8">
             <button
@@ -374,7 +379,7 @@ export function Navbar({
             {location.pathname !== '/' && (
               <button
                 onClick={() => setSearchModalOpen(true)}
-                className="p-2 text-[var(--text-secondary)] hover:text-[var(--brand)] transition-colors"
+                className="p-3 text-[var(--text-secondary)] hover:text-[var(--brand)] transition-colors"
                 aria-label="Search"
               >
                 <Search className="w-5 h-5" />
@@ -386,23 +391,22 @@ export function Navbar({
       </nav>
 
       {/* Mobile Menu Overlay (Backdrop) */}
+      {/* Closed: no blur at all and hidden from layout/compositing. */}
       <div
-        className={`fixed inset-0 z-[997] md:hidden transition-opacity duration-300 ${mobileMenuOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
+        className={`fixed inset-0 z-[997] md:hidden transition-opacity duration-300 ${mobileMenuOpen ? 'opacity-100 pointer-events-auto visible' : 'opacity-0 pointer-events-none invisible'
           }`}
         style={{
-          backgroundColor: 'rgba(0,0,0,0.4)',
-          backdropFilter: 'blur(4px)',
-          WebkitBackdropFilter: 'blur(4px)',
-          willChange: 'opacity, transform',
+          backgroundColor: 'rgba(0,0,0,0.5)',
+          ...(mobileMenuOpen ? { backdropFilter: 'blur(4px)', WebkitBackdropFilter: 'blur(4px)' } : {}),
         }}
         onClick={() => setMobileMenuOpen(false)}
       />
 
       {/* Mobile Menu Drawer (Slide-in from Bottom) */}
       <div
-        className={`fixed left-0 right-0 bottom-0 max-h-[80vh] w-full z-[998] md:hidden bg-[var(--bg-page)]/95 backdrop-blur-xl border-t border-[var(--divider)]/50 shadow-2xl rounded-t-3xl flex flex-col transition-transform duration-300 ease-in-out ${mobileMenuOpen ? 'translate-y-0' : 'translate-y-full'
+        className={`fixed left-0 right-0 bottom-0 max-h-[80dvh] w-full z-[998] md:hidden bg-[var(--bg-page)] border-t border-[var(--divider)]/50 shadow-2xl rounded-t-3xl flex flex-col overscroll-contain transition-[transform,visibility] duration-300 ease-in-out ${mobileMenuOpen ? 'translate-y-0 visible' : 'translate-y-full invisible'
           }`}
-        style={{ willChange: 'transform' }}
+        aria-hidden={!mobileMenuOpen}
       >
         {/* Drawer Header */}
         <div className="pt-6 pb-4 px-6 border-b border-[var(--divider)]/50 flex items-center justify-between">
@@ -411,7 +415,7 @@ export function Navbar({
           </span>
           <button
             onClick={() => setMobileMenuOpen(false)}
-            className="p-2 text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors focus:outline-none cursor-pointer"
+            className="p-3 -mr-1 text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors focus:outline-none cursor-pointer"
             aria-label="Close menu"
           >
             <X className="w-5 h-5" />

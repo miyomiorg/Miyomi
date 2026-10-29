@@ -1,7 +1,8 @@
-import { eq, ne } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 import { Hono } from 'hono';
 import { createDb } from '../../lib/db.ts';
 import type { AppEnv } from '../../lib/http.ts';
+import { guideIsPublic } from '../../lib/visibility.ts';
 import { apps, blogPosts, extensions, guides } from '../../db/schema.ts';
 
 /**
@@ -26,23 +27,27 @@ sitemapRouter.get('/sitemap.xml', async (c) => {
   try {
     const baseUrl = (c.env.SITE_URL || 'https://miyomi.app').replace(/\/$/, '');
     const db = createDb(c.env.DB);
-    const [appRows, extRows, guideRows, blogRows] = await Promise.all([
+    const [appRows, extRows, guideRows, blogRows] = await db.batch([
       db.select({ slug: apps.slug, updatedAt: apps.updatedAt }).from(apps).where(eq(apps.status, 'approved')),
       db.select({ slug: extensions.slug, updatedAt: extensions.updatedAt }).from(extensions).where(eq(extensions.status, 'approved')),
-      db.select({ slug: guides.slug, updatedAt: guides.updatedAt }).from(guides).where(ne(guides.status, 'draft')),
+      db.select({ slug: guides.slug, updatedAt: guides.updatedAt }).from(guides).where(guideIsPublic()),
       db.select({ slug: blogPosts.slug, updatedAt: blogPosts.updatedAt }).from(blogPosts).where(eq(blogPosts.status, 'published')),
     ]);
 
-    const today = new Date().toISOString().split('T')[0];
-    const day = (iso: string | null) => (iso ? new Date(iso).toISOString().split('T')[0] : today);
+    const today = new Date().toISOString().slice(0, 10);
+    // Legacy timestamps may be malformed; never let one row 500 the sitemap.
+    const day = (iso: string | null) => (iso && /^\d{4}-\d{2}-\d{2}/.test(iso) ? iso.slice(0, 10) : today);
+    const xmlEscape = (s: string) =>
+      s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&apos;');
+    const slugPath = (slug: string) => xmlEscape(encodeURIComponent(slug));
     const urls: Array<{ loc: string; lastmod: string }> = STATIC_PATHS.map((path) => ({
       loc: `${baseUrl}${path}`,
       lastmod: today,
     }));
-    for (const a of appRows) if (a.slug) urls.push({ loc: `${baseUrl}/software/${a.slug}`, lastmod: day(a.updatedAt) });
-    for (const e of extRows) if (e.slug) urls.push({ loc: `${baseUrl}/extensions/${e.slug}`, lastmod: day(e.updatedAt) });
-    for (const g of guideRows) if (g.slug) urls.push({ loc: `${baseUrl}/guides/${g.slug}`, lastmod: day(g.updatedAt) });
-    for (const b of blogRows) if (b.slug) urls.push({ loc: `${baseUrl}/blog/${b.slug}`, lastmod: day(b.updatedAt) });
+    for (const a of appRows) if (a.slug) urls.push({ loc: `${baseUrl}/software/${slugPath(a.slug)}`, lastmod: day(a.updatedAt) });
+    for (const e of extRows) if (e.slug) urls.push({ loc: `${baseUrl}/extensions/${slugPath(e.slug)}`, lastmod: day(e.updatedAt) });
+    for (const g of guideRows) if (g.slug) urls.push({ loc: `${baseUrl}/guides/${slugPath(g.slug)}`, lastmod: day(g.updatedAt) });
+    for (const b of blogRows) if (b.slug) urls.push({ loc: `${baseUrl}/blog/${slugPath(b.slug)}`, lastmod: day(b.updatedAt) });
 
     const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">

@@ -4,10 +4,7 @@ import { dataService } from '../services/dataService';
 import type { FAQData } from '../types/data';
 import { AnimatePresence } from 'motion/react';
 import { MarkdownRenderer } from '../components/MarkdownRenderer';
-import DOMPurify from 'dompurify';
-import { marked } from 'marked';
-
-marked.setOptions({ breaks: true, gfm: true });
+import { sanitizeRichHtml } from '../lib/sanitize';
 
 export function FAQPage() {
   const [openIndex, setOpenIndex] = useState<number | null>(0);
@@ -68,12 +65,7 @@ export function FAQPage() {
                     {isHtml ? (
                       <div
                         className="prose prose-invert max-w-none prose-headings:font-['Poppins',sans-serif] prose-p:font-['Inter',sans-serif] prose-a:text-[var(--brand)] prose-headings:text-[var(--text-primary)] prose-p:text-[var(--text-secondary)] prose-strong:text-[var(--text-primary)] prose-code:text-[var(--brand)] prose-code:bg-[var(--chip-bg)] prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded-md prose-code:text-xs prose-pre:bg-[var(--bg-elev-1)] prose-pre:border prose-pre:border-[var(--divider)] prose-pre:rounded-xl prose-blockquote:border-l-[var(--brand)] prose-blockquote:bg-[var(--chip-bg)] prose-blockquote:rounded-r-lg prose-blockquote:py-1 prose-blockquote:px-4 prose-hr:border-[var(--divider)] prose-ul:my-2 prose-li:my-0.5 prose-li:text-[var(--text-secondary)]"
-                        dangerouslySetInnerHTML={{
-                          __html: DOMPurify.sanitize(faq.answer, {
-                            ADD_TAGS: ['iframe', 'style', 'div', 'details', 'summary'],
-                            ADD_ATTR: ['allow', 'allowfullscreen', 'frameborder', 'scrolling', 'style', 'class', 'target', 'open'],
-                          })
-                        }}
+                        dangerouslySetInnerHTML={{ __html: sanitizeRichHtml(faq.answer) }}
                       />
                     ) : (
                       <div className="text-[var(--text-secondary)] font-['Inter',sans-serif] text-sm leading-relaxed">

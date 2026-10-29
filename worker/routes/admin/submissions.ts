@@ -1,6 +1,7 @@
 import { and, desc, eq, sql } from 'drizzle-orm';
 import { Hono } from 'hono';
 import { createDb } from '../../lib/db.ts';
+import { stripSubmitterPrivileged } from '../../lib/sanitize.ts';
 import { fail, isoNow, ok, pagination, requireAdmin, requireResource, type AppEnv } from '../../lib/http.ts';
 import { adminLogs, apps, extensions, guides, submissions } from '../../db/schema.ts';
 import {
@@ -73,8 +74,10 @@ submissionsRouter.post('/:id/approve', requireAdmin(), requireResource('submissi
     if (!sub) return fail(c, 404, 'Submission not found');
 
     // Submission payloads arrive in snake_case; the prepare* helpers read camelCase.
+    // Admin-edited data is trusted; stored public data is re-stripped of
+    // privileged fields (covers rows saved before the submit-time filter).
     const raw: Record<string, unknown> =
-      (body.editedData as Record<string, unknown>) ?? (sub.submittedData as Record<string, unknown>) ?? {};
+      (body.editedData as Record<string, unknown>) ?? stripSubmitterPrivileged(sub.submittedData);
     const data = snakeToCamel(raw);
     const adminId = c.get('adminId')!;
 

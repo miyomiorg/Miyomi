@@ -1,11 +1,10 @@
 import { Plus, Package, Star, Twitter, MessageSquare, Facebook, Search, Youtube, Info, HelpCircle, ArrowUpCircle, Smartphone, Puzzle, BookOpen, Link, Sparkles, MonitorSmartphone } from 'lucide-react';
 import { Button } from '../components/Button';
 import React, { useState, useEffect, useRef } from 'react';
-import { useAppMeta } from '../hooks/useAppMeta';
-import { useExtensions } from '../hooks/useExtensions';
-import { useGuideCategories } from '../hooks/useGuideCategories';
+import { useDataCache } from '../hooks/useDataCache';
+import { countsApi } from '@/services/api';
 import { useFeedbackState } from '../hooks/useFeedbackState';
-import { motion } from 'motion/react';
+import { m as motion } from 'motion/react';
 import { useSeasonalAsset } from '../hooks/useSeasonalAsset';
 import { DiscordIcon } from '../components/DiscordIcon';
 import { TelegramIcon } from '../components/TelegramIcon';
@@ -16,12 +15,13 @@ interface HomePageProps {
 }
 
 export function HomePage({ onNavigate }: HomePageProps) {
-  const { apps: unifiedApps } = useAppMeta();
-  const { extensions } = useExtensions();
-  const { categories: guideCategories } = useGuideCategories();
+  // Three numbers from one tiny endpoint instead of downloading every app,
+  // extension and guide (~300 KB of JSON) on the landing page.
+  const { data: counts } = useDataCache('home_counts', () => countsApi.get(), { ttl: 5 * 60_000 });
   const { isFeedbackOpen, handleToggle, handleClose } = useFeedbackState();
-  const extensionsCount = extensions.length;
-  const guidesCount = guideCategories.reduce((total, category) => total + category.guides.length, 0);
+  const appsCount = counts?.apps ?? 0;
+  const extensionsCount = counts?.extensions ?? 0;
+  const guidesCount = counts?.guides ?? 0;
 
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearchFocused, setIsSearchFocused] = useState(false);
@@ -78,7 +78,8 @@ export function HomePage({ onNavigate }: HomePageProps) {
   return (
     <div className="max-w-7xl mx-auto pt-10 relative">
       {/* Decorative Background Elements */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none opacity-20 -z-10">
+      {/* Desktop only: large blurred layers are costly to composite on phones. */}
+      <div className="hidden md:block absolute inset-0 overflow-hidden pointer-events-none opacity-20 -z-10">
         <div className="absolute top-20 right-10 w-64 h-64 bg-gradient-to-br from-[#FBBF24] to-transparent rounded-full blur-3xl"></div>
         <div className="absolute bottom-40 left-10 w-72 h-72 bg-gradient-to-br from-[#38BDF8] to-transparent rounded-full blur-3xl"></div>
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-gradient-to-br from-[#F472B6] to-transparent rounded-full blur-3xl"></div>
@@ -91,7 +92,8 @@ export function HomePage({ onNavigate }: HomePageProps) {
           <div className="relative w-48 h-48">
             <div className="animate-float">
               <div className="relative">
-                <div className="absolute inset-0 bg-gradient-to-br from-[var(--chart-3)] via-[var(--chart-2)] to-[var(--chart-1)] rounded-full blur-2xl opacity-60 scale-110"></div>
+                {/* Radial gradient glow: same look as a blurred disc, no filter cost. */}
+                <div className="absolute inset-0 rounded-full opacity-70 scale-125 bg-[radial-gradient(circle,var(--chart-2)_0%,var(--chart-1)_35%,transparent_70%)]"></div>
                 <img
                   src={avatarImage}
                   alt="Miyomi Mascot"
@@ -297,7 +299,7 @@ export function HomePage({ onNavigate }: HomePageProps) {
             >
               {/* Background Count */}
               <div className="hidden md:block absolute right-12 top-1/2 -translate-y-1/2 text-6xl font-extrabold bg-gradient-to-l from-[var(--text-primary)] to-transparent bg-clip-text text-transparent opacity-5 dark:opacity-10 select-none pointer-events-none transition-transform duration-300 group-hover:scale-110 z-0">
-                {unifiedApps.length > 0 ? `${unifiedApps.length}+` : ''}
+                {appsCount > 0 ? `${appsCount}+` : ''}
               </div>
 
               <div className="w-12 h-12 rounded-xl bg-[#2563eb] text-white flex items-center justify-center flex-shrink-0 shadow-sm group-hover:scale-105 transition-transform relative z-10">

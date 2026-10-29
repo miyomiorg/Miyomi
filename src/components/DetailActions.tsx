@@ -53,50 +53,51 @@ export function DetailActions({ targetType, targetId, targetName, onReportClick,
 
     const addNewPath = () => (targetType === 'guide' ? '/submit-guide' : '/contribute?step=select');
 
-    // Match the muted Back-button styling (text-secondary → brand on hover).
-    const buttonClass =
-        'inline-flex min-h-11 items-center justify-center gap-1.5 rounded-xl border border-[var(--divider)] bg-[var(--bg-surface)] px-3 py-2 text-sm text-[var(--text-secondary)] hover:text-[var(--brand)] transition-colors';
-
-    const ActionButton = ({ label, onClick, children }: { label: string; onClick: () => void; children: ReactNode }) => {
-        const button = (
-            <button type="button" className={buttonClass} onClick={onClick} aria-label={label}>
-                {children}
-                <span className="hidden sm:inline">{label}</span>
-            </button>
-        );
-
-        if (!iconOnly) return button;
-
-        return (
-            <Tooltip>
-                <TooltipTrigger asChild>{button}</TooltipTrigger>
-                <TooltipContent side="bottom">{label}</TooltipContent>
-            </Tooltip>
-        );
-    };
-
     return (
         <div className="flex flex-wrap items-center gap-2" aria-label={`${targetName} actions`}>
             {onAddClick ? (
-                <ActionButton label="Add" onClick={onAddClick}>
+                <ActionButton label="Add" onClick={onAddClick} iconOnly={iconOnly}>
                     <PlusCircle className="h-4 w-4" />
                 </ActionButton>
             ) : (
-                <ActionButton label="Add New" onClick={() => navigate(addNewPath())}>
+                <ActionButton label="Add New" onClick={() => navigate(addNewPath())} iconOnly={iconOnly}>
                     <PlusCircle className="h-4 w-4" />
                 </ActionButton>
             )}
             {canEdit && (
-                <ActionButton label="Edit" onClick={() => navigate(editPath())}>
+                <ActionButton label="Edit" onClick={() => navigate(editPath())} iconOnly={iconOnly}>
                     <Edit2 className="h-4 w-4" />
                 </ActionButton>
             )}
-            <ActionButton label="Report" onClick={onReportClick}>
+            <ActionButton label="Report" onClick={onReportClick} iconOnly={iconOnly}>
                 <Flag className="h-4 w-4" />
             </ActionButton>
-            <ActionButton label="Share" onClick={onShareClick}>
+            <ActionButton label="Share" onClick={onShareClick} iconOnly={iconOnly}>
                 <Share className="h-4 w-4" />
             </ActionButton>
         </div>
+    );
+}
+
+// Match the muted Back-button styling (text-secondary → brand on hover).
+const buttonClass =
+    'inline-flex min-h-11 items-center justify-center gap-1.5 rounded-xl border border-[var(--divider)] bg-[var(--bg-surface)] px-3 py-2 text-sm text-[var(--text-secondary)] hover:text-[var(--brand)] transition-colors';
+
+// Module-level so it is not remounted on every DetailActions render.
+function ActionButton({ label, onClick, iconOnly, children }: { label: string; onClick: () => void; iconOnly: boolean; children: ReactNode }) {
+    const button = (
+        <button type="button" className={buttonClass} onClick={onClick} aria-label={label}>
+            {children}
+            <span className="hidden sm:inline">{label}</span>
+        </button>
+    );
+
+    if (!iconOnly) return button;
+
+    return (
+        <Tooltip>
+            <TooltipTrigger asChild>{button}</TooltipTrigger>
+            <TooltipContent side="bottom">{label}</TooltipContent>
+        </Tooltip>
     );
 }

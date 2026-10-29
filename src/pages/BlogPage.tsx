@@ -178,7 +178,7 @@ export function BlogPage({ onNavigate }: { onNavigate: (path: string) => void })
                                 value={search}
                                 onChange={e => setSearch(e.target.value)}
                                 placeholder="Search posts..."
-                                className="w-full h-[42px] sm:h-[44px] bg-[var(--bg-elev-1)] border-transparent text-[var(--text-primary)] rounded-xl py-2 sm:py-2.5 pl-11 pr-4 focus:outline-none focus:border-[var(--brand)] border transition-all font-['Inter',sans-serif] text-sm shadow-sm"
+                                className="w-full h-[42px] sm:h-[44px] bg-[var(--bg-elev-1)] border-transparent text-[var(--text-primary)] rounded-xl py-2 sm:py-2.5 pl-11 pr-4 focus:outline-none focus:border-[var(--brand)] border transition-all font-['Inter',sans-serif] text-base sm:text-sm shadow-sm"
                             />
                         </div>
                         <div className="relative flex-shrink-0">

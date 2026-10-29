@@ -7,7 +7,7 @@ import { AdminButton, StatusBadge, EmptyState } from '@/components/admin/AdminFo
 import { ConfirmDialog } from '@/components/admin/ConfirmDialog';
 import { EndpointToggle } from '@/components/admin/EndpointToggle';
 import { toast } from 'sonner';
-import { motion, AnimatePresence } from 'motion/react';
+import { m as motion, AnimatePresence } from 'motion/react';
 import { Link } from 'react-router-dom';
 
 interface ReportData {

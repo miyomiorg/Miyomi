@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, type PropsWithChildren } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type PropsWithChildren } from 'react';
 import { useThemeEngine, ThemeEngineContext } from '@/hooks/useThemeEngine';
 
 export type ThemeMode = 'light' | 'dark' | 'auto';
@@ -13,102 +13,78 @@ interface ThemeContextType {
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
-export function ThemeProvider({ children }: PropsWithChildren) {
-  const [themeMode, setThemeMode] = useState<ThemeMode>('auto');
-  const [theme, setTheme] = useState<Theme>('light');
-  const [mounted, setMounted] = useState(false);
-  const themeEngine = useThemeEngine(theme);
+// Same key/values /theme-init.js reads before first paint.
+const MODE_KEY = 'miyomi-theme-mode';
 
-  useEffect(() => {
-    const stored = localStorage.getItem('miyomi-theme-mode') as ThemeMode | null;
-    if (stored === 'dark' || stored === 'light' || stored === 'auto') {
-      setThemeMode(stored);
-    } else {
-      // Migrate from old miyomi-theme if exists
-      const oldTheme = localStorage.getItem('miyomi-theme');
-      if (oldTheme === 'dark' || oldTheme === 'light') {
-        setThemeMode(oldTheme);
-      } else {
-        setThemeMode('auto');
-      }
-    }
-    setMounted(true);
-  }, []);
+function readStoredMode(): ThemeMode {
+  try {
+    const stored = localStorage.getItem(MODE_KEY);
+    if (stored === 'dark' || stored === 'light' || stored === 'auto') return stored;
+    const legacy = localStorage.getItem('miyomi-theme');
+    if (legacy === 'dark' || legacy === 'light') return legacy;
+  } catch {
+    // Storage unavailable — fall through to auto.
+  }
+  return 'auto';
+}
 
-  // Update theme based on themeMode and system preferences
-  useEffect(() => {
-    if (!mounted) return;
+const systemTheme = (): Theme =>
+  window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
 
-    const determineTheme = (): Theme => {
-      if (themeMode === 'auto') {
-        return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-      }
-      return themeMode;
-    };
+const resolveTheme = (mode: ThemeMode): Theme => (mode === 'auto' ? systemTheme() : mode);
 
-    const activeTheme = determineTheme();
-    setTheme(activeTheme);
-
-    const root = document.documentElement;
+/** Swap the html class; animate only for user-initiated changes. */
+function applyTheme(theme: Theme, animate: boolean) {
+  const root = document.documentElement;
+  if (root.classList.contains(theme) && !root.classList.contains(theme === 'dark' ? 'light' : 'dark')) return;
+  if (animate) {
     root.classList.add('theme-transitioning');
-    
-    // Force a reflow to ensure the transition class is applied before theme change
-    void root.offsetHeight;
-    
-    root.classList.remove('light', 'dark');
-    root.classList.add(activeTheme);
-    localStorage.setItem('miyomi-theme-mode', themeMode);
-    
-    const timeout = setTimeout(() => {
-      root.classList.remove('theme-transitioning');
-    }, 300);
-    
-    return () => clearTimeout(timeout);
-  }, [themeMode, mounted]);
+    window.setTimeout(() => root.classList.remove('theme-transitioning'), 300);
+  }
+  root.classList.remove('light', 'dark');
+  root.classList.add(theme);
+}
 
-  // Listen to system theme changes if mode is 'auto'
+export function ThemeProvider({ children }: PropsWithChildren) {
+  // Initialised synchronously from storage so the first render already
+  // matches what /theme-init.js painted (no light→dark flash).
+  const [themeMode, setThemeMode] = useState<ThemeMode>(readStoredMode);
+  const [theme, setTheme] = useState<Theme>(() => resolveTheme(readStoredMode()));
+  const themeEngine = useThemeEngine(theme);
+  const isFirstApply = useRef(true);
+
   useEffect(() => {
-    if (!mounted || themeMode !== 'auto') return;
+    const active = resolveTheme(themeMode);
+    setTheme(active);
+    applyTheme(active, !isFirstApply.current);
+    isFirstApply.current = false;
+    try { localStorage.setItem(MODE_KEY, themeMode); } catch { /* optional */ }
+  }, [themeMode]);
 
+  // Follow the OS setting while in auto mode.
+  useEffect(() => {
+    if (themeMode !== 'auto') return;
     const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
     const handleChange = () => {
-      const activeTheme = mediaQuery.matches ? 'dark' : 'light';
-      setTheme(activeTheme);
-      const root = document.documentElement;
-      root.classList.add('theme-transitioning');
-      
-      // Force a reflow
-      void root.offsetHeight;
-      
-      root.classList.remove('light', 'dark');
-      root.classList.add(activeTheme);
-      
-      setTimeout(() => {
-        root.classList.remove('theme-transitioning');
-      }, 300);
+      const active: Theme = mediaQuery.matches ? 'dark' : 'light';
+      setTheme(active);
+      applyTheme(active, true);
     };
+    mediaQuery.addEventListener('change', handleChange);
+    return () => mediaQuery.removeEventListener('change', handleChange);
+  }, [themeMode]);
 
-    if (mediaQuery.addEventListener) {
-      mediaQuery.addEventListener('change', handleChange);
-      return () => mediaQuery.removeEventListener('change', handleChange);
-    } else {
-      mediaQuery.addListener(handleChange);
-      return () => mediaQuery.removeListener(handleChange);
-    }
-  }, [themeMode, mounted]);
-
-  const toggleTheme = () => {
-    setThemeMode(prev => {
-      if (prev === 'auto') {
-        // Toggle to explicit state opposite to active system theme
-        return theme === 'light' ? 'dark' : 'light';
-      }
-      return prev === 'light' ? 'dark' : 'light';
+  const toggleTheme = useCallback(() => {
+    setThemeMode((prev) => {
+      const current = resolveTheme(prev);
+      return current === 'light' ? 'dark' : 'light';
     });
-  };
+  }, []);
+
+  const value = useMemo(() => ({ themeMode, theme, setThemeMode, toggleTheme }), [themeMode, theme, toggleTheme]);
 
   return (
-    <ThemeContext.Provider value={{ themeMode, theme, setThemeMode, toggleTheme }}>
+    <ThemeContext.Provider value={value}>
       <ThemeEngineContext.Provider value={themeEngine}>
         {children}
       </ThemeEngineContext.Provider>

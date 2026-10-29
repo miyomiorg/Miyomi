@@ -1,10 +1,11 @@
 import { useEffect, useState, useRef, useMemo, type MouseEvent as ReactMouseEvent } from 'react';
 import { BookOpen, Download, Settings, HelpCircle, ArrowRight, Search, Clock, FileText, X } from 'lucide-react';
 import { useLocation, useNavigationType } from 'react-router-dom';
-import { motion } from 'motion/react';
+import { m as motion } from 'motion/react';
 import { useGuideCategories } from '@/hooks/useGuideCategories';
 import { usePublicSettings } from '@/hooks/usePublicSettings';
 import { Skeleton } from '@/components/ui/skeleton';
+import { sanitizeNoticeHtml } from '@/lib/sanitize';
 
 interface GuidesPageProps {
   onNavigate?: (path: string) => void;
@@ -50,6 +51,7 @@ export function GuidesPage({ onNavigate }: GuidesPageProps) {
 
   const noticeEnabled = settings?.guide_notice_enabled === 'true' || settings?.guide_notice_enabled === true;
   const noticeContent = typeof settings?.guide_notice_content === 'string' ? settings.guide_notice_content : '';
+  const noticeHtml = useMemo(() => sanitizeNoticeHtml(noticeContent), [noticeContent]);
   const noticeIsDismissed = Boolean(
     dismissedNotice &&
     dismissedNotice.revision === noticeContent &&
@@ -171,7 +173,7 @@ export function GuidesPage({ onNavigate }: GuidesPageProps) {
       {/* Notice Banner */}
       {noticeEnabled && noticeContent && !noticeIsDismissed && (
         <div className="mb-6 relative" onClick={handleNoticeClick}>
-          <div ref={noticeRef} dangerouslySetInnerHTML={{ __html: noticeContent }} />
+          <div ref={noticeRef} dangerouslySetInnerHTML={{ __html: noticeHtml }} />
           {noticeHasDismissButton === false && (
             <button
               type="button"
@@ -207,7 +209,7 @@ export function GuidesPage({ onNavigate }: GuidesPageProps) {
           <input
             type="text"
             autoComplete="off"
-            className="w-full pl-8 pr-4 py-2 mt-1 bg-[var(--bg-surface)] border border-[var(--divider)] rounded-xl text-[var(--text-primary)] placeholder:text-[var(--text-secondary)] focus:outline-none focus:border-[var(--brand)] transition-colors font-['Inter',sans-serif] text-sm"
+            className="w-full pl-8 pr-4 py-2 mt-1 bg-[var(--bg-surface)] border border-[var(--divider)] rounded-xl text-[var(--text-primary)] placeholder:text-[var(--text-secondary)] focus:outline-none focus:border-[var(--brand)] transition-colors font-['Inter',sans-serif] text-base sm:text-sm"
             placeholder="Search guides by title, summary, or keywords..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}

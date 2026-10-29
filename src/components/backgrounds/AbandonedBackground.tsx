@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { getPerformanceTier } from '@/utils/performanceTier';
+import { runCanvasLoop } from '@/lib/canvasLoop';
 
 interface AbandonedBackgroundProps {
   theme?: 'light' | 'dark';
@@ -19,7 +20,6 @@ type Dust = {
 export function AbandonedBackground({ theme = 'dark' }: AbandonedBackgroundProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const dustRef = useRef<Dust[]>([]);
-  const animationFrameRef = useRef<number | null>(null);
   const mouseRef = useRef({ x: -1000, y: -1000, vx: 0, vy: 0 });
   const lastMouseRef = useRef({ x: -1000, y: -1000 });
 
@@ -140,16 +140,15 @@ export function AbandonedBackground({ theme = 'dark' }: AbandonedBackgroundProps
       });
       ctx.globalAlpha = 1;
 
-      animationFrameRef.current = requestAnimationFrame(animate);
     };
 
-    animationFrameRef.current = requestAnimationFrame(animate);
+    const stopLoop = runCanvasLoop(canvas, animate);
 
     return () => {
       window.removeEventListener('resize', resizeCanvas);
       canvas.parentElement?.removeEventListener('mousemove', handleMouseMove);
       canvas.parentElement?.removeEventListener('mouseleave', handleMouseLeave);
-      if (animationFrameRef.current) cancelAnimationFrame(animationFrameRef.current);
+      stopLoop();
     };
   }, [theme]);
 

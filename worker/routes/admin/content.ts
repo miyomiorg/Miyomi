@@ -9,7 +9,9 @@ import {
   guides,
   likes,
 } from '../../db/schema.ts';
-import type { createDb } from '../../lib/db.ts';
+import type { BatchItem } from 'drizzle-orm/batch';
+import { runBatch, type createDb } from '../../lib/db.ts';
+import { safeLink, safeLinks } from '../../lib/sanitize.ts';
 
 type Db = ReturnType<typeof createDb>;
 
@@ -53,6 +55,14 @@ export function detectGitProvider(url?: string): string {
   return 'Other';
 }
 
+/** Keep tutorial entries whose url is a safe link; other fields pass through. */
+function sanitizeTutorials(value: unknown): unknown[] | null {
+  if (!Array.isArray(value)) return null;
+  return value.filter(
+    (t) => typeof t === 'object' && t !== null && (!('url' in t) || safeLink((t as { url?: unknown }).url) !== null),
+  );
+}
+
 // ── Payload preparation (camelCase in → drizzle insert values out) ─
 
 interface Prepared {
@@ -70,7 +80,7 @@ export function prepareAppPayload(raw: Record<string, unknown>, isUpdate = false
   const groupIds: string[] = Array.isArray(data.selectedGroupIds) ? (data.selectedGroupIds as string[]) : [];
   const manualCompat: string[] = Array.isArray(data.compatibleWith) ? (data.compatibleWith as string[]) : [];
 
-  const repoUrl = typeof data.repoUrl === 'string' ? data.repoUrl : typeof data.url === 'string' ? (data.url as string) : null;
+  const repoUrl = safeLink(data.repoUrl) ?? safeLink(data.url);
   const gitProvider =
     typeof data.gitProvider === 'string' ? data.gitProvider : repoUrl ? detectGitProvider(repoUrl).toLowerCase() : null;
   const devStatus =
@@ -86,10 +96,8 @@ export function prepareAppPayload(raw: Record<string, unknown>, isUpdate = false
   if (gitProvider) cleanMetadata.git_provider = gitProvider;
   if (devStatus) cleanMetadata.dev_status = devStatus;
 
-  const socialUrls = Array.isArray(data.socialUrls)
-    ? (data.socialUrls as unknown[]).filter((u): u is string => typeof u === 'string' && u.trim() !== '')
-    : [];
-  const discordUrl = (typeof data.discordUrl === 'string' && data.discordUrl) || socialUrls[0] || null;
+  const socialUrls = safeLinks(data.socialUrls);
+  const discordUrl = safeLink(data.discordUrl) || socialUrls[0] || null;
 
   const payload: Record<string, unknown> = {
     name: typeof data.name === 'string' ? data.name : null,
@@ -115,10 +123,10 @@ export function prepareAppPayload(raw: Record<string, unknown>, isUpdate = false
           : null,
     compatibleWith: manualCompat.length ? manualCompat : null,
     repoUrl,
-    downloadUrl: typeof data.downloadUrl === 'string' ? data.downloadUrl : null,
-    websiteUrl: typeof data.websiteUrl === 'string' ? data.websiteUrl : null,
+    downloadUrl: safeLink(data.downloadUrl),
+    websiteUrl: safeLink(data.websiteUrl),
     discordUrl,
-    iconUrl: typeof data.iconUrl === 'string' ? data.iconUrl : null,
+    iconUrl: safeLink(data.iconUrl),
     iconColor: typeof data.iconColor === 'string' ? data.iconColor : null,
     accentColor: typeof data.accentColor === 'string' ? data.accentColor : null,
     forkOf:
@@ -127,13 +135,13 @@ export function prepareAppPayload(raw: Record<string, unknown>, isUpdate = false
         : typeof data.parentAppSlug === 'string'
           ? (data.parentAppSlug as string)
           : null,
-    upstreamUrl: typeof data.upstreamUrl === 'string' ? data.upstreamUrl : null,
+    upstreamUrl: safeLink(data.upstreamUrl),
     socialUrls: socialUrls.length ? socialUrls : null,
-    tutorials: Array.isArray(data.tutorials) ? data.tutorials : null,
+    tutorials: sanitizeTutorials(data.tutorials),
     downloadCount: typeof data.downloadCount === 'number' ? data.downloadCount : 0,
     likesCount: typeof data.likesCount === 'number' ? data.likesCount : 0,
     lastReleaseDate: typeof data.lastReleaseDate === 'string' ? data.lastReleaseDate : null,
-    ogImageUrl: typeof data.ogImageUrl === 'string' ? data.ogImageUrl : null,
+    ogImageUrl: safeLink(data.ogImageUrl),
     seoTitle: typeof data.seoTitle === 'string' ? data.seoTitle : null,
     seoDescription: typeof data.seoDescription === 'string' ? data.seoDescription : null,
     metadata: Object.keys(cleanMetadata).length > 0 ? cleanMetadata : null,
@@ -147,7 +155,7 @@ export function prepareExtensionPayload(raw: Record<string, unknown>, isUpdate =
   const groupIds: string[] = Array.isArray(data.selectedGroupIds) ? (data.selectedGroupIds as string[]) : [];
   const manualCompat: string[] = Array.isArray(data.compatibleWith) ? (data.compatibleWith as string[]) : [];
 
-  const repoUrl = typeof data.repoUrl === 'string' ? data.repoUrl : null;
+  const repoUrl = safeLink(data.repoUrl);
   const gitProvider =
     typeof data.gitProvider === 'string' ? data.gitProvider : repoUrl ? detectGitProvider(repoUrl).toLowerCase() : null;
   const devStatus =
@@ -166,13 +174,12 @@ export function prepareExtensionPayload(raw: Record<string, unknown>, isUpdate =
     (u): u is { url: string; type?: string } =>
       typeof u === 'object' &&
       u !== null &&
-      typeof (u as { url?: unknown }).url === 'string' &&
-      ((u as { url: string }).url.trim() !== ''),
+      safeLink((u as { url?: unknown }).url) !== null,
   );
   const firstAuto = validInstallUrls.find((u) => u.type === 'auto');
   const firstCopy = validInstallUrls.find((u) => u.type === 'copy');
-  const autoUrl = (typeof data.autoUrl === 'string' && data.autoUrl) || firstAuto?.url || null;
-  const manualUrl = (typeof data.manualUrl === 'string' && data.manualUrl) || firstCopy?.url || null;
+  const autoUrl = safeLink(data.autoUrl) || firstAuto?.url || null;
+  const manualUrl = safeLink(data.manualUrl) || firstCopy?.url || null;
 
   const existingMeta =
     typeof data.metadata === 'object' && data.metadata !== null ? (data.metadata as Record<string, unknown>) : {};
@@ -181,10 +188,8 @@ export function prepareExtensionPayload(raw: Record<string, unknown>, isUpdate =
   if (gitProvider) cleanMetadata.git_provider = gitProvider;
   if (devStatus) cleanMetadata.dev_status = devStatus;
 
-  const socialUrls = Array.isArray(data.socialUrls)
-    ? (data.socialUrls as unknown[]).filter((u): u is string => typeof u === 'string' && u.trim() !== '')
-    : [];
-  const discordUrl = (typeof data.discordUrl === 'string' && data.discordUrl) || socialUrls[0] || null;
+  const socialUrls = safeLinks(data.socialUrls);
+  const discordUrl = safeLink(data.discordUrl) || socialUrls[0] || null;
 
   const payload: Record<string, unknown> = {
     name: typeof data.name === 'string' ? data.name : null,
@@ -210,10 +215,10 @@ export function prepareExtensionPayload(raw: Record<string, unknown>, isUpdate =
           : null,
     compatibleWith: manualCompat.length ? manualCompat : null,
     repoUrl,
-    sourceUrl: typeof data.sourceUrl === 'string' ? data.sourceUrl : null,
-    websiteUrl: typeof data.websiteUrl === 'string' ? data.websiteUrl : null,
+    sourceUrl: safeLink(data.sourceUrl),
+    websiteUrl: safeLink(data.websiteUrl),
     discordUrl,
-    iconUrl: typeof data.iconUrl === 'string' ? data.iconUrl : null,
+    iconUrl: safeLink(data.iconUrl),
     iconColor: typeof data.iconColor === 'string' ? data.iconColor : null,
     accentColor: typeof data.accentColor === 'string' ? data.accentColor : null,
     autoUrl,
@@ -221,11 +226,11 @@ export function prepareExtensionPayload(raw: Record<string, unknown>, isUpdate =
     region: typeof data.region === 'string' ? data.region : null,
     info: typeof data.info === 'string' ? data.info : null,
     socialUrls: socialUrls.length ? socialUrls : null,
-    tutorials: Array.isArray(data.tutorials) ? data.tutorials : null,
+    tutorials: sanitizeTutorials(data.tutorials),
     downloadCount: typeof data.downloadCount === 'number' ? data.downloadCount : 0,
     likesCount: typeof data.likesCount === 'number' ? data.likesCount : 0,
     lastUpdated: typeof data.lastUpdated === 'string' ? data.lastUpdated : null,
-    ogImageUrl: typeof data.ogImageUrl === 'string' ? data.ogImageUrl : null,
+    ogImageUrl: safeLink(data.ogImageUrl),
     seoTitle: typeof data.seoTitle === 'string' ? data.seoTitle : null,
     seoDescription: typeof data.seoDescription === 'string' ? data.seoDescription : null,
     metadata: Object.keys(cleanMetadata).length > 0 ? cleanMetadata : null,
@@ -237,42 +242,43 @@ export function prepareExtensionPayload(raw: Record<string, unknown>, isUpdate =
 
 /** Rebuild group memberships for an app (port of compatSync.setAppGroups). */
 export async function setAppGroups(db: Db, appId: string, groupIds: string[]): Promise<void> {
-  await db.delete(appGroupMemberships).where(eq(appGroupMemberships.appId, appId));
-  if (groupIds.length > 0) {
-    await db.insert(appGroupMemberships).values(groupIds.map((groupId) => ({ appId, groupId })));
-  }
+  const unique = [...new Set(groupIds)];
+  await runBatch(db, [
+    db.delete(appGroupMemberships).where(eq(appGroupMemberships.appId, appId)),
+    ...(unique.length > 0 ? [db.insert(appGroupMemberships).values(unique.map((groupId) => ({ appId, groupId })))] : []),
+  ]);
 }
 
 /** Port of compatSync.setExtensionGroups */
 export async function setExtensionGroups(db: Db, extId: string, groupIds: string[]): Promise<void> {
-  await db.delete(extensionGroupMemberships).where(eq(extensionGroupMemberships.extensionId, extId));
-  if (groupIds.length > 0) {
-    await db.insert(extensionGroupMemberships).values(groupIds.map((groupId) => ({ extensionId: extId, groupId })));
-  }
+  const unique = [...new Set(groupIds)];
+  await runBatch(db, [
+    db.delete(extensionGroupMemberships).where(eq(extensionGroupMemberships.extensionId, extId)),
+    ...(unique.length > 0
+      ? [db.insert(extensionGroupMemberships).values(unique.map((groupId) => ({ extensionId: extId, groupId })))]
+      : []),
+  ]);
 }
 
+// Single join per lookup (uses the group_id membership indexes).
 async function getExtensionsFromGroups(db: Db, groupIds: string[]): Promise<string[]> {
   if (!groupIds.length) return [];
   const rows = await db
-    .select()
+    .selectDistinct({ name: extensions.name })
     .from(extensionGroupMemberships)
+    .innerJoin(extensions, eq(extensions.id, extensionGroupMemberships.extensionId))
     .where(inArray(extensionGroupMemberships.groupId, groupIds));
-  const extIds = [...new Set(rows.map((r) => r.extensionId))];
-  if (!extIds.length) return [];
-  const exts = await db.select({ name: extensions.name }).from(extensions).where(inArray(extensions.id, extIds));
-  return exts.map((e) => e.name).filter((n): n is string => Boolean(n));
+  return rows.map((e) => e.name).filter((n): n is string => Boolean(n));
 }
 
 async function getAppsFromGroups(db: Db, groupIds: string[]): Promise<string[]> {
   if (!groupIds.length) return [];
   const rows = await db
-    .select()
+    .selectDistinct({ name: apps.name })
     .from(appGroupMemberships)
+    .innerJoin(apps, eq(apps.id, appGroupMemberships.appId))
     .where(inArray(appGroupMemberships.groupId, groupIds));
-  const appIds = [...new Set(rows.map((r) => r.appId))];
-  if (!appIds.length) return [];
-  const found = await db.select({ name: apps.name }).from(apps).where(inArray(apps.id, appIds));
-  return found.map((a) => a.name).filter((n): n is string => Boolean(n));
+  return rows.map((a) => a.name).filter((n): n is string => Boolean(n));
 }
 
 /**
@@ -286,15 +292,20 @@ export async function syncAppCompatibility(
   groupIds: string[],
   manualExtensions: string[],
 ): Promise<void> {
-  const groupExtensions = await getExtensionsFromGroups(db, groupIds);
+  const [groupExtensions, [[appRow], allExts]] = await Promise.all([
+    getExtensionsFromGroups(db, groupIds),
+    db.batch([
+      db.select({ slug: apps.slug }).from(apps).where(eq(apps.id, appId)).limit(1),
+      db.select({ id: extensions.id, name: extensions.name, slug: extensions.slug, compatibleWith: extensions.compatibleWith })
+        .from(extensions),
+    ]),
+  ]);
   const finalCompatWith = [...new Set([...(manualExtensions || []), ...groupExtensions])].filter(Boolean);
-  await db.update(apps).set({ compatibleWith: finalCompatWith }).where(eq(apps.id, appId));
-
-  const [appRow] = await db.select({ slug: apps.slug }).from(apps).where(eq(apps.id, appId)).limit(1);
   const appSlug = appRow?.slug || '';
-  const allExts = await db
-    .select({ id: extensions.id, name: extensions.name, slug: extensions.slug, compatibleWith: extensions.compatibleWith })
-    .from(extensions);
+  // All writes go out as one batch (one round trip, one transaction).
+  const writes: BatchItem<'sqlite'>[] = [
+    db.update(apps).set({ compatibleWith: finalCompatWith }).where(eq(apps.id, appId)),
+  ];
   for (const ext of allExts) {
     const current: string[] = ext.compatibleWith || [];
     const isLinked = finalCompatWith.some(
@@ -310,7 +321,7 @@ export async function syncAppCompatibility(
         a === appId,
     );
     if (isLinked && !hasAppName) {
-      await db.update(extensions).set({ compatibleWith: [...current, appName] }).where(eq(extensions.id, ext.id));
+      writes.push(db.update(extensions).set({ compatibleWith: [...current, appName] }).where(eq(extensions.id, ext.id)));
     } else if (!isLinked && hasAppName) {
       const updated = current.filter(
         (a) =>
@@ -318,9 +329,10 @@ export async function syncAppCompatibility(
           (appSlug ? a.toLowerCase() !== appSlug.toLowerCase() : true) &&
           a !== appId,
       );
-      await db.update(extensions).set({ compatibleWith: updated }).where(eq(extensions.id, ext.id));
+      writes.push(db.update(extensions).set({ compatibleWith: updated }).where(eq(extensions.id, ext.id)));
     }
   }
+  await runBatch(db, writes);
 }
 
 /** Port of compatSync.syncExtensionCompatibility */
@@ -331,15 +343,18 @@ export async function syncExtensionCompatibility(
   groupIds: string[],
   manualApps: string[],
 ): Promise<void> {
-  const groupApps = await getAppsFromGroups(db, groupIds);
+  const [groupApps, [[extRow], allApps]] = await Promise.all([
+    getAppsFromGroups(db, groupIds),
+    db.batch([
+      db.select({ slug: extensions.slug }).from(extensions).where(eq(extensions.id, extId)).limit(1),
+      db.select({ id: apps.id, name: apps.name, slug: apps.slug, compatibleWith: apps.compatibleWith }).from(apps),
+    ]),
+  ]);
   const finalCompatWith = [...new Set([...(manualApps || []), ...groupApps])].filter(Boolean);
-  await db.update(extensions).set({ compatibleWith: finalCompatWith }).where(eq(extensions.id, extId));
-
-  const [extRow] = await db.select({ slug: extensions.slug }).from(extensions).where(eq(extensions.id, extId)).limit(1);
   const extSlug = extRow?.slug || '';
-  const allApps = await db
-    .select({ id: apps.id, name: apps.name, slug: apps.slug, compatibleWith: apps.compatibleWith })
-    .from(apps);
+  const writes: BatchItem<'sqlite'>[] = [
+    db.update(extensions).set({ compatibleWith: finalCompatWith }).where(eq(extensions.id, extId)),
+  ];
   for (const app of allApps) {
     const current: string[] = app.compatibleWith || [];
     const isLinked = finalCompatWith.some(
@@ -355,7 +370,7 @@ export async function syncExtensionCompatibility(
         x === extId,
     );
     if (isLinked && !hasExtName) {
-      await db.update(apps).set({ compatibleWith: [...current, extName] }).where(eq(apps.id, app.id));
+      writes.push(db.update(apps).set({ compatibleWith: [...current, extName] }).where(eq(apps.id, app.id)));
     } else if (!isLinked && hasExtName) {
       const updated = current.filter(
         (x) =>
@@ -363,9 +378,10 @@ export async function syncExtensionCompatibility(
           (extSlug ? x.toLowerCase() !== extSlug.toLowerCase() : true) &&
           x !== extId,
       );
-      await db.update(apps).set({ compatibleWith: updated }).where(eq(apps.id, app.id));
+      writes.push(db.update(apps).set({ compatibleWith: updated }).where(eq(apps.id, app.id)));
     }
   }
+  await runBatch(db, writes);
 }
 
 /**
@@ -455,15 +471,17 @@ export async function deleteContentItem(
   id: string,
 ): Promise<void> {
   const t = table === 'app' ? apps : table === 'extension' ? extensions : table === 'guide' ? guides : blogPosts;
+  const ops: BatchItem<'sqlite'>[] = [];
   if (table === 'app') {
-    await db.delete(appGroupMemberships).where(eq(appGroupMemberships.appId, id));
+    ops.push(db.delete(appGroupMemberships).where(eq(appGroupMemberships.appId, id)));
   } else if (table === 'extension') {
-    await db.delete(extensionGroupMemberships).where(eq(extensionGroupMemberships.extensionId, id));
+    ops.push(db.delete(extensionGroupMemberships).where(eq(extensionGroupMemberships.extensionId, id)));
   }
   if (table === 'app' || table === 'extension') {
-    await db
+    ops.push(db
       .delete(likes)
-      .where(and(eq(likes.itemId, id), eq(likes.itemType, table === 'app' ? 'app' : 'extension')));
+      .where(and(eq(likes.itemId, id), eq(likes.itemType, table === 'app' ? 'app' : 'extension'))));
   }
-  await db.delete(t as unknown as typeof apps).where(eq((t as typeof apps).id, id));
+  ops.push(db.delete(t as unknown as typeof apps).where(eq((t as typeof apps).id, id)));
+  await runBatch(db, ops);
 }

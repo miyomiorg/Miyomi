@@ -92,37 +92,52 @@ export async function verifyPassword(password: string, stored: string): Promise<
 // fails (SESSION_SECRET rotated), the account is treated as unconfigured
 // and re-enrols at next login.
 
-async function totpEncryptionKey(sessionSecret: string): Promise<CryptoKey> {
+/** Legacy (v1) key: SHA-256(SESSION_SECRET) — only used to decrypt old values. */
+async function legacyTotpKey(sessionSecret: string): Promise<CryptoKey> {
   const digest = new Uint8Array(
     await crypto.subtle.digest('SHA-256', new TextEncoder().encode(sessionSecret)),
   );
-  return crypto.subtle.importKey('raw', digest, { name: 'AES-GCM' }, false, [
-    'encrypt',
-    'decrypt',
-  ]);
+  return crypto.subtle.importKey('raw', digest, { name: 'AES-GCM' }, false, ['decrypt']);
 }
 
-/** <iv.b64url>.<ciphertext.b64url> */
+/**
+ * v2 key: HKDF-SHA256 derived from SESSION_SECRET with a purpose label, so
+ * the AES key is cryptographically separate from the session HMAC key.
+ */
+async function totpKeyV2(sessionSecret: string): Promise<CryptoKey> {
+  const ikm = await crypto.subtle.importKey('raw', new TextEncoder().encode(sessionSecret), 'HKDF', false, ['deriveKey']);
+  return crypto.subtle.deriveKey(
+    { name: 'HKDF', hash: 'SHA-256', salt: new TextEncoder().encode('miyomi'), info: new TextEncoder().encode('totp-secret-encryption-v2') },
+    ikm,
+    { name: 'AES-GCM', length: 256 },
+    false,
+    ['encrypt', 'decrypt'],
+  );
+}
+
+/** v2.<iv.b64url>.<ciphertext.b64url> */
 export async function encryptTotpSecret(plain: string, sessionSecret: string): Promise<string> {
   const iv = crypto.getRandomValues(new Uint8Array(12));
   const ct = new Uint8Array(
     await crypto.subtle.encrypt(
       { name: 'AES-GCM', iv },
-      await totpEncryptionKey(sessionSecret),
+      await totpKeyV2(sessionSecret),
       new TextEncoder().encode(plain),
     ),
   );
-  return `${bufToB64Url(iv)}.${bufToB64Url(ct)}`;
+  return `v2.${bufToB64Url(iv)}.${bufToB64Url(ct)}`;
 }
 
-/** null when the stored value cannot be decrypted. */
+/** null when the stored value cannot be decrypted. Reads v2 and legacy v1 values. */
 export async function decryptTotpSecret(stored: string, sessionSecret: string): Promise<string | null> {
   try {
-    const [ivPart, ctPart] = stored.split('.');
+    const parts = stored.split('.');
+    const isV2 = parts.length === 3 && parts[0] === 'v2';
+    const [ivPart, ctPart] = isV2 ? parts.slice(1) : parts;
     if (!ivPart || !ctPart) return null;
     const plain = await crypto.subtle.decrypt(
       { name: 'AES-GCM', iv: b64UrlToBytes(ivPart) },
-      await totpEncryptionKey(sessionSecret),
+      isV2 ? await totpKeyV2(sessionSecret) : await legacyTotpKey(sessionSecret),
       b64UrlToBytes(ctPart),
     );
     return new TextDecoder().decode(plain);
@@ -133,15 +148,27 @@ export async function decryptTotpSecret(stored: string, sessionSecret: string): 
 
 // ── Session tokens (JWT HS256, Web Crypto) ────────────────────────
 
-async function hmacSign(keyBytes: Uint8Array, data: string): Promise<string> {
-  const key = await crypto.subtle.importKey(
-    'raw',
-    keyBytes,
-    { name: 'HMAC', hash: 'SHA-256' },
-    false,
-    ['sign'],
-  );
-  const sig = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(data));
+// Imported HMAC keys are cached per isolate (keyed by secret) so session
+// verification does not re-import the key on every request.
+const hmacKeys = new Map<string, Promise<CryptoKey>>();
+function hmacKey(secret: string): Promise<CryptoKey> {
+  let key = hmacKeys.get(secret);
+  if (!key) {
+    key = crypto.subtle.importKey(
+      'raw',
+      new TextEncoder().encode(secret),
+      { name: 'HMAC', hash: 'SHA-256' },
+      false,
+      ['sign', 'verify'],
+    );
+    key.catch(() => hmacKeys.delete(secret));
+    hmacKeys.set(secret, key);
+  }
+  return key;
+}
+
+async function hmacSign(secret: string, data: string): Promise<string> {
+  const sig = await crypto.subtle.sign('HMAC', await hmacKey(secret), new TextEncoder().encode(data));
   return bufToB64Url(new Uint8Array(sig));
 }
 
@@ -155,7 +182,7 @@ export async function signSession(
   const payload = { ...claims, iat: nowSec, exp: nowSec + maxAgeSec };
   const h = bufToB64Url(new TextEncoder().encode(JSON.stringify(header)));
   const p = bufToB64Url(new TextEncoder().encode(JSON.stringify(payload)));
-  const s = await hmacSign(new TextEncoder().encode(secret), `${h}.${p}`);
+  const s = await hmacSign(secret, `${h}.${p}`);
   return `${h}.${p}.${s}`;
 }
 
@@ -168,6 +195,8 @@ export interface SessionPayload {
   scope?: string;
   /** Plaintext TOTP secret for setup/enroll tickets only (short TTL). */
   totpSecret?: string;
+  /** admins.session_version at issue time; a mismatch revokes the session. */
+  ver?: number;
 }
 
 export async function verifySession(
@@ -177,8 +206,14 @@ export async function verifySession(
   try {
     const [h, p, s] = token.split('.');
     if (!h || !p || !s) return null;
-    const expected = await hmacSign(new TextEncoder().encode(secret), `${h}.${p}`);
-    if (expected !== s) return null;
+    // crypto.subtle.verify compares in constant time.
+    const valid = await crypto.subtle.verify(
+      'HMAC',
+      await hmacKey(secret),
+      b64UrlToBytes(s),
+      new TextEncoder().encode(`${h}.${p}`),
+    );
+    if (!valid) return null;
     const payload = JSON.parse(
       new TextDecoder().decode(b64UrlToBytes(p)),
     ) as SessionPayload;
@@ -193,22 +228,30 @@ export async function verifySession(
 // ── Role resolution ───────────────────────────────────────────────
 
 /** Load the effective role for an admin (super_admin > admin > moderator). */
-export async function loadRole(adminId: string, db: ReturnType<typeof createDb>): Promise<Role | null> {
-  const rows = await db.select().from(userRoles).where(eq(userRoles.userId, adminId));
-  if (rows.some((r) => r.role === 'super_admin')) return 'super_admin';
-  if (rows.some((r) => r.role === 'admin')) return 'admin';
-  if (rows.some((r) => r.role === 'moderator')) return 'moderator';
+function pickRole(roles: string[]): Role | null {
+  if (roles.includes('super_admin')) return 'super_admin';
+  if (roles.includes('admin')) return 'admin';
+  if (roles.includes('moderator')) return 'moderator';
   return null;
 }
 
-export async function loadPermissions(adminId: string, db: ReturnType<typeof createDb>): Promise<ModeratorPermission[]> {
-  const rows = await db.select().from(moderatorPermissions).where(eq(moderatorPermissions.userId, adminId));
-  return rows.map((r) => ({
+function toPermission(r: typeof moderatorPermissions.$inferSelect): ModeratorPermission {
+  return {
     resource: r.resource,
     can_read: r.canRead,
     can_write: r.canWrite,
     can_delete: r.canDelete,
-  }));
+  };
+}
+
+export async function loadRole(adminId: string, db: ReturnType<typeof createDb>): Promise<Role | null> {
+  const rows = await db.select({ role: userRoles.role }).from(userRoles).where(eq(userRoles.userId, adminId));
+  return pickRole(rows.map((r) => r.role));
+}
+
+export async function loadPermissions(adminId: string, db: ReturnType<typeof createDb>): Promise<ModeratorPermission[]> {
+  const rows = await db.select().from(moderatorPermissions).where(eq(moderatorPermissions.userId, adminId));
+  return rows.map(toPermission);
 }
 
 // ── Middleware ────────────────────────────────────────────────────
@@ -231,20 +274,46 @@ export const resolveSession: MiddlewareHandler<AppEnv> = async (c, next) => {
   const token = extractToken(c);
   if (secret && token) {
     const payload = await verifySession(token, secret);
-    if (payload) {
+    // Scoped tokens (pending 2FA / enrolment tickets) are never sessions.
+    if (payload && !payload.scope) {
       const db = createDb(c.env.DB);
-      const [admin] = await db.select().from(admins).where(eq(admins.id, payload.sub)).limit(1);
-      if (admin && admin.isActive) {
-        const role = await loadRole(admin.id, db);
+      const [adminRows, roleRows, permRows] = await db.batch([
+        db.select().from(admins).where(eq(admins.id, payload.sub)).limit(1),
+        db.select({ role: userRoles.role }).from(userRoles).where(eq(userRoles.userId, payload.sub)),
+        db.select().from(moderatorPermissions).where(eq(moderatorPermissions.userId, payload.sub)),
+      ]);
+      const admin = adminRows[0];
+      if (admin && admin.isActive && (payload.ver ?? 0) === (admin.sessionVersion ?? 0)) {
+        const role = pickRole(roleRows.map((r) => r.role));
         c.set('adminId', admin.id);
         c.set('adminEmail', admin.email);
         c.set('hasTotp', Boolean(admin.totpSecret));
         c.set('role', role);
-        if (role === 'moderator') c.set('permissions', await loadPermissions(admin.id, db));
+        c.set('sessionExp', payload.exp);
+        c.set('admin', admin);
+        if (role === 'moderator') c.set('permissions', permRows.map(toPermission));
       }
     }
   }
   await next();
+}
+
+/** Re-sign the current session after a session_version bump so the caller stays logged in. */
+export async function reissueCurrentSession(
+  c: Context<AppEnv>,
+  admin: { id: string; email: string },
+  version: number,
+): Promise<void> {
+  const secret = c.env.SESSION_SECRET;
+  const exp = c.get('sessionExp');
+  if (!secret || !exp) return;
+  const remaining = exp - Math.floor(Date.now() / 1000);
+  if (remaining <= 0) return;
+  const token = await signSession({ sub: admin.id, email: admin.email, ver: version }, secret, remaining);
+  c.header(
+    'Set-Cookie',
+    `${SESSION_COOKIE}=${token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${remaining}; Secure`,
+  );
 }
 
 /** 401 unless a valid admin session exists. */

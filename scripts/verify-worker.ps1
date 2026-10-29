@@ -13,7 +13,7 @@ $pass = 0; $fail = 0
 # local admin (and the throwaway moderator) once per run, then resets the
 # stored secret at the end (2FA is one-way at the API level by design).
 function Reset-LocalTotp([string]$Email) {
-  & npx.cmd wrangler d1 execute miyomi-db --local --command "UPDATE admins SET totp_secret = NULL WHERE email = '$Email';" | Out-Null
+  & npx.cmd wrangler d1 execute miyomi-db --local --command "UPDATE admins SET totp_secret = NULL, totp_last_step = NULL WHERE email = '$Email'; DELETE FROM rate_limits WHERE endpoint IN ('totp-fail', '/api/admin/auth/login', '/api/admin/auth/login/complete');" | Out-Null
 }
 
 # RFC 6238 TOTP (SHA-1, 6 digits) — matches worker/lib/totp.ts.
@@ -49,13 +49,22 @@ function Get-TotpCode([string]$Secret) {
 }
 
 # Enrol a fresh TOTP secret for the session owner (enroll → verify with code + password).
+# Enrolment revokes older sessions and re-issues the caller's cookie, so this
+# returns the NEW session cookie value ($null on failure).
 function Enable-2Fa($cookie, $password) {
   $r = Invoke-Api POST /api/admin/auth/2fa/enroll $null $cookie
-  if ($r.Code -ne 200) { return $false }
+  if ($r.Code -ne 200) { return $null }
   $code = Get-TotpCode ([string]$r.Json.data.setup.secret)
   $body = ('{"enrollToken":"' + $r.Json.data.enrollToken + '","code":"' + $code + '","currentPassword":"' + $password + '"}')
-  $r2 = Invoke-Api POST /api/admin/auth/2fa/enroll/verify $body $cookie
-  return ($r2.Code -eq 200)
+  $jar = [System.IO.Path]::GetTempFileName()
+  $btmp = [System.IO.Path]::GetTempFileName()
+  [System.IO.File]::WriteAllText($btmp, $body, (New-Object System.Text.UTF8Encoding($false)))
+  $status = & curl.exe -s -c $jar -o NUL -w '%{http_code}' -X POST -H 'Content-Type: application/json' -H "Cookie: miyomi_session=$cookie" --data-binary "@$btmp" "$base/api/admin/auth/2fa/enroll/verify"
+  Remove-Item $btmp -ErrorAction SilentlyContinue
+  $line = (Select-String -Path $jar -Pattern 'miyomi_session').Line
+  Remove-Item $jar -ErrorAction SilentlyContinue
+  if ("$status".Trim() -ne '200' -or -not $line) { return $null }
+  return (($line -split '\s+') | Select-Object -Last 1)
 }
 
 function Check($name, $ok) {
@@ -179,10 +188,14 @@ Check 'local admin login -> cookie issued' ($cookie -ne $null)
 $r = Invoke-Api GET /api/admin/auth/me $null $cookie
 Check 'GET /api/admin/auth/me -> super_admin session' ($r.Code -eq 200 -and $r.Json.data.role -eq 'super_admin')
 
-Check '2FA: local admin enrolment succeeds' (Enable-2Fa $cookie 'MiomiLocal123!')
+$oldCookie = $cookie
+$cookie = Enable-2Fa $cookie 'MiomiLocal123!'
+Check '2FA: local admin enrolment succeeds (session re-issued)' ($cookie -ne $null)
+$r = Invoke-Api GET /api/admin/auth/me $null $oldCookie
+Check '2FA: pre-enrolment session revoked -> 401' ($r.Code -eq 401)
 
 $r = Invoke-Api GET /api/admin/dashboard $null $cookie
-Check 'GET /api/admin/dashboard -> real counts' ($r.Code -eq 200 -and $r.Json.data.counts.approvedApps -eq 136 -and $r.Json.data.counts.totalLikes -ge 7629)
+Check 'GET /api/admin/dashboard -> real counts' ($r.Code -eq 200 -and $r.Json.data.counts.approvedApps -eq 136 -and $r.Json.data.counts.totalLikes -ge 6795)  # sum of public item counters (excludes ~1k orphan like rows)
 
 # bcrypt path: the real super admin's hash is bcrypt (ported from auth.users).
 # Verify the Worker actually runs bcrypt compare (wrong pw must 401, and the
@@ -261,7 +274,8 @@ Check 'PUT permissions -> saved' ($r.Code -eq 200)
 
 $modCookie = Login-Cookie 'verify-mod@miyomi.local' 'ModPass123!'
 Check 'moderator login -> cookie' ($modCookie -ne $null)
-Check '2FA: moderator enrolment succeeds' (Enable-2Fa $modCookie 'ModPass123!')
+$modCookie = Enable-2Fa $modCookie 'ModPass123!'
+Check '2FA: moderator enrolment succeeds' ($modCookie -ne $null)
 $r = Invoke-Api GET /api/admin/users $null $modCookie
 Check 'moderator GET /api/admin/users -> 403' ($r.Code -eq 403)
 $r = Invoke-Api GET /api/admin/apps $null $modCookie

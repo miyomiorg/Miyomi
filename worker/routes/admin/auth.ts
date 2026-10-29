@@ -1,4 +1,4 @@
-import { count, eq, sql } from 'drizzle-orm';
+import { and, count, eq, isNull, lt, or, sql } from 'drizzle-orm';
 import { Hono, type Context } from 'hono';
 import {
   SESSION_COOKIE,
@@ -9,16 +9,18 @@ import {
   hashPassword,
   loadPermissions,
   loadRole,
+  reissueCurrentSession,
   requireAdmin,
   signSession,
   verifyPassword,
   verifySession,
   type Role,
 } from '../../lib/auth.ts';
-import { generateTotpSecret, otpauthUrl, verifyTotp } from '../../lib/totp.ts';
+import { generateTotpSecret, matchTotpStep, otpauthUrl } from '../../lib/totp.ts';
 import { createDb } from '../../lib/db.ts';
+import { consumeLimit, isLimited, rateLimit } from '../../lib/rate-limit.ts';
 import { notifyTelegram, sendTelegramText } from '../../lib/telegram.ts';
-import { verifyTurnstile } from '../../lib/turnstile.ts';
+import { turnstileSkippedLocally, verifyTurnstile } from '../../lib/turnstile.ts';
 import { clientIp, fail, isoNow, ok, type AppEnv } from '../../lib/http.ts';
 import {
   adminLogs,
@@ -126,6 +128,45 @@ function publicAdmin(a: {
   };
 }
 
+// Second-factor brute-force guard: failed codes per admin per window.
+const TOTP_FAIL_WINDOW_SEC = 15 * 60;
+const TOTP_FAIL_MAX = 5;
+
+/**
+ * Verify a TOTP code for `adminId`: enforces the per-admin failure limit and
+ * rejects replay of an already-used time step (atomic claim on totp_last_step).
+ */
+async function checkSecondFactor(
+  c: Context<AppEnv>,
+  adminId: string,
+  totpSecret: string,
+  code: string,
+): Promise<'ok' | 'invalid' | 'locked'> {
+  const subject = `admin:${adminId}`;
+  if (await isLimited(c.env.DB, subject, 'totp-fail', TOTP_FAIL_WINDOW_SEC, TOTP_FAIL_MAX)) {
+    return 'locked';
+  }
+  const step = await matchTotpStep(totpSecret, code);
+  if (step !== null) {
+    const db = createDb(c.env.DB);
+    const claimed = await db
+      .update(admins)
+      .set({ totpLastStep: step })
+      .where(and(eq(admins.id, adminId), or(isNull(admins.totpLastStep), lt(admins.totpLastStep, step))))
+      .returning({ id: admins.id });
+    if (claimed.length > 0) return 'ok';
+  }
+  await consumeLimit(c.env.DB, subject, 'totp-fail', TOTP_FAIL_WINDOW_SEC, TOTP_FAIL_MAX).catch((error) => {
+    console.error('[auth] failed to count TOTP failure:', error);
+  });
+  return 'invalid';
+}
+
+// Compared against when the email is unknown so response timing does not
+// reveal which admin emails exist.
+let dummyHash: Promise<string> | null = null;
+const getDummyHash = () => (dummyHash ??= hashPassword(crypto.randomUUID()));
+
 /** Sign the session cookie, record session + login log, return the login payload. */
 async function issueSession(
   c: Context<AppEnv>,
@@ -137,14 +178,14 @@ async function issueSession(
 ) {
   const db = createDb(c.env.DB);
   const token = await signSession(
-    { sub: admin.id, email: admin.email },
+    { sub: admin.id, email: admin.email, ver: admin.sessionVersion ?? 0 },
     secret,
     remember ? SESSION_MAX_AGE_SEC : SESSION_SHORT_AGE_SEC,
   );
   setSessionCookie(c, token, remember ? SESSION_MAX_AGE_SEC : SESSION_SHORT_AGE_SEC);
 
   // Port of useSessionTracker: record the session with device details
-  await db.insert(adminSessions).values({
+  const sessionInsert = db.insert(adminSessions).values({
     id: crypto.randomUUID(),
     adminId: admin.id,
     sessionType: remember ? 'persistent' : 'temporary',
@@ -162,7 +203,7 @@ async function issueSession(
     country: typeof device.country === 'string' ? device.country : null,
   });
 
-  await db.insert(adminLogs).values({
+  const logInsert = db.insert(adminLogs).values({
     id: crypto.randomUUID(),
     action: 'auth.login',
     resourceType: 'auth',
@@ -172,16 +213,17 @@ async function issueSession(
     createdAt: isoNow(),
   });
 
+  await db.batch([sessionInsert, logInsert]);
   const permissions = role === 'moderator' ? await loadPermissions(admin.id, db) : [];
+  // The session travels only in the HttpOnly cookie — never in the body.
   return ok(c, {
     admin: publicAdmin(admin),
     role,
     permissions,
-    token,
   });
 }
 
-authRouter.post('/login', async (c) => {
+authRouter.post('/login', rateLimit(600, 20), async (c) => {
   try {
     const secret = c.env.SESSION_SECRET;
     if (!secret) return fail(c, 500, 'SESSION_SECRET is not configured');
@@ -190,7 +232,9 @@ authRouter.post('/login', async (c) => {
     const email = typeof body?.email === 'string' ? body.email.trim().toLowerCase() : '';
     const password = typeof body?.password === 'string' ? body.password : '';
     if (!email || !password) return fail(c, 400, 'email and password are required');
-    if (c.env.TURNSTILE_SECRET_KEY && !(await verifyTurnstile(c, typeof body?.turnstileToken === 'string' ? body.turnstileToken : undefined))) {
+    // Local dev without a secret skips the CAPTCHA; anywhere else it is enforced.
+    if (!turnstileSkippedLocally(c) &&
+        !(await verifyTurnstile(c, typeof body?.turnstileToken === 'string' ? body.turnstileToken : undefined))) {
       return fail(c, 400, 'Please complete the CAPTCHA check');
     }
 
@@ -204,7 +248,8 @@ authRouter.post('/login', async (c) => {
       .from(admins)
       .where(sql`lower(${admins.email}) = ${email}`)
       .limit(1);
-    if (!admin || !admin.passwordHash || !(await verifyPassword(password, admin.passwordHash))) {
+    const passwordOk = await verifyPassword(password, admin?.passwordHash || (await getDummyHash()));
+    if (!admin || !admin.passwordHash || !passwordOk) {
       await recordFailedAttempt(c, email, device);
       return fail(c, 401, 'Invalid email or password');
     }
@@ -238,10 +283,12 @@ authRouter.post('/login', async (c) => {
     const configured = admin.totpSecret ? await decryptTotpSecret(admin.totpSecret, secret) : null;
     if (configured) {
       // Always require the second factor; a correct code completes login in one step.
-      if (totpCode && (await verifyTotp(configured, totpCode))) {
-        return await issueSession(c, admin, role, remember, device, secret);
-      }
-      if (!totpCode) {
+      if (totpCode) {
+        const result = await checkSecondFactor(c, admin.id, configured, totpCode);
+        if (result === 'ok') return await issueSession(c, admin, role, remember, device, secret);
+        if (result === 'locked') return fail(c, 429, 'Too many invalid codes. Try again later.');
+        return fail(c, 401, 'Invalid authentication code');
+      } else {
         const pending = await signSession(
           { sub: admin.id, email: admin.email, scope: 'login-2fa' },
           secret,
@@ -249,7 +296,6 @@ authRouter.post('/login', async (c) => {
         );
         return ok(c, { loginStage: '2fa_required', pendingToken: pending });
       }
-      return fail(c, 401, 'Invalid authentication code');
     }
 
     // First login without 2FA: issue the session now. The SPA redirects to the
@@ -265,6 +311,22 @@ authRouter.post('/login', async (c) => {
 authRouter.post('/logout', (c) => {
   clearSessionCookie(c);
   return ok(c, null);
+});
+
+/** POST /logout-all — revoke every session of the current admin (all devices). */
+authRouter.post('/logout-all', requireAdmin(), async (c) => {
+  try {
+    const db = createDb(c.env.DB);
+    await db
+      .update(admins)
+      .set({ sessionVersion: sql`${admins.sessionVersion} + 1`, updatedAt: isoNow() })
+      .where(eq(admins.id, c.get('adminId')!));
+    clearSessionCookie(c);
+    return ok(c, null);
+  } catch (error) {
+    console.error('[auth] logout-all failed:', error);
+    return fail(c, 500, 'Failed to revoke sessions');
+  }
 });
 
 /**
@@ -297,7 +359,7 @@ authRouter.patch('/telegram-chat-id', requireAdmin(), async (c) => {
  *  - scope 'login-2fa' → verifies against the stored secret
  *  - scope 'setup-2fa' → verifies against the pending secret and enables 2FA
  */
-authRouter.post('/login/complete', async (c) => {
+authRouter.post('/login/complete', rateLimit(600, 20), async (c) => {
   try {
     const secret = c.env.SESSION_SECRET;
     if (!secret) return fail(c, 500, 'SESSION_SECRET is not configured');
@@ -320,9 +382,10 @@ authRouter.post('/login/complete', async (c) => {
     if (!admin || !admin.isActive) return fail(c, 403, 'This account has been disabled');
 
     const configured = admin.totpSecret ? await decryptTotpSecret(admin.totpSecret, secret) : null;
-    if (!configured || !(await verifyTotp(configured, code))) {
-      return fail(c, 401, 'Invalid authentication code');
-    }
+    if (!configured) return fail(c, 401, 'Invalid authentication code');
+    const result = await checkSecondFactor(c, admin.id, configured, code);
+    if (result === 'locked') return fail(c, 429, 'Too many invalid codes. Try again later.');
+    if (result !== 'ok') return fail(c, 401, 'Invalid authentication code');
 
     const role = await loadRole(admin.id, db);
     if (!role) return fail(c, 403, 'No admin role has been assigned to this account');
@@ -381,23 +444,34 @@ authRouter.post('/2fa/enroll/verify', requireAdmin(), async (c) => {
       return fail(c, 401, 'Current password is incorrect');
     }
     const fresh = typeof payload.totpSecret === 'string' ? payload.totpSecret : '';
-    if (!fresh || !(await verifyTotp(fresh, code))) {
+    const step = fresh ? await matchTotpStep(fresh, code) : null;
+    if (step === null) {
       return fail(c, 401, 'Invalid authentication code');
     }
 
-    await db
-      .update(admins)
-      .set({ totpSecret: await encryptTotpSecret(fresh, secret), updatedAt: isoNow() })
-      .where(eq(admins.id, admin.id));
-    await db.insert(adminLogs).values({
-      id: crypto.randomUUID(),
-      action: 'auth.enable_2fa',
-      resourceType: 'auth',
-      resourceId: admin.id,
-      adminId: admin.id,
-      details: { email: admin.email },
-      createdAt: isoNow(),
-    });
+    // New authenticator → revoke other sessions; keep this one alive.
+    const nextVersion = (admin.sessionVersion ?? 0) + 1;
+    await db.batch([
+      db
+        .update(admins)
+        .set({
+          totpSecret: await encryptTotpSecret(fresh, secret),
+          totpLastStep: step,
+          sessionVersion: nextVersion,
+          updatedAt: isoNow(),
+        })
+        .where(eq(admins.id, admin.id)),
+      db.insert(adminLogs).values({
+        id: crypto.randomUUID(),
+        action: 'auth.enable_2fa',
+        resourceType: 'auth',
+        resourceId: admin.id,
+        adminId: admin.id,
+        details: { email: admin.email },
+        createdAt: isoNow(),
+      }),
+    ]);
+    await reissueCurrentSession(c, admin, nextVersion);
     return ok(c, { enabled: true });
   } catch (error) {
     console.error('[auth] 2fa enroll verify failed:', error);
@@ -408,11 +482,10 @@ authRouter.post('/2fa/enroll/verify', requireAdmin(), async (c) => {
 /** GET /me — current admin session (port of auth.getUser + has_role) */
 authRouter.get('/me', requireAdmin(), async (c) => {
   try {
-    const db = createDb(c.env.DB);
-    const [admin] = await db.select().from(admins).where(eq(admins.id, c.get('adminId')!)).limit(1);
+    const admin = c.get('admin');
     if (!admin || !admin.isActive) return fail(c, 401, 'Session expired or account disabled');
-    const role = c.get('role') ?? (await loadRole(admin.id, db));
-    const permissions = role === 'moderator' ? await loadPermissions(admin.id, db) : [];
+    const role = c.get('role') ?? null;
+    const permissions = role === 'moderator' ? (c.get('permissions') ?? []) : [];
     return ok(c, {
       admin: publicAdmin(admin),
       role,
@@ -441,19 +514,23 @@ authRouter.post('/change-password', requireAdmin(), async (c) => {
     }
 
     const hash = await hashPassword(next);
-    await db
-      .update(admins)
-      .set({ passwordHash: hash, updatedAt: isoNow() })
-      .where(eq(admins.id, admin.id));
-
-    await db.insert(adminLogs).values({
-      id: crypto.randomUUID(),
-      action: 'auth.change_password',
-      resourceType: 'admin',
-      resourceId: admin.id,
-      adminId: admin.id,
-      createdAt: isoNow(),
-    });
+    // Revoke every other session; the caller keeps a freshly signed one.
+    const nextVersion = (admin.sessionVersion ?? 0) + 1;
+    await db.batch([
+      db
+        .update(admins)
+        .set({ passwordHash: hash, sessionVersion: nextVersion, updatedAt: isoNow() })
+        .where(eq(admins.id, admin.id)),
+      db.insert(adminLogs).values({
+        id: crypto.randomUUID(),
+        action: 'auth.change_password',
+        resourceType: 'admin',
+        resourceId: admin.id,
+        adminId: admin.id,
+        createdAt: isoNow(),
+      }),
+    ]);
+    await reissueCurrentSession(c, admin, nextVersion);
     return ok(c, null);
   } catch (error) {
     console.error('[auth] change-password failed:', error);

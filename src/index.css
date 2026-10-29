@@ -201,6 +201,19 @@ html {
   }
 }
 
+/* Long lists: off-screen cards skip layout/paint until scrolled near. */
+.list-item-cv {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 240px;
+}
+
+/* Wide tables in guide/blog HTML scroll sideways instead of overflowing the page. */
+.guide-content table {
+  display: block;
+  max-width: 100%;
+  overflow-x: auto;
+}
+
 /* Global smooth transition when switching themes */
 .theme-transitioning * {
   transition-property: background-color, border-color, color, fill, stroke, box-shadow !important;

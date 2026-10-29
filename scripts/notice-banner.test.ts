@@ -9,13 +9,18 @@ import { CacheManager } from '../src/utils/cache';
 import type { Tables } from '../src/types/db';
 
 // Keep assertions about notice state independent of exit-animation timing.
-vi.mock('motion/react', () => ({
-  motion: {
+// Components use the LazyMotion `m` export (aliased as `motion`); mock both.
+vi.mock('motion/react', () => {
+  const components = {
     div: ({ children, className, role, ...props }: { children: ReactNode; className?: string; role?: string; [key: string]: unknown }) =>
       createElement('div', { className, role, 'data-notice-type': props['data-notice-type'] }, children),
-  },
-  AnimatePresence: ({ children }: { children: ReactNode }) => children,
-}));
+  };
+  return {
+    motion: components,
+    m: components,
+    AnimatePresence: ({ children }: { children: ReactNode }) => children,
+  };
+});
 
 let root: Root;
 let container: HTMLDivElement;

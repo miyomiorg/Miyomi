@@ -1,8 +1,9 @@
-import { eq, or } from 'drizzle-orm';
+import { eq, or, sql } from 'drizzle-orm';
 import { Hono, type Context } from 'hono';
 import type { Bindings } from '../../env';
 import { createDb } from '../../lib/db.ts';
 import { isUuid, type AppEnv } from '../../lib/http.ts';
+import { isPublicGuideStatus } from '../../lib/visibility.ts';
 import { apps, blogPosts, extensions, guides } from '../../db/schema.ts';
 
 /**
@@ -87,18 +88,32 @@ export function buildSeoTags(seo: SeoData): string {
     `<meta name="theme-color" content="#0f172a" />`,
   ];
   if (jsonLd) {
-    const jsonStr = JSON.stringify(jsonLd).replace(/<\/script/g, '<\\/script');
-    tags.push(`<script type="application/ld+json">\n${jsonStr}\n</script>`);
+    tags.push(`<script type="application/ld+json">\n${safeJsonForScript(jsonLd)}\n</script>`);
   }
   return tags.join('\n    ');
 }
 
+/**
+ * JSON for embedding inside <script>. Escapes every `<`, `>` and `&` (so no
+ * `</script` in any letter case can close the element) plus the JS line
+ * separators U+2028/U+2029.
+ */
+export function safeJsonForScript(value: unknown): string {
+  return JSON.stringify(value)
+    .replace(/</g, '\\u003c')
+    .replace(/>/g, '\\u003e')
+    .replace(/&/g, '\\u0026')
+    .replace(/\u2028/g, '\\u2028')
+    .replace(/\u2029/g, '\\u2029');
+}
+
 export function injectSeoIntoHtml(html: string, seo: SeoData): string {
   const metaTags = buildSeoTags(seo);
+  // Function replacers: DB text must never be read as `$&` / `$'` patterns.
   if (html.includes('<!--SEO_START-->') && html.includes('<!--SEO_END-->')) {
-    return html.replace(/<!--SEO_START-->[\s\S]*<!--SEO_END-->/, metaTags);
+    return html.replace(/<!--SEO_START-->[\s\S]*<!--SEO_END-->/, () => metaTags);
   }
-  return html.replace('</head>', `\n    ${metaTags}\n  </head>`);
+  return html.replace('</head>', () => `\n    ${metaTags}\n  </head>`);
 }
 
 export function getDefaultSeo(env: Bindings, pathname: string): SeoData {
@@ -127,9 +142,12 @@ async function resolveSeo(env: Bindings, pathname: string, slug: string | null):
   try {
     if (pathname.startsWith('/software/')) {
       const ref = slug;
-      const [real] = isUuid(ref)
-        ? await db.select().from(apps).where(or(eq(apps.id, ref), eq(apps.slug, ref))).limit(1)
-        : await db.select().from(apps).where(eq(apps.slug, ref)).limit(1);
+      const cols = {
+        name: apps.name, status: apps.status, seoTitle: apps.seoTitle, seoDescription: apps.seoDescription,
+        shortDescription: apps.shortDescription, description: apps.description, ogImageUrl: apps.ogImageUrl,
+      };
+      const [real] = await db.select(cols).from(apps)
+        .where(isUuid(ref) ? or(eq(apps.id, ref), eq(apps.slug, ref)) : eq(apps.slug, ref)).limit(1);
       if (real && real.status === 'approved') {
         seo.title = real.seoTitle || `${real.name} - ${SITE_NAME}`;
         seo.description = real.seoDescription || real.shortDescription || real.description || `View ${real.name} on ${SITE_NAME}.`;
@@ -149,9 +167,13 @@ async function resolveSeo(env: Bindings, pathname: string, slug: string | null):
       }
     } else if (pathname.startsWith('/extensions/')) {
       const ref = slug;
-      const [real] = isUuid(ref)
-        ? await db.select().from(extensions).where(or(eq(extensions.id, ref), eq(extensions.slug, ref))).limit(1)
-        : await db.select().from(extensions).where(eq(extensions.slug, ref)).limit(1);
+      const cols = {
+        name: extensions.name, status: extensions.status, seoTitle: extensions.seoTitle,
+        seoDescription: extensions.seoDescription, shortDescription: extensions.shortDescription,
+        description: extensions.description, ogImageUrl: extensions.ogImageUrl,
+      };
+      const [real] = await db.select(cols).from(extensions)
+        .where(isUuid(ref) ? or(eq(extensions.id, ref), eq(extensions.slug, ref)) : eq(extensions.slug, ref)).limit(1);
       if (real && real.status === 'approved') {
         seo.title = real.seoTitle || `${real.name} Extension - ${SITE_NAME}`;
         seo.description = real.seoDescription || real.shortDescription || real.description || `View ${real.name} extension source on ${SITE_NAME}.`;
@@ -170,12 +192,17 @@ async function resolveSeo(env: Bindings, pathname: string, slug: string | null):
       }
     } else if (pathname.startsWith('/guides/')) {
       const ref = slug;
-      const [real] = isUuid(ref)
-        ? await db.select().from(guides).where(or(eq(guides.id, ref), eq(guides.slug, ref))).limit(1)
-        : await db.select().from(guides).where(eq(guides.slug, ref)).limit(1);
-      if (real && real.status !== 'draft') {
-        const contentStr = real.contentHtml || real.content || '';
-        const summary = truncate(stripHtml(contentStr), 150);
+      // Only the first ~1000 chars of the body are needed for the summary.
+      const cols = {
+        title: guides.title, status: guides.status, seoTitle: guides.seoTitle,
+        seoDescription: guides.seoDescription, description: guides.description, ogImageUrl: guides.ogImageUrl,
+        authorName: guides.authorName, author: guides.author, createdAt: guides.createdAt, updatedAt: guides.updatedAt,
+        contentHead: sql<string | null>`substr(coalesce(${guides.contentHtml}, ${guides.content}), 1, 1000)`,
+      };
+      const [real] = await db.select(cols).from(guides)
+        .where(isUuid(ref) ? or(eq(guides.id, ref), eq(guides.slug, ref)) : eq(guides.slug, ref)).limit(1);
+      if (real && isPublicGuideStatus(real.status)) {
+        const summary = truncate(stripHtml(real.contentHead || ''), 150);
         seo.title = real.seoTitle || `${real.title} - ${SITE_NAME} Guide`;
         seo.description = real.seoDescription || real.description || summary || `Read ${real.title} on ${SITE_NAME} Guides.`;
         seo.ogImage = absoluteImageUrl(env, real.ogImageUrl || `/og/guides/${ref}.png`);
@@ -197,11 +224,16 @@ async function resolveSeo(env: Bindings, pathname: string, slug: string | null):
       }
     } else if (pathname.startsWith('/blog/')) {
       const ref = slug;
-      const [real] = isUuid(ref)
-        ? await db.select().from(blogPosts).where(or(eq(blogPosts.id, ref), eq(blogPosts.slug, ref))).limit(1)
-        : await db.select().from(blogPosts).where(eq(blogPosts.slug, ref)).limit(1);
+      const cols = {
+        title: blogPosts.title, status: blogPosts.status, excerpt: blogPosts.excerpt, seoTitle: blogPosts.seoTitle,
+        seoDescription: blogPosts.seoDescription, ogImageUrl: blogPosts.ogImageUrl, thumbnailUrl: blogPosts.thumbnailUrl,
+        authorName: blogPosts.authorName, createdAt: blogPosts.createdAt, updatedAt: blogPosts.updatedAt,
+        contentHead: sql<string | null>`substr(${blogPosts.content}, 1, 1000)`,
+      };
+      const [real] = await db.select(cols).from(blogPosts)
+        .where(isUuid(ref) ? or(eq(blogPosts.id, ref), eq(blogPosts.slug, ref)) : eq(blogPosts.slug, ref)).limit(1);
       if (real && real.status === 'published') {
-        const contentStr = real.excerpt || stripHtml(real.content || '');
+        const contentStr = real.excerpt || stripHtml(real.contentHead || '');
         const summary = truncate(contentStr, 150);
         seo.title = real.seoTitle || `${real.title} - ${SITE_NAME} Blog`;
         seo.description = real.seoDescription || summary || `Read ${real.title} on the ${SITE_NAME} Blog.`;
@@ -231,13 +263,27 @@ async function resolveSeo(env: Bindings, pathname: string, slug: string | null):
 }
 
 /** Serve index.html with injected SEO for the given pathname */
+// index.html only changes with a deploy, and a deploy starts fresh isolates,
+// so the template is read from ASSETS once per isolate.
+let templateCache: Promise<string> | null = null;
+
+async function loadTemplate(env: Bindings, origin: string): Promise<string | Response> {
+  if (!templateCache) {
+    const res = await env.ASSETS.fetch(new Request(`${origin}/`));
+    if (!res.ok) return res;
+    templateCache = res.text();
+    templateCache.catch(() => { templateCache = null; });
+  }
+  return templateCache;
+}
+
 async function serveSeoPage(c: Context<AppEnv>, pathname: string, slug: string | null): Promise<Response> {
   const env = c.env;
-  const indexRequest = new Request(`${new URL(c.req.url).origin}/`);
-  const indexResponse = await env.ASSETS.fetch(indexRequest);
-  if (!indexResponse.ok) return indexResponse;
-  const template = await indexResponse.text();
-  const seo = await resolveSeo(env, pathname, slug);
+  const [template, seo] = await Promise.all([
+    loadTemplate(env, new URL(c.req.url).origin),
+    resolveSeo(env, pathname, slug),
+  ]);
+  if (template instanceof Response) return template;
   const html = injectSeoIntoHtml(template, seo);
   return new Response(html, {
     status: seo.status || 200,

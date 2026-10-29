@@ -32,7 +32,17 @@ const env = {
       async all() { queries++; return { results: sqlite.prepare(sql).all(...params) }; },
       async run() { queries++; return { success: true, meta: sqlite.prepare(sql).run(...params) }; },
     };
-  } }; } },
+  } }; },
+  // D1 batch: sequential statements in one transaction (each still counts as a statement).
+  async batch(statements: Array<{ all(): Promise<{ results: unknown[] }> }>) {
+    sqlite.exec('BEGIN');
+    try {
+      const out = [];
+      for (const s of statements) out.push(await s.all());
+      sqlite.exec('COMMIT');
+      return out;
+    } catch (error) { sqlite.exec('ROLLBACK'); throw error; }
+  } },
 } as unknown as Bindings;
 
 async function request(path: string, init?: RequestInit, router = app) {
@@ -88,11 +98,27 @@ try {
   assert.equal(result.queries, 1, 'filters must have independent cache keys');
   assert.deepEqual((await result.response.json()).data, []);
   assert.equal((await request('/api/guides?category=setup&utm_source=test')).queries, 0);
-  for (let i = 0; i < 2; i++) {
-    result = await request('/api/apps/missing');
-    assert.equal(result.response.status, 404);
-    assert.equal(result.queries, 1, 'errors must not be cached');
-  }
+  // Missing slugs are cached briefly (bot probes stop costing D1 lookups).
+  result = await request('/api/apps/missing');
+  assert.equal(result.response.status, 404);
+  assert.equal(result.queries, 1);
+  result = await request('/api/apps/missing');
+  assert.equal(result.response.status, 404, 'cached 404 keeps its status');
+  assert.equal(result.queries, 0, '404s are cached for a short window');
+  now += 31_000;
+  assert.equal((await request('/api/apps/missing')).queries, 1, '404 cache expires after ~30s');
+
+  // ETag revalidation: unchanged data answers 304 with no body and no D1 work.
+  entries.clear();
+  const fresh = await request('/api/apps');
+  const etag = fresh.response.headers.get('ETag');
+  assert.match(etag ?? '', /^"[0-9a-f]{24}"$/);
+  const revalidated = await request('/api/apps', { headers: { 'If-None-Match': etag! } });
+  assert.equal(revalidated.response.status, 304);
+  assert.equal(revalidated.queries, 0);
+  assert.equal(await revalidated.response.text(), '');
+  const stale = await request('/api/apps', { headers: { 'If-None-Match': '"0000"' } });
+  assert.equal(stale.response.status, 200, 'a different ETag gets the full body');
   assert.equal((await request('/sitemap.xml')).queries, 4);
   assert.equal((await request('/sitemap.xml?utm_source=test')).queries, 0);
   assert.equal((await request('/software/app')).queries, 1);
@@ -114,11 +140,23 @@ try {
   const blogList = (await (await request('/api/blog')).response.json()).data;
   assert.equal(blogList[0].content, undefined, 'list must not download article bodies');
   assert.equal(blogList[0].readingMinutes, 1);
+  // Home page counts: three COUNTs in one batch, then edge-cached.
+  result = await request('/api/counts');
+  assert.equal(result.queries, 3);
+  assert.deepEqual((await result.response.json()).data, { apps: 1, extensions: 0, guides: 1 });
+  assert.equal((await request('/api/counts')).queries, 0, 'counts are edge-cached');
+
+  // Blog detail is a cacheable read; views are counted by the POST beacon.
+  result = await request('/api/blog/post');
+  assert.equal(result.queries, 1);
+  assert.equal((await result.response.json()).data.views, 0);
+  assert.equal((await request('/api/blog/post')).queries, 0, 'blog detail cache hit uses zero D1 queries');
   for (let views = 1; views <= 2; views++) {
-    result = await request('/api/blog/post');
+    result = await request('/api/blog/post/view', { method: 'POST' });
     assert.equal(result.queries, 1);
     assert.equal((await result.response.json()).data.views, views);
   }
+  assert.equal(sqlite.prepare("SELECT views FROM blog_posts WHERE id = 'post'").get()?.views, 2);
 
   const limiter = new Hono().post('/limited', rateLimit(3600, 2), c => c.json({ ok: true }));
   for (const status of [200, 200, 429, 429]) {
@@ -132,7 +170,7 @@ try {
   const auth = { headers: { Cookie: `miyomi_session=${token}` } };
   result = await request('/api/admin/settings', auth);
   assert.equal(result.response.status, 200);
-  assert.equal(result.queries, 3, 'one admin read + role + settings; no duplicate 2FA read');
+  assert.equal(result.queries, 4, 'one batched session read (admin + role + perms) + settings; no duplicate 2FA read');
   const write = (body: unknown) => ({ method: 'PUT', headers: { ...auth.headers, 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
   // Prime BOTH list and detail before writes, then verify invalidation.
   await request('/api/apps');

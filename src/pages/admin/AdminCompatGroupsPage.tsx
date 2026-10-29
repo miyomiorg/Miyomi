@@ -8,7 +8,7 @@ import { AdminInput, AdminTextarea } from '@/components/admin/AdminFormElements'
 import { AdminSmartSelect } from '@/components/admin/AdminSmartSelect';
 import { ConfirmDialog } from '@/components/admin/ConfirmDialog';
 import { toast } from 'sonner';
-import { motion, AnimatePresence } from 'motion/react';
+import { m as motion, AnimatePresence } from 'motion/react';
 
 interface CompatGroup {
     id: string;

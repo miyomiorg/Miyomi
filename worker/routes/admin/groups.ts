@@ -1,11 +1,13 @@
-import { and, asc, eq, inArray } from 'drizzle-orm';
+import { and, asc, eq, inArray, notInArray } from 'drizzle-orm';
 import { Hono } from 'hono';
-import { createDb } from '../../lib/db.ts';
+import { createDb, runBatch } from '../../lib/db.ts';
 import { fail, isoNow, ok, requireAdmin, requireResource, type AppEnv } from '../../lib/http.ts';
 import {
   appGroupMemberships,
+  apps,
   compatibilityGroups,
   extensionGroupMemberships,
+  extensions,
 } from '../../db/schema.ts';
 
 export const groupsRouter = new Hono<AppEnv>();
@@ -17,9 +19,11 @@ export const groupsRouter = new Hono<AppEnv>();
 groupsRouter.get('/', requireAdmin(), requireResource(['apps', 'extensions'], 'read'), async (c) => {
   try {
     const db = createDb(c.env.DB);
-    const groups = await db.select().from(compatibilityGroups).orderBy(asc(compatibilityGroups.name));
-    const appRows = await db.select().from(appGroupMemberships);
-    const extRows = await db.select().from(extensionGroupMemberships);
+    const [groups, appRows, extRows] = await db.batch([
+      db.select().from(compatibilityGroups).orderBy(asc(compatibilityGroups.name)),
+      db.select().from(appGroupMemberships),
+      db.select().from(extensionGroupMemberships),
+    ]);
     const appMap = new Map<string, string[]>();
     const extMap = new Map<string, string[]>();
     for (const r of appRows) {
@@ -92,10 +96,10 @@ groupsRouter.put('/:id', requireAdmin(), requireResource('apps', 'write'), async
 
     // Rebuild memberships when provided (full-list replace semantics)
     if (Array.isArray(body.appIds)) {
-      await replaceGroupAppMembers(db, id, body.appIds as string[]);
+      await replaceGroupAppMembers(db, id, body.appIds);
     }
     if (Array.isArray(body.extensionIds)) {
-      await replaceGroupExtMembers(db, id, body.extensionIds as string[]);
+      await replaceGroupExtMembers(db, id, body.extensionIds);
     }
     return ok(c, null);
   } catch (error) {
@@ -109,72 +113,64 @@ groupsRouter.put('/:id', requireAdmin(), requireResource('apps', 'write'), async
  * additively merge the group's extension names into each app's
  * compatible_with (port of AdminCompatGroupsPage save behaviour).
  */
-async function replaceGroupAppMembers(db: ReturnType<typeof createDb>, groupId: string, appIds: string[]) {
-  const { apps, extensions } = await import('../../db/schema.ts');
-  const wanted = new Set(appIds);
+const cleanIds = (ids: unknown[]) =>
+  [...new Set(ids.filter((v): v is string => typeof v === 'string' && v.length > 0))];
 
-  // Remove memberships for apps that are no longer in the group
-  const current = await db.select().from(appGroupMemberships).where(eq(appGroupMemberships.groupId, groupId));
-  for (const r of current.filter((x) => !wanted.has(x.appId))) {
-    await db
-      .delete(appGroupMemberships)
-      .where(and(eq(appGroupMemberships.groupId, groupId), eq(appGroupMemberships.appId, r.appId)));
-  }
-  // Add the new ones
-  const have = new Set(current.map((r) => r.appId));
-  await db.insert(appGroupMemberships).values(
-    appIds.filter((appId) => !have.has(appId)).map((appId) => ({ appId, groupId })),
-  );
+async function replaceGroupAppMembers(db: ReturnType<typeof createDb>, groupId: string, appIds: unknown[]) {
+  const ids = cleanIds(appIds);
+  const egm = extensionGroupMemberships;
+  // Reads: the group's extension names + the target apps (one round trip).
+  const [extRows, appRows] = await db.batch([
+    db.selectDistinct({ name: extensions.name }).from(egm)
+      .innerJoin(extensions, eq(extensions.id, egm.extensionId)).where(eq(egm.groupId, groupId)),
+    db.select({ id: apps.id, compatibleWith: apps.compatibleWith }).from(apps).where(inArray(apps.id, ids)),
+  ]);
+  const extNames = extRows.map((e) => e.name).filter(Boolean);
+  const now = isoNow();
 
-  // Additive compatibility merge for every app in the group now
-  const groupExts = await db.select({ name: extensions.name }).from(extensions).where(
-    inArray(extensions.id, (await db.select().from(extensionGroupMemberships).where(eq(extensionGroupMemberships.groupId, groupId))).map((r) => r.extensionId)),
-  );
-  const extNames = groupExts.map((e) => e.name).filter(Boolean);
-  for (const appId of appIds) {
-    const [app] = await db.select({ id: apps.id, compatibleWith: apps.compatibleWith }).from(apps).where(eq(apps.id, appId)).limit(1);
-    if (!app) continue;
-    const merged = [...new Set([...(app.compatibleWith ?? []), ...extNames])].filter(Boolean);
-    await db.update(apps).set({ compatibleWith: merged, updatedAt: isoNow() }).where(eq(apps.id, appId));
-  }
+  // Writes: replace membership + additive compatibility merge (one transaction).
+  await runBatch(db, [
+    db.delete(appGroupMemberships).where(and(
+      eq(appGroupMemberships.groupId, groupId),
+      ids.length ? notInArray(appGroupMemberships.appId, ids) : undefined,
+    )),
+    ...(appRows.length
+      ? [db.insert(appGroupMemberships).values(appRows.map((a) => ({ appId: a.id, groupId }))).onConflictDoNothing()]
+      : []),
+    ...appRows.map((app) =>
+      db.update(apps)
+        .set({ compatibleWith: [...new Set([...(app.compatibleWith ?? []), ...extNames])].filter(Boolean), updatedAt: now })
+        .where(eq(apps.id, app.id)),
+    ),
+  ]);
 }
 
 /** Same, for the extension side of the group. */
-async function replaceGroupExtMembers(db: ReturnType<typeof createDb>, groupId: string, extIds: string[]) {
-  const { apps, extensions } = await import('../../db/schema.ts');
-  const wanted = new Set(extIds);
+async function replaceGroupExtMembers(db: ReturnType<typeof createDb>, groupId: string, extIds: unknown[]) {
+  const ids = cleanIds(extIds);
+  const agm = appGroupMemberships;
+  const [appRows, extRows] = await db.batch([
+    db.selectDistinct({ name: apps.name }).from(agm)
+      .innerJoin(apps, eq(apps.id, agm.appId)).where(eq(agm.groupId, groupId)),
+    db.select({ id: extensions.id, compatibleWith: extensions.compatibleWith }).from(extensions).where(inArray(extensions.id, ids)),
+  ]);
+  const appNames = appRows.map((a) => a.name).filter(Boolean);
+  const now = isoNow();
 
-  const current = await db
-    .select()
-    .from(extensionGroupMemberships)
-    .where(eq(extensionGroupMemberships.groupId, groupId));
-  for (const r of current.filter((x) => !wanted.has(x.extensionId))) {
-    await db
-      .delete(extensionGroupMemberships)
-      .where(and(eq(extensionGroupMemberships.groupId, groupId), eq(extensionGroupMemberships.extensionId, r.extensionId)));
-  }
-  const have = new Set(current.map((r) => r.extensionId));
-  await db.insert(extensionGroupMemberships).values(
-    extIds.filter((extensionId) => !have.has(extensionId)).map((extensionId) => ({ extensionId, groupId })),
-  );
-
-  const groupApps = await db.select({ name: apps.name }).from(apps).where(
-    inArray(apps.id, (await db.select().from(appGroupMemberships).where(eq(appGroupMemberships.groupId, groupId))).map((r) => r.appId)),
-  );
-  const appNames = groupApps.map((a) => a.name).filter(Boolean);
-  for (const extId of extIds) {
-    const [ext] = await db
-      .select({ id: extensions.id, compatibleWith: extensions.compatibleWith })
-      .from(extensions)
-      .where(eq(extensions.id, extId))
-      .limit(1);
-    if (!ext) continue;
-    const merged = [...new Set([...(ext.compatibleWith ?? []), ...appNames])].filter(Boolean);
-    await db
-      .update(extensions)
-      .set({ compatibleWith: merged, updatedAt: isoNow() })
-      .where(eq(extensions.id, extId));
-  }
+  await runBatch(db, [
+    db.delete(extensionGroupMemberships).where(and(
+      eq(extensionGroupMemberships.groupId, groupId),
+      ids.length ? notInArray(extensionGroupMemberships.extensionId, ids) : undefined,
+    )),
+    ...(extRows.length
+      ? [db.insert(extensionGroupMemberships).values(extRows.map((e) => ({ extensionId: e.id, groupId }))).onConflictDoNothing()]
+      : []),
+    ...extRows.map((ext) =>
+      db.update(extensions)
+        .set({ compatibleWith: [...new Set([...(ext.compatibleWith ?? []), ...appNames])].filter(Boolean), updatedAt: now })
+        .where(eq(extensions.id, ext.id)),
+    ),
+  ]);
 }
 
 /** DELETE /admin/groups/:id (memberships cascade via FK) */

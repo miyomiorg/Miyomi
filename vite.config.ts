@@ -34,7 +34,19 @@ export default defineConfig({
     postcss: './postcss.config.js',
   },
   build: {
-    target: 'esnext',
+    // esnext can emit syntax older iOS Safari versions cannot parse.
+    target: 'es2020',
+    rollupOptions: {
+      output: {
+        // React/router change rarely: their own chunk stays cached across
+        // deploys while app code (and per-route chunks) change.
+        manualChunks(id) {
+          if (/[\\/]node_modules[\\/](react|react-dom|react-router|react-router-dom|scheduler)[\\/]/.test(id)) {
+            return 'react';
+          }
+        },
+      },
+    },
   },
   server: {
     host: '::',

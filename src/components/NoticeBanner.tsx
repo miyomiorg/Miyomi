@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
 import { useNotices } from '@/hooks/useNotices';
-import { motion, AnimatePresence } from 'motion/react';
+import { m as motion, AnimatePresence } from 'motion/react';
 import type { Tables } from '@/types/db';
 import { normalizeNoticeType, noticeTypeStyles } from './noticeTypes';
 

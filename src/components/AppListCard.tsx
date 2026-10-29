@@ -4,10 +4,10 @@ import { ExternalLink, Download, GitFork } from 'lucide-react';
 import { AppLogo } from './AppLogo';
 import { PlatformBadge } from './PlatformBadge';
 import { StarRating } from './StarRating';
-import { motion } from 'motion/react';
 import { useAccentColor } from '../hooks/useAccentColor';
 import { LoveButton } from './LoveButton';
 import { MatchedTagChips } from './MatchedTagChips';
+import { CardLink } from './CardLink';
 
 interface AppListCardProps {
   appId: string;
@@ -24,10 +24,12 @@ interface AppListCardProps {
   upstreamUrl?: string;
   isHighlighted?: boolean;
   matchedTags?: string[];
+  /** Detail page URL (real link: crawlable, middle-click opens a new tab). */
+  href?: string;
   onClick?: () => void;
 }
 
-export function AppListCard({
+export const AppListCard = React.memo(function AppListCard({
   appId,
   name,
   description,
@@ -42,6 +44,7 @@ export function AppListCard({
   upstreamUrl,
   isHighlighted,
   matchedTags,
+  href,
   onClick,
 }: AppListCardProps) {
   const displayedTags = tags.slice(0, 2);
@@ -50,16 +53,14 @@ export function AppListCard({
   const showPlatformDivider = displayedTags.length > 0 && platforms.length > 0;
   const colorToUse = useAccentColor({ logoUrl, preferredColor: accentColor });
 
-  // Only use layoutId on desktop
   const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
 
+  // Was a <button> wrapping the like <button> (invalid nesting). Now a row
+  // whose title is a stretched link; CSS hover instead of motion.
   return (
-    <motion.button
-      onClick={onClick}
-      whileHover={{ scale: 1.02 }}
-      whileTap={{ scale: 0.98 }}
-      transition={{ duration: 0.2 }}
-      className={`flex items-center gap-3 p-3 bg-[var(--bg-surface)] border border-[var(--divider)] border-l-4 rounded-xl hover:shadow-lg hover:border-[var(--brand)] transition-all w-full text-left group ${isHighlighted
+    <div
+      onClick={href ? undefined : onClick}
+      className={`list-item-cv relative flex items-center gap-3 p-3 bg-[var(--bg-surface)] border border-[var(--divider)] border-l-4 rounded-xl hover:shadow-lg hover:border-[var(--brand)] [@media(hover:hover)]:hover:scale-[1.01] active:scale-[0.99] transition-[transform,box-shadow,border-color] duration-200 w-full text-left group cursor-pointer focus-within:ring-2 focus-within:ring-[var(--brand)] ${isHighlighted
         ? 'ring-2 ring-[var(--brand)] shadow-[0_8px_30px_rgba(0,0,0,0.12),0_0_0_4px_rgba(var(--brand-rgb),0.2)]'
         : 'shadow-[0_4px_12px_0_rgba(0,0,0,0.05)]'
         }`}
@@ -80,7 +81,7 @@ export function AppListCard({
       {/* Content */}
       <div className="flex-1 min-w-0">
         <h3 className="font-['Inter',sans-serif] text-[var(--text-primary)] truncate mb-1" style={{ fontWeight: 600, fontSize: '15px' }}>
-          {name}
+          {href ? <CardLink href={href} onNavigate={onClick}>{name}</CardLink> : name}
         </h3>
         <div className="flex flex-wrap items-center gap-1.5 mb-1">
           {displayedTags.map((tag, index) => (
@@ -131,6 +132,6 @@ export function AppListCard({
           </div>
         ) : <div />}
       </div>
-    </motion.button>
+    </div>
   );
-}
+});

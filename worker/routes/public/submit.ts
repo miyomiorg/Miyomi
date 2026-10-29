@@ -1,8 +1,9 @@
-import { and, eq, sql } from 'drizzle-orm';
+import { and, eq, inArray, or, sql } from 'drizzle-orm';
 import { Hono, type Context } from 'hono';
 import { createDb } from '../../lib/db.ts';
 import { notifyTelegram } from '../../lib/telegram.ts';
 import { rateLimit } from '../../lib/rate-limit.ts';
+import { clampText, stripSubmitterPrivileged } from '../../lib/sanitize.ts';
 import { verifyTurnstile } from '../../lib/turnstile.ts';
 import { clientIp, fail, isoNow, ok, type AppEnv } from '../../lib/http.ts';
 import {
@@ -22,10 +23,10 @@ import {
  */
 export const submitRouter = new Hono<AppEnv>();
 
-/** Helper: read a string setting value from the DB */
-async function settingValue(db: ReturnType<typeof createDb>, key: string): Promise<unknown> {
-  const [row] = await db.select().from(settings).where(eq(settings.key, key)).limit(1);
-  return row?.value ?? null;
+/** Helper: read several setting values in one query → { key: value } */
+async function settingValues(db: ReturnType<typeof createDb>, keys: string[]): Promise<Record<string, unknown>> {
+  const rows = await db.select({ key: settings.key, value: settings.value }).from(settings).where(inArray(settings.key, keys));
+  return Object.fromEntries(rows.map((r) => [r.key, r.value ?? null]));
 }
 
 async function jsonBody(c: Context<AppEnv>): Promise<Record<string, unknown> | null> {
@@ -33,6 +34,13 @@ async function jsonBody(c: Context<AppEnv>): Promise<Record<string, unknown> | n
 }
 
 const SUBMISSION_TYPES = ['app', 'extension', 'guide'] as const;
+
+// Field caps for public writes (bodies are also capped globally in worker/index.ts).
+const MAX_SHORT = 200;
+const MAX_URL = 2048;
+const MAX_NOTE = 2000;
+const MAX_MESSAGE = 5000;
+const MAX_SUBMITTED_DATA = 200_000; // guide submissions carry full article bodies
 
 /** POST /api/submissions — new app/extension/guide submission */
 submitRouter.post('/submissions', rateLimit(300, 5), async (c) => {
@@ -52,9 +60,12 @@ submitRouter.post('/submissions', rateLimit(300, 5), async (c) => {
     }
 
     const db = createDb(c.env.DB);
-    const submitted: Record<string, unknown> = { ...(submittedData as Record<string, unknown>) };
-    if (typeof body.submitterNotes === 'string' && body.submitterNotes.trim()) {
-      submitted.submitter_notes = body.submitterNotes.trim();
+    // Submitters may not set counters, slug, status, SEO fields or arbitrary metadata.
+    const submitted = stripSubmitterPrivileged(submittedData);
+    const notes = clampText(body.submitterNotes, MAX_NOTE);
+    if (notes) submitted.submitter_notes = notes;
+    if (JSON.stringify(submitted).length > MAX_SUBMITTED_DATA) {
+      return fail(c, 413, 'Submission is too large');
     }
     const id = crypto.randomUUID();
     await db.insert(submissions).values({
@@ -62,11 +73,11 @@ submitRouter.post('/submissions', rateLimit(300, 5), async (c) => {
       submissionType: submissionType as string,
       submittedData: submitted,
       status: 'pending',
-      author: typeof body.author === 'string' ? body.author : null,
-      submitterName: typeof body.submitterName === 'string' ? body.submitterName : null,
-      submitterEmail: typeof body.submitterEmail === 'string' ? body.submitterEmail : null,
-      submitterContact: typeof body.submitterContact === 'string' ? body.submitterContact : null,
-      submitterUserId: typeof body.submitterUserId === 'string' ? body.submitterUserId : null,
+      author: clampText(body.author, MAX_SHORT),
+      submitterName: clampText(body.submitterName, MAX_SHORT),
+      submitterEmail: clampText(body.submitterEmail, MAX_SHORT),
+      submitterContact: clampText(body.submitterContact, MAX_SHORT),
+      submitterUserId: clampText(body.submitterUserId, MAX_SHORT),
       createdAt: isoNow(),
       updatedAt: isoNow(),
     });
@@ -88,15 +99,15 @@ submitRouter.post('/submissions', rateLimit(300, 5), async (c) => {
 submitRouter.post('/reports', rateLimit(300, 5), async (c) => {
   try {
     const body = await jsonBody(c);
-    const enabled = await settingValue(createDb(c.env.DB), 'reports_enabled');
-    if (enabled === false) {
-      const reason = await settingValue(createDb(c.env.DB), 'reports_disabled_reason');
+    const flags = await settingValues(createDb(c.env.DB), ['reports_enabled', 'reports_disabled_reason']);
+    if (flags.reports_enabled === false) {
+      const reason = flags.reports_disabled_reason;
       return fail(c, 403, typeof reason === 'string' ? reason : 'Reports are currently disabled');
     }
 
-    const targetId = typeof body?.targetId === 'string' ? body.targetId : '';
-    const targetType = body?.targetType;
-    const reason = typeof body?.reason === 'string' ? body.reason : '';
+    const targetId = clampText(body?.targetId, MAX_SHORT) ?? '';
+    const targetType = clampText(body?.targetType, 50);
+    const reason = clampText(body?.reason, MAX_SHORT) ?? '';
     if (!targetType || !reason) {
       return fail(c, 400, 'targetType and reason are required');
     }
@@ -109,24 +120,24 @@ submitRouter.post('/reports', rateLimit(300, 5), async (c) => {
     await db.insert(reports).values({
       id,
       reason,
-      targetType: String(targetType),
+      targetType,
       targetId: targetId || null,
       // Postgres default + frontend expectation: 'new' (not 'pending')
       status: 'new',
-      message: typeof body.message === 'string' ? body.message : null,
-      pageUrl: typeof body.pageUrl === 'string' ? body.pageUrl : null,
-      reporterName: typeof body.reporterName === 'string' ? body.reporterName : null,
-      reporterContact: typeof body.reporterContact === 'string' ? body.reporterContact : null,
-      reporterUserId: typeof body.reporterUserId === 'string' ? body.reporterUserId : null,
-      anonymousId: typeof body.anonymousId === 'string' ? body.anonymousId : null,
-      deviceFingerprint: typeof body.deviceFingerprint === 'string' ? body.deviceFingerprint : null,
-      deviceType: typeof body.deviceType === 'string' ? body.deviceType : null,
+      message: clampText(body.message, MAX_MESSAGE),
+      pageUrl: clampText(body.pageUrl, MAX_URL),
+      reporterName: clampText(body.reporterName, MAX_SHORT),
+      reporterContact: clampText(body.reporterContact, MAX_SHORT),
+      reporterUserId: clampText(body.reporterUserId, MAX_SHORT),
+      anonymousId: clampText(body.anonymousId, MAX_SHORT),
+      deviceFingerprint: clampText(body.deviceFingerprint, 256),
+      deviceType: clampText(body.deviceType, 50),
       ipAddress: clientIp(c),
-      os: typeof body.os === 'string' ? body.os : null,
-      browser: typeof body.browser === 'string' ? body.browser : null,
-      language: typeof body.language === 'string' ? body.language : null,
-      screenResolution: typeof body.screenResolution === 'string' ? body.screenResolution : null,
-      timezone: typeof body.timezone === 'string' ? body.timezone : null,
+      os: clampText(body.os, 100),
+      browser: clampText(body.browser, 100),
+      language: clampText(body.language, 50),
+      screenResolution: clampText(body.screenResolution, 50),
+      timezone: clampText(body.timezone, 100),
       createdAt: isoNow(),
       updatedAt: isoNow(),
     });
@@ -148,13 +159,13 @@ submitRouter.post('/reports', rateLimit(300, 5), async (c) => {
 submitRouter.post('/feedback', rateLimit(300, 5), async (c) => {
   try {
     const body = await jsonBody(c);
-    const enabled = await settingValue(createDb(c.env.DB), 'feedback_enabled');
-    if (enabled === false) {
-      const reason = await settingValue(createDb(c.env.DB), 'feedback_disabled_reason');
+    const flags = await settingValues(createDb(c.env.DB), ['feedback_enabled', 'feedback_disabled_reason']);
+    if (flags.feedback_enabled === false) {
+      const reason = flags.feedback_disabled_reason;
       return fail(c, 403, typeof reason === 'string' ? reason : 'Feedback is currently disabled');
     }
 
-    const message = typeof body?.message === 'string' ? body.message.trim() : '';
+    const message = clampText(body?.message, MAX_MESSAGE) ?? '';
     if (!message) return fail(c, 400, 'Message is required');
     if (!(await verifyTurnstile(c, typeof body.token === 'string' ? body.token : undefined))) {
       return fail(c, 400, 'Turnstile verification failed');
@@ -167,11 +178,11 @@ submitRouter.post('/feedback', rateLimit(300, 5), async (c) => {
       message: message,
       // Postgres default + frontend expectation: 'new' (not 'pending')
       status: 'new',
-      feedbackType: typeof body.feedbackType === 'string' ? body.feedbackType : null,
-      pageUrl: typeof body.pageUrl === 'string' ? body.pageUrl : null,
-      userId: typeof body.userId === 'string' ? body.userId : null,
-      userName: typeof body.userName === 'string' ? body.userName : null,
-      userContact: typeof body.userContact === 'string' ? body.userContact : null,
+      feedbackType: clampText(body.feedbackType, 50),
+      pageUrl: clampText(body.pageUrl, MAX_URL),
+      userId: clampText(body.userId, MAX_SHORT),
+      userName: clampText(body.userName, MAX_SHORT),
+      userContact: clampText(body.userContact, MAX_SHORT),
       createdAt: isoNow(),
       updatedAt: isoNow(),
     });
@@ -188,68 +199,49 @@ submitRouter.post('/feedback', rateLimit(300, 5), async (c) => {
   }
 });
 
-type LiveMatch = { id: string; name: string; slug: string | null; kind: 'app' | 'extension' };
-
-async function findLiveByName(db: ReturnType<typeof createDb>, name: string): Promise<LiveMatch | null> {
-  const lower = name.toLowerCase();
-  const [app] = await db
-    .select({ id: apps.id, name: apps.name, slug: apps.slug })
-    .from(apps)
-    .where(and(eq(apps.status, 'approved'), eq(sql`lower(${apps.name})`, lower)))
-    .limit(1);
-  if (app) return { ...app, kind: 'app' };
-  const [ext] = await db
-    .select({ id: extensions.id, name: extensions.name, slug: extensions.slug })
-    .from(extensions)
-    .where(and(eq(extensions.status, 'approved'), eq(sql`lower(${extensions.name})`, lower)))
-    .limit(1);
-  if (ext) return { ...ext, kind: 'extension' };
-  return null;
-}
-
-async function findLiveByRepoUrl(db: ReturnType<typeof createDb>, repoUrl: string): Promise<LiveMatch | null> {
-  const lower = repoUrl.toLowerCase();
-  const [app] = await db
-    .select({ id: apps.id, name: apps.name, slug: apps.slug })
-    .from(apps)
-    .where(and(eq(apps.status, 'approved'), eq(sql`lower(${apps.repoUrl})`, lower)))
-    .limit(1);
-  if (app) return { ...app, kind: 'app' };
-  const [ext] = await db
-    .select({ id: extensions.id, name: extensions.name, slug: extensions.slug })
-    .from(extensions)
-    .where(and(eq(extensions.status, 'approved'), eq(sql`lower(${extensions.repoUrl})`, lower)))
-    .limit(1);
-  if (ext) return { ...ext, kind: 'extension' };
-  return null;
-}
-
 /**
  * GET /api/submissions/check?type=&name=&repoUrl=
  * Live-table name/repo duplicates + pending/rejected submission duplicates.
+ * One D1 round trip; lookups use the lower(name)/lower(repo_url) indexes and
+ * submissions are filtered in SQL instead of loading every row.
  */
-submitRouter.get('/submissions/check', async (c) => {
+submitRouter.get('/submissions/check', rateLimit(60, 30), async (c) => {
   try {
     const db = createDb(c.env.DB);
     const type = c.req.query('type') === 'extension' ? 'extension' : 'app';
-    const name = (c.req.query('name') ?? '').trim();
-    const repoUrl = (c.req.query('repoUrl') ?? '').trim();
+    // Empty strings never match (names/urls are non-empty), so unused probes are no-ops.
+    const name = (c.req.query('name') ?? '').trim().slice(0, 200).toLowerCase();
+    const repoUrl = (c.req.query('repoUrl') ?? '').trim().slice(0, 500).toLowerCase();
+    if (!name && !repoUrl) return ok(c, { nameMatch: null, repoMatch: null, submissions: [] });
 
-    const [nameMatch, repoMatch] = await Promise.all([
-      name ? findLiveByName(db, name) : Promise.resolve(null),
-      repoUrl ? findLiveByRepoUrl(db, repoUrl) : Promise.resolve(null),
+    const appCols = { id: apps.id, name: apps.name, slug: apps.slug };
+    const extCols = { id: extensions.id, name: extensions.name, slug: extensions.slug };
+    const subName = sql`lower(trim(json_extract(${submissions.submittedData}, '$.name')))`;
+    const subRepo = sql`lower(trim(json_extract(${submissions.submittedData}, '$.repo_url')))`;
+    const [appByName, extByName, appByRepo, extByRepo, subRows] = await db.batch([
+      db.select(appCols).from(apps).where(and(eq(sql`lower(${apps.name})`, name), eq(apps.status, 'approved'))).limit(1),
+      db.select(extCols).from(extensions).where(and(eq(sql`lower(${extensions.name})`, name), eq(extensions.status, 'approved'))).limit(1),
+      db.select(appCols).from(apps).where(and(eq(sql`lower(${apps.repoUrl})`, repoUrl), eq(apps.status, 'approved'))).limit(1),
+      db.select(extCols).from(extensions).where(and(eq(sql`lower(${extensions.repoUrl})`, repoUrl), eq(extensions.status, 'approved'))).limit(1),
+      db.select({ status: submissions.status, adminNotes: submissions.adminNotes })
+        .from(submissions)
+        .where(and(
+          eq(submissions.submissionType, type),
+          inArray(submissions.status, ['pending', 'rejected']),
+          or(eq(subName, name), eq(subRepo, repoUrl)),
+        ))
+        .limit(20),
     ]);
 
-    // Scan this type's pending/rejected submissions for name/repo matches.
-    const rows = await db.select().from(submissions).where(eq(submissions.submissionType, type));
-    const duplicateSubmissions = rows
-      .filter((row) => {
-        const data = (row.submittedData ?? {}) as Record<string, unknown>;
-        const rowName = String(data.name ?? '').trim().toLowerCase();
-        const rowRepo = String(data.repo_url ?? '').trim().toLowerCase();
-        return (name && rowName === name.toLowerCase()) || (repoUrl && rowRepo === repoUrl.toLowerCase());
-      })
-      .map((row) => ({ status: row.status, admin_notes: row.adminNotes }));
+    const pick = (a: typeof appByName, e: typeof extByName) =>
+      a[0] ? { ...a[0], kind: 'app' as const } : e[0] ? { ...e[0], kind: 'extension' as const } : null;
+    const nameMatch = name ? pick(appByName, extByName) : null;
+    const repoMatch = repoUrl ? pick(appByRepo, extByRepo) : null;
+    // The moderator note is shown to submitters only as a rejection reason.
+    const duplicateSubmissions = subRows.map((row) => ({
+      status: row.status,
+      admin_notes: row.status === 'rejected' ? row.adminNotes : null,
+    }));
 
     return ok(c, { nameMatch, repoMatch, submissions: duplicateSubmissions });
   } catch (error) {
@@ -269,7 +261,7 @@ submitRouter.post('/edit-suggestions', rateLimit(300, 5), async (c) => {
     if (targetType !== 'app' && targetType !== 'extension' && targetType !== 'guide') {
       return fail(c, 400, "targetType must be 'app', 'extension' or 'guide'");
     }
-    if (typeof targetId !== 'string' || !targetId) {
+    if (typeof targetId !== 'string' || !targetId || targetId.length > MAX_SHORT) {
       return fail(c, 400, 'targetId is required');
     }
     if (typeof submittedData !== 'object' || submittedData === null) {
@@ -279,9 +271,15 @@ submitRouter.post('/edit-suggestions', rateLimit(300, 5), async (c) => {
       return fail(c, 400, 'Turnstile verification failed');
     }
 
-    const submitted: Record<string, unknown> = { ...(submittedData as Record<string, unknown>) };
-    if (typeof body.submitterNotes === 'string' && body.submitterNotes.trim()) {
-      submitted.submitter_notes = body.submitterNotes.trim();
+    const submitted = stripSubmitterPrivileged(submittedData);
+    const notes = clampText(body.submitterNotes, MAX_NOTE);
+    if (notes) submitted.submitter_notes = notes;
+    const snapshot =
+      typeof body.originalDataSnapshot === 'object' && body.originalDataSnapshot !== null
+        ? body.originalDataSnapshot
+        : null;
+    if (JSON.stringify(submitted).length + JSON.stringify(snapshot).length > MAX_SUBMITTED_DATA * 2) {
+      return fail(c, 413, 'Suggestion is too large');
     }
 
     const db = createDb(c.env.DB);
@@ -291,14 +289,11 @@ submitRouter.post('/edit-suggestions', rateLimit(300, 5), async (c) => {
       targetType,
       targetId,
       submittedData: submitted,
-      originalDataSnapshot:
-        typeof body.originalDataSnapshot === 'object' && body.originalDataSnapshot !== null
-          ? body.originalDataSnapshot
-          : null,
+      originalDataSnapshot: snapshot,
       status: 'pending',
-      submitterName: typeof body.submitterName === 'string' ? body.submitterName : null,
-      submitterContact: typeof body.submitterContact === 'string' ? body.submitterContact : null,
-      submitterUserId: typeof body.submitterUserId === 'string' ? body.submitterUserId : null,
+      submitterName: clampText(body.submitterName, MAX_SHORT),
+      submitterContact: clampText(body.submitterContact, MAX_SHORT),
+      submitterUserId: clampText(body.submitterUserId, MAX_SHORT),
       createdAt: isoNow(),
       updatedAt: isoNow(),
     });

@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { getDeviceFingerprint } from '../utils/deviceFingerprint';
 import { voteStorage, type VoteRegistry } from '../utils/voteStorage';
 import { likesApi } from '@/services/api';
@@ -114,8 +114,11 @@ export function LikeProvider({ children }: { children: React.ReactNode }) {
         []
     );
 
+    // Stable value: consumers only re-render when likes/loading actually change.
+    const value = useMemo(() => ({ getLikeData, toggleLike, loading }), [getLikeData, toggleLike, loading]);
+
     return (
-        <LikeContext.Provider value={{ getLikeData, toggleLike, loading }}>
+        <LikeContext.Provider value={value}>
             {children}
         </LikeContext.Provider>
     );

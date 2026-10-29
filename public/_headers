@@ -1,0 +1,36 @@
+# Headers for files served directly by the Workers static-assets layer
+# (requests that never reach the Worker). Worker responses get the same
+# headers from worker/lib/security.ts — KEEP THE CSP IN SYNC with
+# CONTENT_SECURITY_POLICY there.
+
+/*
+  X-Content-Type-Options: nosniff
+  X-Frame-Options: DENY
+  Referrer-Policy: strict-origin-when-cross-origin
+  Strict-Transport-Security: max-age=31536000; includeSubDomains
+  Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=(), usb=()
+  Cross-Origin-Opener-Policy: same-origin-allow-popups
+  Content-Security-Policy: default-src 'self'; script-src 'self' https://challenges.cloudflare.com https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; connect-src 'self' https:; frame-src https:; worker-src 'self'; manifest-src 'self'; media-src 'self' https:; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests
+
+# ── Browser caching ─────────────────────────────────────────────────
+# Vite output is content-hashed: a changed file gets a new name, so these
+# can be cached for a year and never revalidated.
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable
+
+# Pre-rendered OG images and app icons change rarely (same file names).
+/og/*
+  Cache-Control: public, max-age=86400, stale-while-revalidate=604800
+
+/icons/*
+  Cache-Control: public, max-age=604800, stale-while-revalidate=2592000
+
+# Un-hashed bootstrap files must always revalidate so deploys take effect.
+/sw.js
+  Cache-Control: no-cache
+
+/theme-init.js
+  Cache-Control: no-cache
+
+/manifest.webmanifest
+  Cache-Control: public, max-age=3600

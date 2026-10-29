@@ -1,6 +1,8 @@
 /// <reference types="@cloudflare/workers-types" />
-import { Hono } from 'hono';
+import { Hono, type Context } from 'hono';
+import { bodyLimit } from 'hono/body-limit';
 import { cors } from 'hono/cors';
+import { csrfGuard, isTrustedOrigin, securityHeaders } from './lib/security.ts';
 import type { Bindings } from './env';
 import type { AppEnv } from './lib/http.ts';
 import { apiRouter } from './routes/index.ts';
@@ -20,33 +22,43 @@ import { publicCache } from './lib/public-cache.ts';
  *   everything else → static assets (Vite build) with SPA fallback
  *
  * The SPA is served from the same Worker, so /api calls are same-origin
- * and need no CORS on the production site. CORS is configured for
- * external/preview callers via the ALLOWED_ORIGINS var.
+ * and need no CORS on the production site. Extra admin origins (e.g. a
+ * staging frontend) can be allowed via the ALLOWED_ORIGINS var.
  */
 export const app = new Hono<AppEnv>();
 
+// ── Security headers (all responses) ────────────────────────────────
+app.use('*', securityHeaders);
+
 // ── CORS ────────────────────────────────────────────────────────────
+// Public API: open to any origin (read-only directory data, no credentials).
+// Admin API: only the site itself, SITE_URL and ALLOWED_ORIGINS.
 app.use(
   '/api/*',
   cors({
     origin: (origin, c) => {
-      const allowed = (c.env.ALLOWED_ORIGINS ?? '')
-        .split(',')
-        .map((o) => o.trim())
-        .filter(Boolean);
-      // No allow-list configured → open (dev-friendly).
-      // With ALLOWED_ORIGINS set, only listed origins are echoed back;
-      // anything else gets the canonical site URL, which browsers reject.
-      if (origin && (allowed.length === 0 || allowed.includes(origin))) {
-        return origin;
-      }
-      return c.env.SITE_URL;
+      if (!origin) return null;
+      if (c.req.path.startsWith('/api/admin/')) return isTrustedOrigin(origin, c) ? origin : null;
+      return origin;
     },
     allowMethods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowHeaders: ['Content-Type', 'Authorization'],
     maxAge: 86_400,
   }),
 );
+
+// ── Request body limits ─────────────────────────────────────────────
+// Admin editors save full guide/blog HTML; public writes are small (guide
+// submissions are the largest, capped again per field in submit.ts).
+const tooLarge = (c: Context<AppEnv>) => c.json({ success: false, error: 'Request body too large' }, 413);
+app.use('/api/admin/*', bodyLimit({ maxSize: 2 * 1024 * 1024, onError: tooLarge }));
+app.use('/api/*', async (c, next) => {
+  if (c.req.path.startsWith('/api/admin/')) return next();
+  return bodyLimit({ maxSize: 256 * 1024, onError: tooLarge })(c, next);
+});
+
+// ── CSRF (state-changing admin requests) ────────────────────────────
+app.use('/api/admin/*', csrfGuard);
 
 // ── API ─────────────────────────────────────────────────────────────
 app.use('*', publicCache);
@@ -60,19 +72,12 @@ app.all('/api/*', (c) => c.json({ success: false, error: 'Not found' }, 404));
 app.route('/', sitemapRouter);
 app.route('/', seoRouter);
 
-// ── Static assets + SPA fallback ────────────────────────────────────
-app.all('*', async (c) => {
-  const assets = c.env.ASSETS;
-  const res = await assets.fetch(c.req.raw);
-
-  // SPA fallback: unknown routes that don't look like real files get
-  // the SPA shell (index.html), mirroring the old Pages behaviour.
-  if (res.status === 404 && !/\.[a-z0-9]+$/i.test(c.req.path)) {
-    const fallback = new Request(new URL('/index.html', c.req.url));
-    return assets.fetch(fallback);
-  }
-  return res;
-});
+// ── Static assets ───────────────────────────────────────────────────
+// Only reached for run_worker_first paths that no route above handled
+// (e.g. a trailing-slash variant). The assets binding applies
+// `not_found_handling = "single-page-application"`, so unknown client
+// routes come back as the SPA shell in one fetch.
+app.all('*', (c) => c.env.ASSETS.fetch(c.req.raw));
 
 /**
  * Cloudflare Cron Trigger (see `triggers` in wrangler.toml) —

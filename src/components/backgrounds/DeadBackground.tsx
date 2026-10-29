@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { getPerformanceTier } from '@/utils/performanceTier';
+import { runCanvasLoop } from '@/lib/canvasLoop';
 
 interface DeadBackgroundProps {
   theme?: 'light' | 'dark';
@@ -18,7 +19,6 @@ type Node = {
 export function DeadBackground({ theme = 'dark' }: DeadBackgroundProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const nodesRef = useRef<Node[]>([]);
-  const animationFrameRef = useRef<number | null>(null);
   const mouseRef = useRef({ x: -1000, y: -1000 });
 
   useEffect(() => {
@@ -142,16 +142,15 @@ export function DeadBackground({ theme = 'dark' }: DeadBackgroundProps) {
         }
       });
 
-      animationFrameRef.current = requestAnimationFrame(animate);
     };
 
-    animationFrameRef.current = requestAnimationFrame(animate);
+    const stopLoop = runCanvasLoop(canvas, animate);
 
     return () => {
       window.removeEventListener('resize', resizeCanvas);
       canvas.parentElement?.removeEventListener('mousemove', handleMouseMove);
       canvas.parentElement?.removeEventListener('mouseleave', handleMouseLeave);
-      if (animationFrameRef.current) cancelAnimationFrame(animationFrameRef.current);
+      stopLoop();
     };
   }, [theme]);
 

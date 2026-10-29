@@ -34,6 +34,16 @@ const env = {
         },
       };
     },
+    // D1 batch: sequential statements in one transaction.
+    async batch(statements: Array<{ all(): Promise<{ results: unknown[] }> }>) {
+      sqlite.exec('BEGIN');
+      try {
+        const out = [];
+        for (const s of statements) out.push(await s.all());
+        sqlite.exec('COMMIT');
+        return out;
+      } catch (error) { sqlite.exec('ROLLBACK'); throw error; }
+    },
   },
 } as unknown as Bindings;
 Object.defineProperty(globalThis, 'caches', { configurable: true, value: { default: { async match() { return undefined; }, async put() {}, async delete() { return true; } } } });

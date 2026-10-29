@@ -8,6 +8,18 @@ interface UseBlogPostOptions {
   requirePublished?: boolean;
 }
 
+/** Count a view at most once per browser session per post (fire-and-forget). */
+function recordViewOnce(postId: string) {
+  const key = `miyomi-blog-viewed:${postId}`;
+  try {
+    if (sessionStorage.getItem(key)) return;
+    sessionStorage.setItem(key, '1');
+  } catch {
+    // Storage unavailable (private mode) — still count the view.
+  }
+  blogApi.recordView(postId).catch(() => {});
+}
+
 export function useBlogPost(idOrSlug: string | undefined, options: UseBlogPostOptions = {}) {
   const [post, setPost] = useState<BlogPostData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -26,13 +38,13 @@ export function useBlogPost(idOrSlug: string | undefined, options: UseBlogPostOp
 
       setLoading(true);
       try {
-        // GET /api/blog/:slug increments the view counter server-side
         const data = await blogApi.get(idOrSlug);
 
         if (isMounted) {
           setError(null);
           setPost(data as unknown as BlogPostData);
         }
+        if (options.incrementView !== false) recordViewOnce(data.id);
       } catch (err: any) {
         if (err instanceof ApiError && err.status === 404) {
           if (isMounted) setPost(null);

@@ -2,6 +2,7 @@ import type { Context } from 'hono';
 import type { Bindings } from '../env';
 import type { Role } from './auth.ts';
 import type { ModeratorPermission } from './auth.ts';
+import type { admins } from '../db/schema.ts';
 
 /**
  * Shared Hono env: Cloudflare bindings + per-request auth context
@@ -15,6 +16,10 @@ export type AppEnv = {
     hasTotp?: boolean;
     role?: Role | null;
     permissions?: ModeratorPermission[];
+    /** Session expiry (epoch seconds) of the resolved token. */
+    sessionExp?: number;
+    /** Admin row loaded by resolveSession (avoid re-reading it). */
+    admin?: typeof admins.$inferSelect;
   };
 };
 
@@ -37,13 +42,12 @@ export function ok<T>(c: Ctx, data: T, status: number = 200) {
   return c.json({ success: true, data });
 }
 
-/** Best-effort client IP (Cloudflare-proxied, then standard headers) */
+/**
+ * Client IP as set by Cloudflare's edge. X-Forwarded-For is deliberately
+ * ignored: it is client-controlled and would let callers dodge rate limits.
+ */
 export function clientIp(c: Ctx): string {
-  return (
-    c.req.header('cf-connecting-ip') ||
-    c.req.header('x-forwarded-for')?.split(',')[0]?.trim() ||
-    'unknown'
-  );
+  return c.req.header('cf-connecting-ip') || 'unknown';
 }
 
 /** Parse limit/offset query params with sane bounds */

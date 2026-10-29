@@ -20,12 +20,25 @@ compatibility_date = "2025-09-01"
 crons = [ "0 */12 * * *" ]
 
 # ── Static assets ──────────────────────────────────────────────────
-# Vite build output, served by the same Worker through the ASSETS
-# binding. Exact-file matches are served by Cloudflare directly;
-# cache misses (SPA routes) fall through to the Hono app.
+# Vite build output. Files (and, via SPA handling, unknown client routes)
+# are served by the assets layer at the edge WITHOUT invoking the Worker.
+# Only the paths below run the Worker first: the API, the sitemap and the
+# pages that get server-side SEO tags (worker/routes/pages/seo.ts).
+# Keep this list in sync with seoRouter's routes.
 [assets]
 directory = "./dist"
 binding = "ASSETS"
+not_found_handling = "single-page-application"
+run_worker_first = [
+  "/api/*",
+  "/sitemap.xml",
+  "/",
+  "/software", "/software/*",
+  "/extensions", "/extensions/*",
+  "/guides", "/guides/*",
+  "/blog", "/blog/*",
+  "/faq", "/about", "/donate", "/submit", "/privacy",
+]
 
 # ── D1 — serverless SQLite ─────────────────────────────────────────
 [[d1_databases]]

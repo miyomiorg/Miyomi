@@ -19,3 +19,4 @@ app-meta.json
 # Database dumps containing real data — never commit
 *.backup
 *.dump
+opencode.json

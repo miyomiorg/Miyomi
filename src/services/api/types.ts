@@ -49,7 +49,7 @@ export interface TwoFactorSetup {
  */
 export type LoginStage = { loginStage: '2fa_required'; pendingToken: string };
 
-export type LoginResult = (SessionInfo & { token: string }) | LoginStage;
+export type LoginResult = SessionInfo | LoginStage;
 
 /** Dashboard aggregate (GET /admin/dashboard). */
 export interface DashboardData {

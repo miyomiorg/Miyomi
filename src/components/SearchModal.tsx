@@ -1,7 +1,7 @@
 import { BookOpen, FileText, Search, X, ArrowRight } from 'lucide-react';
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence } from 'motion/react';
+import { m as motion, AnimatePresence } from 'motion/react';
 import { useGlobalSearch } from '../hooks/useGlobalSearch';
 import { AppLogo } from './AppLogo';
 import { FlagDisplay } from './FlagDisplay';
@@ -21,6 +21,27 @@ const RESULT_TYPE_CLASSES: Record<SearchResultType, string> = {
   guide: 'bg-orange-500/10 text-orange-500',
   blog: 'bg-rose-500/10 text-rose-500',
 };
+
+// Module-level (not defined inside render): a component recreated on every
+// render remounts its subtree, re-requesting each logo per keystroke.
+function ResultIcon({ result }: { result: SearchResult }) {
+  if (result.type === 'guide') return <BookOpen className="w-5 h-5 text-orange-500" />;
+  if (result.type === 'blog') {
+    return result.thumbnail_url
+      ? <img src={result.thumbnail_url} alt="" className="w-full h-full object-cover" loading="lazy" decoding="async" />
+      : <FileText className="w-5 h-5 text-rose-500" />;
+  }
+  return (
+    <AppLogo
+      name={result.name}
+      logoUrl={result.logoUrl}
+      iconColor={result.accentColor || result.iconColor}
+      className="w-full h-full"
+      roundedClass="rounded-none"
+      textClassName="text-sm"
+    />
+  );
+}
 
 interface SearchModalProps {
   isOpen: boolean;
@@ -77,25 +98,6 @@ export function SearchModal({ isOpen, onClose }: SearchModalProps) {
         navigate(`/blog/${result.slug || result.id}`);
         break;
     }
-  };
-
-  const ResultIcon = ({ result }: { result: SearchResult }) => {
-    if (result.type === 'guide') return <BookOpen className="w-5 h-5 text-orange-500" />;
-    if (result.type === 'blog') {
-      return result.thumbnail_url
-        ? <img src={result.thumbnail_url} alt="" className="w-full h-full object-cover" loading="lazy" />
-        : <FileText className="w-5 h-5 text-rose-500" />;
-    }
-    return (
-      <AppLogo
-        name={result.name}
-        logoUrl={result.logoUrl}
-        iconColor={result.accentColor || result.iconColor}
-        className="w-full h-full"
-        roundedClass="rounded-none"
-        textClassName="text-sm"
-      />
-    );
   };
 
   const handleSearch = (e: React.FormEvent) => {
@@ -160,7 +162,7 @@ export function SearchModal({ isOpen, onClose }: SearchModalProps) {
                       value={query}
                       onChange={(e) => setQuery(e.target.value)}
                       placeholder="Search apps, extensions, guides, or blog posts..."
-                      className="flex-1 bg-transparent outline-none text-[var(--text-primary)] placeholder:text-[var(--text-secondary)]"
+                      className="flex-1 bg-transparent outline-none text-base text-[var(--text-primary)] placeholder:text-[var(--text-secondary)]"
                     />
                   </div>
                 </form>

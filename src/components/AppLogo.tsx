@@ -1,5 +1,4 @@
-import { useState } from 'react';
-import { useCachedImage } from '../hooks/useCachedImage';
+import { useEffect, useState } from 'react';
 
 interface AppLogoProps {
   name: string;
@@ -8,6 +7,8 @@ interface AppLogoProps {
   className?: string;
   roundedClass?: string;
   textClassName?: string;
+  /** Set for above-the-fold logos (e.g. a detail page header). */
+  eager?: boolean;
 }
 
 export function AppLogo({
@@ -17,14 +18,15 @@ export function AppLogo({
   className = 'w-16 h-16',
   roundedClass = 'rounded-xl',
   textClassName = 'text-xl',
+  eager = false,
 }: AppLogoProps) {
-  const [shouldFallback, setShouldFallback] = useState(!logoUrl);
+  const [failed, setFailed] = useState(false);
   const fallbackColor = iconColor || 'var(--brand)';
-  const cachedUrl = useCachedImage(logoUrl);
 
-  const handleError = () => setShouldFallback(true);
+  // A new logo URL gets a fresh attempt.
+  useEffect(() => setFailed(false), [logoUrl]);
 
-  if (shouldFallback) {
+  if (!logoUrl || failed) {
     return (
       <div
         className={`${className} ${roundedClass} flex items-center justify-center text-white font-semibold uppercase select-none`}
@@ -36,16 +38,22 @@ export function AppLogo({
     );
   }
 
+  // Plain <img>: the browser HTTP cache handles reuse. Lazy + async decoding
+  // keeps long lists from downloading/decoding every logo up front.
   return (
     <div
       className={`${className} ${roundedClass} overflow-hidden bg-[var(--bg-surface)] flex items-center justify-center`}
       aria-hidden="true"
     >
       <img
-        src={cachedUrl}
+        src={logoUrl}
         alt={`${name} logo`}
         className="w-full h-full object-contain"
-        onError={handleError}
+        loading={eager ? 'eager' : 'lazy'}
+        decoding="async"
+        width={64}
+        height={64}
+        onError={() => setFailed(true)}
         referrerPolicy="no-referrer"
       />
     </div>

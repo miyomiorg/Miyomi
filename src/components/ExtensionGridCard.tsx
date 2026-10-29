@@ -1,11 +1,9 @@
-import React, { useState } from 'react';
-import { Download, Info, ExternalLink } from 'lucide-react';
-import { motion } from 'motion/react';
+import React, { useEffect, useState } from 'react';
+import { ExternalLink } from 'lucide-react';
 import type { ExtensionData } from '../types/data';
 import { FlagDisplay } from './FlagDisplay';
-import { StarRating } from './StarRating';
 import { useAccentColor } from '../hooks/useAccentColor';
-import { useCachedImage } from '../hooks/useCachedImage';
+import { CardLink } from './CardLink';
 import { LoveButton } from './LoveButton';
 import { TagBadge } from './TagBadge';
 import { RepositoryStatus } from './RepositoryStatus';
@@ -19,18 +17,17 @@ interface ExtensionGridCardProps {
   onSelect: (extensionId: string) => void;
 }
 
-export function ExtensionGridCard({ extension, isHighlighted, matchedTags, onSelect }: ExtensionGridCardProps) {
-  const handleSelect = () => onSelect(extension.slug || extension.id);
+// Memoized: list pages re-render on every search keystroke / like change.
+export const ExtensionGridCard = React.memo(function ExtensionGridCard({ extension, isHighlighted, matchedTags, onSelect }: ExtensionGridCardProps) {
+  const ref = extension.slug || extension.id;
+  const handleSelect = () => onSelect(ref);
   const accentColor = useAccentColor({
     logoUrl: extension.logoUrl,
     preferredColor: extension.accentColor,
     defaultColor: 'var(--brand)',
   });
   const [imageError, setImageError] = useState(false);
-  const cachedUrl = useCachedImage(extension.logoUrl);
-
-  // Only use layoutId on desktop
-  const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
+  useEffect(() => setImageError(false), [extension.logoUrl]);
 
   const renderLogo = () => {
     const showFallback = imageError || !extension.logoUrl?.trim();
@@ -48,21 +45,23 @@ export function ExtensionGridCard({ extension, isHighlighted, matchedTags, onSel
 
     return (
       <img
-        src={cachedUrl}
+        src={extension.logoUrl}
         alt={`${extension.name} logo`}
         className="w-full h-full object-cover"
+        loading="lazy"
+        decoding="async"
+        width={48}
+        height={48}
+        referrerPolicy="no-referrer"
         onError={() => setImageError(true)}
       />
     );
   };
 
   return (
-    <motion.div
-      onClick={handleSelect}
-      whileHover={{ y: -4 }}
-      whileTap={{ scale: 0.98 }}
-      transition={{ duration: 0.2 }}
-      className={`group bg-[var(--bg-surface)] border border-[var(--divider)] rounded-2xl p-3 sm:p-5 hover:shadow-lg hover:border-[var(--brand)] transition-all cursor-pointer flex flex-col h-full ${isHighlighted
+    // The title is a stretched link (CardLink) covering the whole card.
+    <div
+      className={`list-item-cv relative group bg-[var(--bg-surface)] border border-[var(--divider)] rounded-2xl p-3 sm:p-5 hover:shadow-lg hover:border-[var(--brand)] [@media(hover:hover)]:hover:-translate-y-1 active:scale-[0.98] transition-[transform,box-shadow,border-color] duration-200 cursor-pointer flex flex-col h-full focus-within:ring-2 focus-within:ring-[var(--brand)] ${isHighlighted
         ? 'ring-2 ring-[var(--brand)] shadow-[0_8px_30px_rgba(0,0,0,0.12),0_0_0_4px_rgba(var(--brand-rgb),0.2)]'
         : 'shadow-[0_6px_20px_0_rgba(0,0,0,0.08)]'
         }`}
@@ -76,7 +75,7 @@ export function ExtensionGridCard({ extension, isHighlighted, matchedTags, onSel
             className="font-['Inter',sans-serif] text-[var(--text-primary)] mb-1 line-clamp-2"
             style={{ fontWeight: 600, fontSize: '14px', lineHeight: '1.3', wordBreak: 'break-word' }}
           >
-            {extension.name}
+            <CardLink href={`/extensions/${ref}`} onNavigate={handleSelect}>{extension.name}</CardLink>
           </h3>
           <div className="flex flex-wrap justify-center sm:justify-start gap-1 mb-2">
             <RepositoryStatus status={extension.devStatus} />
@@ -115,12 +114,13 @@ export function ExtensionGridCard({ extension, isHighlighted, matchedTags, onSel
             event.stopPropagation();
             handleSelect();
           }}
-          className="flex items-center justify-center text-xs font-semibold text-[var(--text-secondary)] hover:text-[var(--brand)] transition-colors p-1.5 rounded-md hover:bg-[var(--divider)]"
+          className="relative z-10 flex items-center justify-center text-xs font-semibold text-[var(--text-secondary)] hover:text-[var(--brand)] transition-colors p-2.5 -m-1 rounded-md hover:bg-[var(--divider)]"
           title="View Details"
+          aria-label={`View ${extension.name} details`}
         >
           <ExternalLink className="w-4 h-4" />
         </button>
       </div>
-    </motion.div>
+    </div>
   );
-}
+});

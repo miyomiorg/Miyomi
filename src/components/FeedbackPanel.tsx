@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { X, Send, Smile, AlertTriangle } from 'lucide-react';
-import { motion, AnimatePresence } from 'motion/react';
+import { m as motion, AnimatePresence } from 'motion/react';
 import { toast } from 'sonner';
 import Turnstile from 'react-turnstile';
 import { settingsApi, submitApi } from '@/services/api';

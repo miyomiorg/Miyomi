@@ -416,13 +416,31 @@ Use `npm run test:import` to verify the importer against disposable fixtures.
   `{ preserveKeys: true }`.
 - **React types**: keep `@types/react` / `@types/react-dom` aligned with the
   React 18 runtime; don't change runtime behavior just to satisfy types.
-- **Turnstile in dev**: verification is skipped when the Worker has no
-  `TURNSTILE_SECRET_KEY` (local `.dev.vars`), and the widget is skipped with
-  `VITE_DISABLE_TURNSTILE=true`. Production always verifies.
+- **Turnstile fails closed**: without `TURNSTILE_SECRET_KEY` the check is skipped
+  **only on localhost** (`wrangler dev`). Anywhere else — production and preview
+  deployments (which don't inherit secrets) — a missing secret rejects logins and
+  public submissions. The widget is skipped with `VITE_DISABLE_TURNSTILE=true`.
+- **Keep in sync (asset routing & headers)**:
+  - `wrangler.toml` → `[assets] run_worker_first` must list every route in
+    `worker/routes/pages/seo.ts` (`seoRouter`); other paths are served by the
+    assets layer without running the Worker (SPA routes get `index.html`).
+  - The CSP string in `public/_headers` must equal `CONTENT_SECURITY_POLICY` in
+    `worker/lib/security.ts` (`npm run verify:security` checks this).
+  - No inline `<script>` in `index.html` — the CSP forbids it (the theme
+    bootstrap lives in `public/theme-init.js`).
+- **Frontend code splitting**: every page except `HomePage` is a lazy chunk
+  (`src/lib/lazyPage.ts`); the admin area is one chunk (`src/AdminApp.tsx`) with
+  per-page chunks inside. Add new pages the same way — a static import of a page
+  pulls it (and its dependencies) into the main bundle.
+- **HTML sanitizing** goes through `src/lib/sanitize.ts` (one DOMPurify instance
+  with the iframe allow-list). Don't call `DOMPurify.sanitize` directly in pages.
+- **Admin session hint**: public pages only probe `/admin/auth/me` when the
+  `miyomi-admin-session` localStorage hint is set (written on login, cleared on
+  logout / 401); `/admin` pages always check.
 - **OG images**: plain `npm run build` empties `dist/og` — it is restored from
   `.og-cache/` automatically. Use `npm run build:release` to regenerate images.
-- **Rate limiter fails open**; some write paths use casts rather than full
-  runtime validation.
+- **Rate limiter fails open** (the per-admin 2FA failure lock fails closed);
+  some write paths use casts rather than full runtime validation.
 - **Rejection notes**: `submissions` stores `admin_notes` (plural);
   `public_edit_suggestions` and `reports` use `admin_note` (singular).
 - **Admin email casing**: emails are normalized to lowercase at write time;
@@ -441,7 +459,18 @@ Use `npm run test:import` to verify the importer against disposable fixtures.
   redirected to Settings, where a router-wide gate blocks every other admin API
   section until enrolment finishes. Once enabled it **cannot be disabled** —
   only reset (re-enrol) from Settings → Two-Factor Authentication with a password
-  confirm. Secrets are stored AES-GCM-encrypted (`SESSION_SECRET`-derived key).
+  confirm. Secrets are stored AES-GCM-encrypted with an HKDF key derived from
+  `SESSION_SECRET` (`v2.` prefix; legacy values still decrypt). Used codes can't be
+  replayed (`admins.totp_last_step`) and 5 wrong codes lock 2FA for 15 minutes.
+- **Session revocation**: tokens carry `admins.session_version`; password change /
+  reset, 2FA re-enrolment, deactivation and `POST /admin/auth/logout-all` bump it,
+  invalidating every other session. Pending-2FA/enrolment tickets are never
+  accepted as sessions.
+- Admin writes require a same-origin request (CSRF guard, `worker/lib/security.ts`);
+  admin CORS only allows the site itself, `SITE_URL` and `ALLOWED_ORIGINS`.
+- Public submissions/edit suggestions are stripped of privileged fields (counters,
+  slug, status, SEO, unknown metadata) and link fields reject `javascript:`/`data:`
+  schemes (`worker/lib/sanitize.ts`).
   Lost-authenticator recovery = CLI password reset (`admin:reset-password` +
   `admin:create`), which also clears the stored 2FA secret.
 - Turnstile protects public write endpoints; keep it enabled in production.

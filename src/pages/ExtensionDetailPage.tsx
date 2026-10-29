@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import { ArrowLeft, Download, Copy, Github, Globe, Calendar, Heart, Star, Clock, PlayCircle, BookOpen, ExternalLink } from 'lucide-react';
 import { toast } from 'sonner';
-import { motion, AnimatePresence } from 'motion/react';
+import { m as motion, AnimatePresence } from 'motion/react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { AppGridCard } from '../components/AppGridCard';
 import { ParticleBackground } from '../components/ParticleBackground';
@@ -156,9 +156,9 @@ export function ExtensionDetailPage({ extensionId, onNavigate }: ExtensionDetail
     setCount(api.scrollSnapList().length);
     setCurrent(api.selectedScrollSnap() + 1);
 
-    api.on("select", () => {
-      setCurrent(api.selectedScrollSnap() + 1);
-    });
+    const onSelect = () => setCurrent(api.selectedScrollSnap() + 1);
+    api.on("select", onSelect);
+    return () => { api.off("select", onSelect); };
   }, [api]);
 
   const handleBackClick = () => {
@@ -664,6 +664,7 @@ export function ExtensionDetailPage({ extensionId, onNavigate }: ExtensionDetail
 
                       forkOf={app.forkOf}
                       upstreamUrl={app.upstreamUrl}
+                      href={`/software/${app.slug || app.id}`}
                       onClick={() => onNavigate?.(`/software/${app.slug || app.id}`)}
                     />
                   </div>

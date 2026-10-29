@@ -1,23 +1,27 @@
-import { and, asc, eq, ne, or, sql } from 'drizzle-orm';
+import { and, asc, eq, getTableColumns, or } from 'drizzle-orm';
 import { Hono } from 'hono';
 import { createDb } from '../../lib/db.ts';
-import { fail, isUuid, ok, pagination, type AppEnv } from '../../lib/http.ts';
+import { fail, isUuid, ok, type AppEnv } from '../../lib/http.ts';
+import { guideIsPublic } from '../../lib/visibility.ts';
 import { guides } from '../../db/schema.ts';
 
 export const guidesRouter = new Hono<AppEnv>();
 
+// The list never ships guide bodies; GET /:idOrSlug returns the full row.
+const { content: _content, contentHtml: _contentHtml, ...listColumns } = getTableColumns(guides);
+
 /**
- * GET /api/guides — published guides (status != draft), ordered by
+ * GET /api/guides — public guides (published/approved), ordered by
  * category then title. Optional ?category= filter.
  */
 guidesRouter.get('/', async (c) => {
   try {
     const db = createDb(c.env.DB);
-    const category = c.req.query('category');
-    const conds = [ne(guides.status, 'draft')];
+    const category = c.req.query('category')?.slice(0, 100);
+    const conds = [guideIsPublic()];
     if (category) conds.push(eq(guides.category, category));
     const rows = await db
-      .select()
+      .select(listColumns)
       .from(guides)
       .where(conds.length === 1 ? conds[0] : and(...conds))
       .orderBy(asc(guides.category), asc(guides.title));
@@ -37,7 +41,7 @@ guidesRouter.get('/:idOrSlug', async (c) => {
     const [row] = await db
       .select()
       .from(guides)
-      .where(and(ne(guides.status, 'draft'), cond))
+      .where(and(guideIsPublic(), cond))
       .limit(1);
     if (!row) return fail(c, 404, 'Guide not found');
     return ok(c, row);

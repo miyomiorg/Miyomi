@@ -99,6 +99,10 @@ export const admins = sqliteTable(
      * global TELEGRAM_CHAT_IDS plus every admin's chat id (appended).
      */
     telegramChatId: text('telegram_chat_id'),
+    /** Bumped on credential changes; sessions signed with an older value are revoked. */
+    sessionVersion: integer('session_version').notNull().default(0),
+    /** Last accepted TOTP time step (30s counter) — rejects code replay. */
+    totpLastStep: integer('totp_last_step'),
     /** Legacy Supabase auth user id (app-level link, not a DB FK in D1) */
     userId: text('user_id'),
     displayName: text('display_name'),
@@ -134,7 +138,11 @@ export const adminSessions = sqliteTable(
     country: text('country'),
     createdAt: ts('created_at'),
   },
-  (t) => [index('idx_admin_sessions_admin_id').on(t.adminId)],
+  (t) => [
+    // (admin_id, created_at) serves per-admin lookups, counts and recency sorts.
+    index('idx_admin_sessions_admin_created').on(t.adminId, t.createdAt),
+    index('idx_admin_sessions_created_at').on(t.createdAt),
+  ],
 );
 
 export const adminLogs = sqliteTable(
@@ -152,7 +160,7 @@ export const adminLogs = sqliteTable(
     createdAt: tsN('created_at'),
   },
   (t) => [
-    index('idx_admin_logs_admin_id').on(t.adminId),
+    index('idx_admin_logs_admin_created').on(t.adminId, t.createdAt),
     index('idx_admin_logs_created_at').on(t.createdAt),
   ],
 );
@@ -203,9 +211,14 @@ export const apps = sqliteTable(
     // Confirmed from the production DDL: UNIQUE (slug) — apps_legacy_id_key
     // (SQLite, like Postgres, allows multiple NULLs in a unique index)
     uniqueIndex('uq_apps_slug').on(t.slug),
-    index('idx_apps_status').on(t.status),
+    // (status, name) serves the public list (WHERE status ORDER BY name).
+    index('idx_apps_status_name').on(t.status, t.name),
+    index('idx_apps_updated_at').on(t.updatedAt),
     index('idx_apps_name').on(t.name),
     index('idx_apps_category').on(t.category),
+    // Case-insensitive duplicate checks (submissions/check).
+    index('idx_apps_name_lower').on(sql`lower(${t.name})`),
+    index('idx_apps_repo_lower').on(sql`lower(${t.repoUrl})`),
   ],
 );
 
@@ -254,8 +267,11 @@ export const extensions = sqliteTable(
   },
   (t) => [
     uniqueIndex('uq_extensions_slug').on(t.slug), // (assumed)
-    index('idx_extensions_status').on(t.status),
+    index('idx_extensions_status_name').on(t.status, t.name),
+    index('idx_extensions_updated_at').on(t.updatedAt),
     index('idx_extensions_name').on(t.name),
+    index('idx_extensions_name_lower').on(sql`lower(${t.name})`),
+    index('idx_extensions_repo_lower').on(sql`lower(${t.repoUrl})`),
   ],
 );
 
@@ -291,6 +307,7 @@ export const guides = sqliteTable(
     uniqueIndex('uq_guides_slug').on(t.slug), // (assumed)
     index('idx_guides_status').on(t.status),
     index('idx_guides_published_at').on(t.publishedAt),
+    index('idx_guides_updated_at').on(t.updatedAt),
   ],
 );
 
@@ -327,6 +344,7 @@ export const blogPosts = sqliteTable(
     index('idx_blog_posts_status').on(t.status),
     index('idx_blog_posts_published_at').on(t.publishedAt),
     index('idx_blog_posts_category').on(t.category),
+    index('idx_blog_posts_updated_at').on(t.updatedAt),
   ],
 );
 
@@ -377,6 +395,8 @@ export const appGroupMemberships = sqliteTable(
   },
   (t) => [
     primaryKey({ columns: [t.appId, t.groupId] }), // confirmed: upsert onConflict 'app_id,group_id'
+    // The PK leads with app_id; lookups/joins/cascades by group need their own index.
+    index('idx_agm_group_app').on(t.groupId, t.appId),
   ],
 );
 
@@ -392,6 +412,7 @@ export const extensionGroupMemberships = sqliteTable(
   },
   (t) => [
     primaryKey({ columns: [t.extensionId, t.groupId] }),
+    index('idx_egm_group_ext').on(t.groupId, t.extensionId),
   ],
 );
 
@@ -511,8 +532,8 @@ export const submissions = sqliteTable(
     updatedAt: ts('updated_at'),
   },
   (t) => [
-    index('idx_submissions_status').on(t.status),
-    index('idx_submissions_type').on(t.submissionType), // (assumed)
+    index('idx_submissions_status_created').on(t.status, t.createdAt),
+    index('idx_submissions_type_status').on(t.submissionType, t.status),
     index('idx_submissions_created_at').on(t.createdAt),
   ],
 );
@@ -537,7 +558,7 @@ export const publicEditSuggestions = sqliteTable(
     updatedAt: ts('updated_at'),
   },
   (t) => [
-    index('idx_pes_status').on(t.status),
+    index('idx_pes_status_created').on(t.status, t.createdAt),
     index('idx_pes_target').on(t.targetType, t.targetId), // (assumed)
   ],
 );

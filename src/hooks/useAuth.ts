@@ -15,13 +15,47 @@ const subscribe = (listener: () => void) => {
   return () => { listeners.delete(listener); };
 };
 const getSnapshot = () => snapshot;
+
+// The session cookie is HttpOnly, so JS cannot see it. This hint records
+// "an admin session existed on this browser" so public pages can skip the
+// /admin/auth/me probe (a guaranteed 401) for ordinary visitors.
+const SESSION_HINT_KEY = 'miyomi-admin-session';
+function hasSessionHint(): boolean {
+  try { return localStorage.getItem(SESSION_HINT_KEY) === '1'; } catch { return true; }
+}
+function setSessionHint(present: boolean) {
+  try {
+    if (present) localStorage.setItem(SESSION_HINT_KEY, '1');
+    else localStorage.removeItem(SESSION_HINT_KEY);
+  } catch { /* optional */ }
+}
+/** True when the probe was skipped on a public page (an /admin page must still check). */
+let probeSkipped = false;
+
 function publish(session: SessionInfo | null) {
   snapshot = { session, loading: false };
+  setSessionHint(Boolean(session));
   listeners.forEach(listener => listener());
 }
 
 function restoreSession() {
-  if (restoration || !snapshot.loading) return;
+  if (restoration) return;
+  const onAdminPage = typeof window !== 'undefined' && window.location.pathname.startsWith('/admin');
+  if (!onAdminPage && !hasSessionHint()) {
+    if (snapshot.loading) {
+      probeSkipped = true;
+      snapshot = { session: null, loading: false };
+      listeners.forEach(listener => listener());
+    }
+    return;
+  }
+  if (!snapshot.loading && !probeSkipped) return;
+  if (probeSkipped) {
+    probeSkipped = false;
+    // Back to "loading" so admin route guards wait for the real answer.
+    snapshot = { session: null, loading: true };
+    listeners.forEach(listener => listener());
+  }
   const started = revision;
   restoration = authApi.me().then(session => {
     if (started === revision) publish(session);

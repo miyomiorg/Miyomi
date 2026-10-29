@@ -57,6 +57,7 @@ export const guidesApi = {
 export const blogApi = {
   list: () => http.get<Array<Omit<Tables<'blog_posts'>, 'content'> & { reading_minutes: number }>>('/blog'),
   get: (idOrSlug: string) => http.get<Tables<'blog_posts'>>(`/blog/${encodeURIComponent(idOrSlug)}`),
+  recordView: (idOrSlug: string) => http.post<{ views: number }>(`/blog/${encodeURIComponent(idOrSlug)}/view`),
 };
 
 export const faqsApi = {
@@ -71,6 +72,11 @@ export const settingsApi = {
 
 export const noticesApi = {
   list: () => http.get<Tables<'notices'>[]>('/notices'),
+};
+
+/** Public totals for the home page (approved apps/extensions, public guides). */
+export const countsApi = {
+  get: () => http.get<{ apps: number; extensions: number; guides: number }>('/counts'),
 };
 
 export const themesApi = {
@@ -156,8 +162,9 @@ export const authApi = {
     // Aggregate DTO (staged login responses) — keep loginStage/pendingToken keys intact.
     http.post<LoginResult>('/admin/auth/login', body, { preserveKeys: true }),
   completeLogin: (body: { pendingToken: string; code: string; remember?: boolean; device?: Record<string, unknown> }) =>
-    http.post<SessionInfo & { token: string }>('/admin/auth/login/complete', body, { preserveKeys: true }),
+    http.post<SessionInfo>('/admin/auth/login/complete', body, { preserveKeys: true }),
   logout: () => http.post<null>('/admin/auth/logout'),
+  logoutAll: () => http.post<null>('/admin/auth/logout-all'),
   me: () => http.get<SessionInfo>('/admin/auth/me'),
   changePassword: (body: { currentPassword: string; newPassword: string }) =>
     http.post<null>('/admin/auth/change-password', body),

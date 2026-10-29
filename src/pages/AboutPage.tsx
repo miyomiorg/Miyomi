@@ -1,5 +1,5 @@
 import { AlertCircle, Smartphone, Puzzle, BookOpen, Link as LinkIcon, Heart, Users, Github, UploadCloud, Coffee, Youtube, Target, Eye, Zap, Globe, MessageCircle, BarChart3, Database, Info, Sparkles, Star, Swords, Ghost } from 'lucide-react';
-import { motion } from 'motion/react';
+import { m as motion } from 'motion/react';
 import { useState, useEffect, type ReactNode } from 'react';
 import { FeedbackPanel } from '../components/FeedbackPanel';
 import { dataService } from '../services/dataService';

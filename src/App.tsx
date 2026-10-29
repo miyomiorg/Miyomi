@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { Suspense, useCallback, useEffect, useState } from "react";
 import { Toaster } from "./components/ui/sonner";
 import { ThemeProvider } from "./components/ThemeProvider";
 import { LikeProvider } from "./context/LikeContext";
@@ -8,55 +8,8 @@ import { Footer } from "./components/Footer";
 import { NoticeBanner } from "./components/NoticeBanner";
 import { QuotaRibbon } from "./components/QuotaRibbon";
 import { HomePage } from "./pages/HomePage";
-import { SoftwarePage } from "./pages/SoftwarePage";
-import { ExtensionsPage } from "./pages/ExtensionsPage";
-import { GuidesPage } from "./pages/GuidesPage";
-import { GuideDetailPage } from "./pages/GuideDetailPage";
-import { FAQPage } from "./pages/FAQPage";
-import { AboutPage } from "./pages/AboutPage";
-import { BlogPage } from "./pages/BlogPage";
-import { BlogDetailPage } from "./pages/BlogDetailPage";
-import { AppDetailPage } from "./pages/AppDetailPage";
-import { ExtensionDetailPage } from "./pages/ExtensionDetailPage";
-import { NotFoundPage } from "./pages/NotFoundPage";
-import { SearchPage } from "./pages/SearchPage";
-import { DonatePage } from "./pages/DonatePage";
-import { SubmitPage } from "./pages/SubmitPage";
-import { SubmitGuidePage } from "./pages/SubmitGuidePage";
-import { AdminLoginPage } from './pages/admin/AdminLoginPage';
-import { UnauthorizedPage } from './pages/UnauthorizedPage';
-import { PrivacyPolicyPage } from './pages/PrivacyPolicyPage';
-import { AdminDashboardPage } from './pages/admin/AdminDashboardPage';
-import { AdminAnalyticsPage } from './pages/admin/AdminAnalyticsPage';
-import { AdminAppsPage } from './pages/admin/AdminAppsPage';
-import { AdminAppFormPage } from './pages/admin/AdminAppFormPage';
-import { AdminExtensionsPage } from './pages/admin/AdminExtensionsPage';
-import { AdminExtensionFormPage } from './pages/admin/AdminExtensionFormPage';
-import { AdminGuidesPage } from './pages/admin/AdminGuidesPage';
-import { AdminGuideEditorPage } from './pages/admin/AdminGuideEditorPage';
-import { AdminFAQsPage } from './pages/admin/AdminFAQsPage';
-import { AdminFAQEditorPage } from './pages/admin/AdminFAQEditorPage';
-import { AdminBlogPostsPage } from './pages/admin/AdminBlogPostsPage';
-import { AdminBlogPostEditorPage } from './pages/admin/AdminBlogPostEditorPage';
-import { AdminSubmissionsPage } from './pages/admin/AdminSubmissionsPage';
-import { AdminGuideSubmissionsPage } from './pages/admin/AdminGuideSubmissionsPage';
-import { AdminLikesPage } from './pages/admin/AdminLikesPage';
-import { AdminNoticesPage } from './pages/admin/AdminNoticesPage';
-import { AdminDonationsPage } from './pages/admin/AdminDonationsPage';
-import { AdminThemesPage } from './pages/admin/AdminThemesPage';
-import { AdminSettingsPage } from './pages/admin/AdminSettingsPage';
-import { AdminLogsPage } from './pages/admin/AdminLogsPage';
-import { AdminBotLogsPage } from './pages/admin/AdminBotLogsPage';
-import { AdminSessionsPage } from './pages/admin/AdminSessionsPage';
-import { AdminUsersPage } from './pages/admin/AdminUsersPage';
-import { AdminContributorsPage } from './pages/admin/AdminContributorsPage';
-import { AdminEditSuggestionsPage } from './pages/admin/AdminEditSuggestionsPage';
-import { AdminReviewPage } from './pages/admin/AdminReviewPage';
-import { AdminReportsPage } from './pages/admin/AdminReportsPage';
-import { AdminFeedbacksPage } from './pages/admin/AdminFeedbacksPage';
-import { AdminCompatGroupsPage } from './pages/admin/AdminCompatGroupsPage';
-import { AdminLayout } from './components/admin/AdminLayout';
-import { ProtectedRoute } from './components/admin/ProtectedRoute';
+import { lazyPage, prefetchWhenIdle } from "./lib/lazyPage";
+import { LazyMotion } from "motion/react";
 import {
   BrowserRouter,
   Routes,
@@ -65,6 +18,43 @@ import {
   useParams,
   useLocation,
 } from "react-router-dom";
+
+// The home page ships in the main bundle for the fastest first paint; every
+// other page is its own chunk, fetched on navigation (or prefetched on idle).
+const loadSoftware = () => import("./pages/SoftwarePage");
+const loadExtensions = () => import("./pages/ExtensionsPage");
+const loadGuides = () => import("./pages/GuidesPage");
+const loadAppDetail = () => import("./pages/AppDetailPage");
+const loadExtensionDetail = () => import("./pages/ExtensionDetailPage");
+
+const SoftwarePage = lazyPage(loadSoftware, "SoftwarePage");
+const ExtensionsPage = lazyPage(loadExtensions, "ExtensionsPage");
+const GuidesPage = lazyPage(loadGuides, "GuidesPage");
+const AppDetailPage = lazyPage(loadAppDetail, "AppDetailPage");
+const ExtensionDetailPage = lazyPage(loadExtensionDetail, "ExtensionDetailPage");
+const GuideDetailPage = lazyPage(() => import("./pages/GuideDetailPage"), "GuideDetailPage");
+const FAQPage = lazyPage(() => import("./pages/FAQPage"), "FAQPage");
+const AboutPage = lazyPage(() => import("./pages/AboutPage"), "AboutPage");
+const BlogPage = lazyPage(() => import("./pages/BlogPage"), "BlogPage");
+const BlogDetailPage = lazyPage(() => import("./pages/BlogDetailPage"), "BlogDetailPage");
+const NotFoundPage = lazyPage(() => import("./pages/NotFoundPage"), "NotFoundPage");
+const SearchPage = lazyPage(() => import("./pages/SearchPage"), "SearchPage");
+const DonatePage = lazyPage(() => import("./pages/DonatePage"), "DonatePage");
+const SubmitPage = lazyPage(() => import("./pages/SubmitPage"), "SubmitPage");
+const SubmitGuidePage = lazyPage(() => import("./pages/SubmitGuidePage"), "SubmitGuidePage");
+const UnauthorizedPage = lazyPage(() => import("./pages/UnauthorizedPage"), "UnauthorizedPage");
+const PrivacyPolicyPage = lazyPage(() => import("./pages/PrivacyPolicyPage"), "PrivacyPolicyPage");
+
+// The whole admin area (layout + pages) is a separate chunk.
+const AdminApp = React.lazy(() => import("./AdminApp"));
+
+function PageFallback() {
+  return (
+    <div className="flex min-h-[50vh] items-center justify-center" role="status" aria-label="Loading">
+      <div className="h-10 w-10 animate-spin rounded-full border-2 border-[var(--divider)] border-t-[var(--brand)]" />
+    </div>
+  );
+}
 
 function AppDetailPageWrapper({
   onNavigate,
@@ -112,17 +102,21 @@ function GuideDetailPageWrapper({
   );
 }
 
-function AppContent() {
+function PublicApp() {
   const navigate = useNavigate();
   const location = useLocation();
-  const isAdminRoute = location.pathname.startsWith('/admin');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     setMobileMenuOpen(false);
   }, [location.pathname]);
 
-  const handleNavigate = (path: string) => {
+  // Warm the most-visited pages once the first page is interactive.
+  useEffect(() => {
+    prefetchWhenIdle([loadSoftware, loadExtensions, loadGuides, loadAppDetail, loadExtensionDetail]);
+  }, []);
+
+  const handleNavigate = useCallback((path: string) => {
     const currentScrollY = window.scrollY;
     React.startTransition(() => {
       navigate(path, {
@@ -131,172 +125,92 @@ function AppContent() {
           fromNavigation: true
         }
       });
-      // Scroll to top for new pages  
+      // Scroll to top for new pages
       window.scrollTo({ top: 0, behavior: 'instant' });
     });
-  };
+  }, [navigate]);
 
-  // Admin routes get their own layout (no Navbar/Footer)
-  if (isAdminRoute) {
-    return (
-      <>
-        <Toaster position="top-center" />
-        <Routes>
-          <Route path="/admin" element={<AdminLoginPage />} />
-          <Route path="/admin/*" element={<ProtectedRoute><AdminLayout /></ProtectedRoute>}>
-            <Route path="dashboard" element={<AdminDashboardPage />} />
-            <Route path="analytics" element={<AdminAnalyticsPage />} />
-            <Route path="apps" element={<AdminAppsPage />} />
-            <Route path="apps/new" element={<AdminAppFormPage />} />
-            <Route path="apps/:id/edit" element={<AdminAppFormPage />} />
-            <Route path="extensions" element={<AdminExtensionsPage />} />
-            <Route path="extensions/new" element={<AdminExtensionFormPage />} />
-            <Route path="extensions/:id/edit" element={<AdminExtensionFormPage />} />
-            <Route path="guides" element={<AdminGuidesPage />} />
-            <Route path="guides/new" element={<AdminGuideEditorPage />} />
-            <Route path="guides/:id/edit" element={<AdminGuideEditorPage />} />
-            <Route path="blog-posts" element={<AdminBlogPostsPage />} />
-            <Route path="blog-posts/new" element={<AdminBlogPostEditorPage />} />
-            <Route path="blog-posts/:id/edit" element={<AdminBlogPostEditorPage />} />
-            <Route path="faqs" element={<AdminFAQsPage />} />
-            <Route path="faqs/new" element={<AdminFAQEditorPage />} />
-            <Route path="faqs/:id/edit" element={<AdminFAQEditorPage />} />
-            <Route path="contributors" element={<AdminContributorsPage />} />
-            <Route path="submissions" element={<AdminSubmissionsPage />} />
-            <Route path="guide-submissions" element={<AdminGuideSubmissionsPage />} />
-            <Route path="submissions/:id" element={<AdminReviewPage mode="submission" />} />
-            <Route path="edit-suggestions" element={<AdminEditSuggestionsPage />} />
-            <Route path="edit-suggestions/:id" element={<AdminReviewPage mode="edit-suggestion" />} />
-            <Route path="reports" element={<AdminReportsPage />} />
-            <Route path="feedbacks" element={<AdminFeedbacksPage />} />
-            <Route path="likes" element={<AdminLikesPage />} />
-            <Route path="compat-groups" element={<AdminCompatGroupsPage />} />
-            <Route path="notices" element={<AdminNoticesPage />} />
-            <Route path="donations" element={<AdminDonationsPage />} />
-            <Route path="themes" element={<AdminThemesPage />} />
-            <Route path="settings" element={<AdminSettingsPage />} />
-            <Route path="logs" element={<AdminLogsPage />} />
-            <Route path="bot-logs" element={<AdminBotLogsPage />} />
-            {/* <Route path="sessions" element={<AdminSessionsPage />} /> */}
-            <Route path="admins" element={<ProtectedRoute requireSuperAdmin><AdminUsersPage /></ProtectedRoute>} />
-          </Route>
-        </Routes>
-      </>
-    );
-  }
+  const toggleMobileMenu = useCallback(() => setMobileMenuOpen((open) => !open), []);
 
   return (
-    <div className="min-h-screen bg-[var(--bg-page)] font-['Inter',sans-serif] flex flex-col">
-      {/* <ChristmasSnow /> */}
-      <Toaster position="top-center" />
+    <LikeProvider>
+      <div className="min-h-dvh bg-[var(--bg-page)] font-['Inter',sans-serif] flex flex-col">
+        <Toaster position="top-center" />
 
-      <Navbar
-        onNavigate={handleNavigate}
-        mobileMenuOpen={mobileMenuOpen}
-        setMobileMenuOpen={setMobileMenuOpen}
-      />
+        <Navbar
+          onNavigate={handleNavigate}
+          mobileMenuOpen={mobileMenuOpen}
+          setMobileMenuOpen={setMobileMenuOpen}
+        />
 
-      {/* Main Content */}
-      <main className="flex-1 px-4 sm:px-8 lg:px-[120px] pt-16 md:pt-24 pb-[calc(4rem+env(safe-area-inset-bottom))] md:pb-12">
-        <NoticeBanner />
-        <QuotaRibbon />
-        <Routes>
-          <Route
-            path="/"
-            element={<HomePage onNavigate={handleNavigate} />}
-          />
-          <Route
-            path="/software"
-            element={
-              <SoftwarePage onNavigate={handleNavigate} />
-            }
-          />
-          <Route
-            path="/software/:appId"
-            element={
-              <AppDetailPageWrapper
-                onNavigate={handleNavigate}
-              />
-            }
-          />
-          <Route
-            path="/extensions"
-            element={
-              <ExtensionsPage onNavigate={handleNavigate} />
-            }
-          />
-          <Route
-            path="/extensions/:slug"
-            element={
-              <ExtensionDetailPageWrapper
-                onNavigate={handleNavigate}
-              />
-            }
-          />
-          <Route
-            path="/guides"
-            element={<GuidesPage onNavigate={handleNavigate} />}
-          />
-          <Route
-            path="/guides/:slug"
-            element={
-              <GuideDetailPageWrapper
-                onNavigate={handleNavigate}
-              />
-            }
-          />
-          <Route path="/blog" element={<BlogPage onNavigate={handleNavigate} />} />
-          <Route path="/blog/:slug" element={<BlogDetailPage onNavigate={handleNavigate} />} />
-          <Route
-            path="/search"
-            element={<SearchPage onNavigate={handleNavigate} />}
-          />
-          <Route path="/faq" element={<FAQPage />} />
-          <Route path="/about" element={<AboutPage />} />
-          <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
-          <Route path="/contribute" element={<SubmitPage />} />
-          <Route path="/donate" element={<DonatePage />} />
-          <Route path="/submit-guide" element={<SubmitGuidePage onNavigate={handleNavigate} />} />
+        {/* Main Content */}
+        <main className="flex-1 px-4 sm:px-8 lg:px-[120px] pt-[calc(4rem+env(safe-area-inset-top))] md:pt-24 pb-[calc(4rem+env(safe-area-inset-bottom))] md:pb-12">
+          <NoticeBanner />
+          <QuotaRibbon />
+          <Suspense fallback={<PageFallback />}>
+            <Routes>
+              <Route path="/" element={<HomePage onNavigate={handleNavigate} />} />
+              <Route path="/software" element={<SoftwarePage onNavigate={handleNavigate} />} />
+              <Route path="/software/:appId" element={<AppDetailPageWrapper onNavigate={handleNavigate} />} />
+              <Route path="/extensions" element={<ExtensionsPage onNavigate={handleNavigate} />} />
+              <Route path="/extensions/:slug" element={<ExtensionDetailPageWrapper onNavigate={handleNavigate} />} />
+              <Route path="/guides" element={<GuidesPage onNavigate={handleNavigate} />} />
+              <Route path="/guides/:slug" element={<GuideDetailPageWrapper onNavigate={handleNavigate} />} />
+              <Route path="/blog" element={<BlogPage onNavigate={handleNavigate} />} />
+              <Route path="/blog/:slug" element={<BlogDetailPage onNavigate={handleNavigate} />} />
+              <Route path="/search" element={<SearchPage onNavigate={handleNavigate} />} />
+              <Route path="/faq" element={<FAQPage />} />
+              <Route path="/about" element={<AboutPage />} />
+              <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
+              <Route path="/contribute" element={<SubmitPage />} />
+              <Route path="/donate" element={<DonatePage />} />
+              <Route path="/submit-guide" element={<SubmitGuidePage onNavigate={handleNavigate} />} />
 
-          {/* Fallback for unknown routes */}
-          <Route path="/unauthorized" element={<UnauthorizedPage />} />
-          <Route path="*" element={<NotFoundPage />} />
-        </Routes>
-      </main>
+              {/* Fallback for unknown routes */}
+              <Route path="/unauthorized" element={<UnauthorizedPage />} />
+              <Route path="*" element={<NotFoundPage />} />
+            </Routes>
+          </Suspense>
+        </main>
 
-      <BottomNavigation
-        onNavigate={handleNavigate}
-        mobileMenuOpen={mobileMenuOpen}
-        onMenuToggle={() => setMobileMenuOpen(!mobileMenuOpen)}
-      />
+        <BottomNavigation
+          onNavigate={handleNavigate}
+          mobileMenuOpen={mobileMenuOpen}
+          onMenuToggle={toggleMobileMenu}
+        />
 
-      {/* Footer */}
-      <Footer />
-    </div>
+        {/* Footer */}
+        <Footer />
+      </div>
+    </LikeProvider>
   );
 }
 
+function AppContent() {
+  const location = useLocation();
+  // Admin routes get their own layout (no Navbar/Footer) and their own chunk.
+  if (location.pathname.startsWith('/admin')) {
+    return (
+      <Suspense fallback={<PageFallback />}>
+        <AdminApp />
+      </Suspense>
+    );
+  }
+  return <PublicApp />;
+}
+
+// Components import `m` (aliased as `motion`); the animation engine itself
+// arrives in a separate chunk after first paint.
+const loadMotionFeatures = () => import("./lib/motionFeatures").then((mod) => mod.default);
+
 export default function App() {
-  useEffect(() => {
-    const storedTheme = localStorage.getItem("theme");
-    const systemTheme = window.matchMedia(
-      "(prefers-color-scheme: dark)",
-    ).matches
-      ? "dark"
-      : "light";
-    const initialTheme = storedTheme || systemTheme;
-
-    document.documentElement.classList.remove("light", "dark");
-    document.documentElement.classList.add(initialTheme);
-  }, []);
-
   return (
     <ThemeProvider>
-      <BrowserRouter>
-        <LikeProvider>
+      <LazyMotion features={loadMotionFeatures} strict>
+        <BrowserRouter>
           <AppContent />
-        </LikeProvider>
-      </BrowserRouter>
+        </BrowserRouter>
+      </LazyMotion>
     </ThemeProvider>
   );
 }

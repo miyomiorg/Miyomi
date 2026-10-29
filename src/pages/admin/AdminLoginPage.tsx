@@ -4,7 +4,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useAdmin } from '@/hooks/useAdmin';
 import { Shield, Lock, Mail, Eye, EyeOff, Loader2, Zap, Sword, Skull, Wind, Waves, ShieldCheck } from 'lucide-react';
 import Turnstile from 'react-turnstile';
-import { motion, AnimatePresence } from 'framer-motion';
+import { m as motion, AnimatePresence } from 'motion/react';
 
 // Anime Themes Configuration
 const ANIME_THEMES = [

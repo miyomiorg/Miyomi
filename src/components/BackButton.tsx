@@ -1,6 +1,6 @@
 import React from 'react';
 import { ArrowLeft } from 'lucide-react';
-import { motion } from 'motion/react';
+import { m as motion } from 'motion/react';
 
 interface BackButtonProps {
   onClick: () => void;

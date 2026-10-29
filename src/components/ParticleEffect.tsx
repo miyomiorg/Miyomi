@@ -2,6 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import type { ParticleConfig } from '@/hooks/useThemeEngine';
 import { useTheme } from './ThemeProvider';
 import { getPerformanceTier } from '../utils/performanceTier';
+import { runCanvasLoop } from '../lib/canvasLoop';
 
 interface ParticleEffectProps {
     className?: string;
@@ -123,15 +124,17 @@ function drawLeafParticle(ctx: CanvasRenderingContext2D, p: Particle) {
 export function ParticleEffect({ className, style, config, countOverride }: ParticleEffectProps) {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const particlesRef = useRef<Particle[]>([]);
-    const animFrameRef = useRef<number>(0);
     const { theme } = useTheme();
 
-    if (typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return null;
-    if (!config || config.type === 'none') return null;
+    // Computed before the effect but applied after it: an early return above a
+    // hook changes the hook order between renders (rules of hooks).
+    const disabled =
+        (typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches) ||
+        !config || config.type === 'none';
 
     useEffect(() => {
         const canvas = canvasRef.current;
-        if (!canvas || !config || config.type === 'none') return;
+        if (disabled || !canvas || !config || config.type === 'none') return;
 
         const ctx = canvas.getContext('2d');
         if (!ctx) return;
@@ -198,20 +201,22 @@ export function ParticleEffect({ className, style, config, countOverride }: Part
                         break;
                 }
             });
-
-            animFrameRef.current = requestAnimationFrame(animate);
         }
 
-        animFrameRef.current = requestAnimationFrame(animate);
+        // Paused off-screen / in hidden tabs; capped at 60 fps so per-frame
+        // movement isn't doubled on 120 Hz screens.
+        const stopLoop = runCanvasLoop(canvas, animate);
 
         const observer = new ResizeObserver(resize);
         if (canvas.parentElement) observer.observe(canvas.parentElement);
 
         return () => {
-            cancelAnimationFrame(animFrameRef.current);
+            stopLoop();
             observer.disconnect();
         };
-    }, [config, countOverride, theme]);
+    }, [config, countOverride, theme, disabled]);
+
+    if (disabled) return null;
 
     return (
         <canvas

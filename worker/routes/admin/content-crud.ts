@@ -2,6 +2,7 @@ import { and, desc, eq, like, or, sql } from 'drizzle-orm';
 import type { AnySQLiteTable } from 'drizzle-orm/sqlite-core';
 import { Hono } from 'hono';
 import { createDb } from '../../lib/db.ts';
+import { safeLink } from '../../lib/sanitize.ts';
 import {
   fail,
   isoNow,
@@ -25,6 +26,13 @@ import {
 } from './content.ts';
 
 type ContentKind = 'apps' | 'extensions' | 'guides' | 'blog';
+
+/** Image/link fields on guides & blog posts: block dangerous URL schemes. */
+function sanitizeLinkFields(values: Record<string, unknown>) {
+  for (const key of ['ogImageUrl', 'thumbnailUrl', 'authorAvatarUrl'] as const) {
+    if (key in values && values[key] !== null) values[key] = safeLink(values[key]);
+  }
+}
 
 interface KindConfig {
   /** All four content tables share the id/slug/status/updatedAt columns */
@@ -96,19 +104,11 @@ export function makeContentRouter(kind: ContentKind) {
       if (search) conds.push(searchCond(search));
 
       const t = cfg.table as typeof apps;
-      const rows = await db
-        .select()
-        .from(t)
-        .where(conds.length ? and(...(conds as never[])) : undefined)
-        .orderBy(desc(t.updatedAt))
-        .limit(limit)
-        .offset(offset);
-
-      const totalRows = await db
-        .select({ total: sql<number>`count(*)` })
-        .from(t)
-        .where(conds.length ? and(...(conds as never[])) : undefined)
-        .limit(1);
+      const where = conds.length ? and(...(conds as never[])) : undefined;
+      const [rows, totalRows] = await db.batch([
+        db.select().from(t).where(where).orderBy(desc(t.updatedAt)).limit(limit).offset(offset),
+        db.select({ total: sql<number>`count(*)` }).from(t).where(where).limit(1),
+      ]);
 
       return ok(c, { items: rows, total: totalRows[0]?.total ?? rows.length });
     } catch (error) {
@@ -204,6 +204,7 @@ export function makeContentRouter(kind: ContentKind) {
         ] as const) {
           if (body[key] !== undefined) values[key] = body[key];
         }
+        sanitizeLinkFields(values);
         if (kind === 'blog') {
           values.views = 0;
           if (body.isPinned !== undefined) values.isPinned = body.isPinned;
@@ -295,6 +296,7 @@ export function makeContentRouter(kind: ContentKind) {
         ] as const) {
           if (body[key] !== undefined) values[key] = body[key];
         }
+        sanitizeLinkFields(values);
         if (kind === 'blog') {
           if (body.isPinned !== undefined) values.isPinned = body.isPinned;
           if (body.authorId !== undefined) values.authorId = body.authorId;

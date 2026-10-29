@@ -31,8 +31,9 @@ export function LoveButton({
 
     const isLarge = size === 'lg';
 
+    // relative z-10: stays clickable above a card's stretched link overlay.
     return (
-        <div className={cn("flex items-center gap-1.5", className)}>
+        <div className={cn("relative z-10 flex items-center gap-1.5", className)}>
             <button
                 onClick={handleToggle}
                 className={cn(
