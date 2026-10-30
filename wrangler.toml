@@ -3,6 +3,7 @@
 # ════════════════════════════════════════════════════════════════════
 #  Dev:      npm run dev          (Vite SPA on :8080, proxies /api → :8787)
 #            npm run dev:worker   (Worker + D1 on :8787)
+#            npm run dev:worker:remote  (same, DB = production D1 via remote binding)
 #  Deploy:   npm run build:release && npm run deploy:worker
 #
 #  One Worker serves the API (/api/*), SEO-injected HTML, /sitemap.xml,

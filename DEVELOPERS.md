@@ -173,6 +173,19 @@ npm run dev          # Vite SPA on http://localhost:8080 (proxies /api → :8787
 > ⚠️ Run **one** `wrangler dev` at a time — two instances sharing the local D1 file
 > cause `SQLITE_BUSY`.
 
+**Developing against production data.** Use `npm run dev:worker:remote` instead of
+`npm run dev:worker` (then `npm run dev` as usual). The Worker still runs locally,
+but its `DB` binding is a [remote binding](https://developers.cloudflare.com/workers/development-testing/#remote-bindings)
+to the real D1 database. `scripts/dev-remote.mjs` writes a temporary, gitignored
+`wrangler.remote-data.toml` (a copy of `wrangler.toml` with `remote = true` on the
+D1 binding), so `wrangler.toml` stays the only config source. Requires
+`wrangler login`.
+
+> ⚠️ Every write in that session (admin edits, likes, submissions, feedback) changes
+> **live** data, and Telegram notifications go to the real channels. Use
+> `wrangler dev --remote` only as a last resort — it uploads `dist/` as a preview and
+> currently fails with `code: 10013`.
+
 ### 5. Verify & Build
 
 ```bash

@@ -12,6 +12,7 @@ supabase
 
 # Generated / local-only artifacts
 tmp-*.sql
+wrangler.remote-data.toml
 app-meta.json
 # OG image cache restored into dist/og after vite builds
 .og-cache

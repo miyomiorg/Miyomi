@@ -107,6 +107,7 @@
         "preview": "vite preview",
         "build:dev": "vite build --mode development",
         "dev:worker": "wrangler dev",
+        "dev:worker:remote": "node scripts/dev-remote.mjs",
         "deploy:worker": "wrangler deploy",
         "db:generate": "drizzle-kit generate",
         "db:push": "drizzle-kit push",

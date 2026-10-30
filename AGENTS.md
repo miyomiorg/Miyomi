@@ -69,6 +69,7 @@ Read this file before making changes. Also read:
 
 ```bash
 npm run dev:worker        # Worker + D1 on :8787  (run ONLY ONE at a time)
+npm run dev:worker:remote # same, but DB = PRODUCTION D1 (writes are live!)
 npm run dev               # Vite SPA on :8080, proxies /api → :8787
 npm run d1:migrate:local  # apply migrations to local D1
 npm run seed:local        # add local dev admin (does NOT wipe data)
