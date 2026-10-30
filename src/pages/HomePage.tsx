@@ -14,6 +14,9 @@ interface HomePageProps {
   onNavigate?: (path: string) => void;
 }
 
+// React 18 only forwards the lowercase attribute (camelCase `fetchPriority` is React 19+).
+const HIGH_FETCH_PRIORITY = { fetchpriority: 'high' } as Record<string, string>;
+
 export function HomePage({ onNavigate }: HomePageProps) {
   // Three numbers from one tiny endpoint instead of downloading every app,
   // extension and guide (~300 KB of JSON) on the landing page.
@@ -100,7 +103,7 @@ export function HomePage({ onNavigate }: HomePageProps) {
                   height={180}
                   width={180}
                   className="relative z-10 object-contain drop-shadow-2xl"
-                  fetchPriority="high"
+                  {...HIGH_FETCH_PRIORITY}
                 />
               </div>
             </div>
@@ -271,7 +274,7 @@ export function HomePage({ onNavigate }: HomePageProps) {
                   height={280}
                   width={280}
                   className="relative z-10 object-contain drop-shadow-2xl"
-                  fetchPriority="high"
+                  {...HIGH_FETCH_PRIORITY}
                 />
               </div>
             </div>
