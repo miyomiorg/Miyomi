@@ -215,14 +215,23 @@ export function BlogPage({ onNavigate }: { onNavigate: (path: string) => void })
                                                     alt={pinnedPost.thumbnail_alt || pinnedPost.title}
                                                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
                                                 />
+                                                <span
+                                                    className="absolute top-3 left-3 w-8 h-8 rounded-full bg-[#a855f7] text-white flex items-center justify-center shadow-lg shadow-black/30"
+                                                    title="Pinned"
+                                                    aria-label="Pinned post"
+                                                >
+                                                    <Pin className="w-4 h-4 rotate-45" />
+                                                </span>
                                             </div>
                                         )}
                                         <div className={`p-6 md:p-8 flex flex-col justify-center ${pinnedPost.thumbnail_url ? 'md:w-[55%]' : 'w-full'}`}>
-                                            <div className="flex items-center gap-2 mb-3">
-                                                <span className="text-[#a855f7] bg-[#a855f7]/10 px-2 py-1 rounded-md text-[10px] uppercase tracking-widest font-bold flex items-center gap-1.5">
-                                                    <Pin className="w-3 h-3" /> PINNED
-                                                </span>
-                                            </div>
+                                            {!pinnedPost.thumbnail_url && (
+                                                <div className="flex items-center gap-2 mb-3">
+                                                    <span className="text-[#a855f7] bg-[#a855f7]/10 px-2 py-1 rounded-md text-[10px] uppercase tracking-widest font-bold flex items-center gap-1.5">
+                                                        <Pin className="w-3 h-3" /> PINNED
+                                                    </span>
+                                                </div>
+                                            )}
                                             <h2 className="text-xl md:text-2xl font-bold text-[var(--text-primary)] mb-2 group-hover:text-[var(--brand)] transition-colors line-clamp-2 font-['Poppins',sans-serif]">
                                                 {pinnedPost.title}
                                             </h2>
