@@ -1,6 +1,7 @@
 import React from 'react';
 import { ArrowLeft, Shield, Database, Fingerprint, FileText, Globe, Mail } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { BackToTopButton } from '../components/BackToTopButton';
 
 export function PrivacyPolicyPage() {
   const navigate = useNavigate();
@@ -135,6 +136,7 @@ export function PrivacyPolicyPage() {
         </section>
 
       </div>
+      <BackToTopButton />
     </div>
   );
 }

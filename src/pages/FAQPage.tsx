@@ -4,6 +4,7 @@ import { dataService } from '../services/dataService';
 import type { FAQData } from '../types/data';
 import { AnimatePresence } from 'motion/react';
 import { MarkdownRenderer } from '../components/MarkdownRenderer';
+import { BackToTopButton } from '../components/BackToTopButton';
 import { sanitizeRichHtml } from '../lib/sanitize';
 
 export function FAQPage() {
@@ -79,6 +80,7 @@ export function FAQPage() {
           );
         })}
       </div>
+      <BackToTopButton />
     </div>
   );
 }

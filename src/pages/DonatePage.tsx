@@ -32,6 +32,7 @@ import { useState } from 'react';
 import { useDonations } from '../hooks/useDonations';
 import { useSupportersLeaderboard } from '../hooks/useSupportersLeaderboard';
 import { SupportersLeaderboard } from '../components/supporters/SupportersLeaderboard';
+import { BackToTopButton } from '../components/BackToTopButton';
 import type { PaymentMethod } from '@/types/donations';
 
 /* ───── brand colors per payment provider ───── */
@@ -633,6 +634,7 @@ export function DonatePage() {
 
       {/* ── PAYMENT DETAIL MODAL ── */}
       <PaymentDetailModal method={selectedMethod} onClose={() => setSelectedMethod(null)} />
+      <BackToTopButton />
     </div>
   );
 }

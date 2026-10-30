@@ -5,6 +5,7 @@ import { useParams } from 'react-router-dom';
 import { dataService } from '../services/dataService';
 import { sanitizeRichHtml } from '../lib/sanitize';
 import { BackButton } from '../components/BackButton';
+import { BackToTopButton } from '../components/BackToTopButton';
 import { DetailActions } from '../components/DetailActions';
 import { ReportModal } from '../components/ReportModal';
 import { toast } from 'sonner';
@@ -119,6 +120,23 @@ export function GuideDetailPage({ slug: propSlug, onNavigate }: GuideDetailPageP
       window.removeEventListener('scroll', handleScroll);
     };
   }, [loading, guide, toc]);
+
+  // Lock the page behind the mobile ToC sheet so swipes scroll the list, not the article.
+  useEffect(() => {
+    if (!showMobileToc) return;
+    // <html> is the scroll container here (it sets overflow-y), so lock it, not <body>.
+    const root = document.documentElement;
+    const { overflow } = root.style;
+    root.style.overflow = 'hidden';
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setShowMobileToc(false);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => {
+      root.style.overflow = overflow;
+      window.removeEventListener('keydown', onKey);
+    };
+  }, [showMobileToc]);
 
   // Sanitize once per content change (not on every scroll-spy re-render).
   const contentHtml = useMemo(() => sanitizeRichHtml(guide?.content || ''), [guide?.content]);
@@ -337,17 +355,19 @@ export function GuideDetailPage({ slug: propSlug, onNavigate }: GuideDetailPageP
         )}
       </div>
 
-      {/* Mobile FAB for ToC */}
-      {toc.length > 0 && (
-        <div className="lg:hidden fixed bottom-[90px] right-6 z-50">
+      {/* Floating buttons: back-to-top (after half the page) above the mobile ToC button */}
+      <div className="fixed z-50 right-6 bottom-[90px] md:right-8 md:bottom-8 flex flex-col items-center gap-3">
+        <BackToTopButton floating={false} />
+        {toc.length > 0 && (
           <button
             onClick={() => setShowMobileToc(true)}
-            className="w-14 h-14 bg-[var(--brand)] text-white rounded-full flex items-center justify-center shadow-2xl hover:scale-105 transition-transform"
+            aria-label="On this page"
+            className="lg:hidden w-14 h-14 bg-[var(--brand)] text-white rounded-full flex items-center justify-center shadow-2xl hover:scale-105 transition-transform"
           >
             <List className="w-6 h-6" />
           </button>
-        </div>
-      )}
+        )}
+      </div>
 
       {/* Mobile ToC Bottom Sheet */}
       <AnimatePresence>
@@ -358,27 +378,32 @@ export function GuideDetailPage({ slug: propSlug, onNavigate }: GuideDetailPageP
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setShowMobileToc(false)}
-              className="fixed inset-0 bg-black/50 z-50 backdrop-blur-sm lg:hidden"
+              className="fixed inset-0 bg-black/50 z-[1000] backdrop-blur-sm lg:hidden touch-none"
             />
+            {/* Above the bottom navigation (z-[999]) so the whole sheet receives touches */}
             <motion.div
               initial={{ y: '100%' }}
               animate={{ y: 0 }}
               exit={{ y: '100%' }}
               transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-              className="fixed bottom-0 left-0 right-0 bg-[var(--bg-surface)] rounded-t-3xl z-50 p-6 max-h-[80vh] overflow-y-auto lg:hidden shadow-[0_-10px_40px_rgba(0,0,0,0.2)]"
+              role="dialog"
+              aria-modal="true"
+              aria-label="On this page"
+              className="fixed bottom-0 left-0 right-0 bg-[var(--bg-surface)] rounded-t-3xl z-[1001] max-h-[80dvh] flex flex-col lg:hidden shadow-[0_-10px_40px_rgba(0,0,0,0.2)]"
             >
-              <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center justify-between px-6 pt-6 pb-4 flex-shrink-0">
                 <h3 className="font-['Poppins',sans-serif] text-xl text-[var(--text-primary)] font-semibold flex items-center gap-2">
                   <List className="w-5 h-5" /> On this page
                 </h3>
                 <button
                   onClick={() => setShowMobileToc(false)}
+                  aria-label="Close contents"
                   className="p-2 rounded-full bg-[var(--bg-elev-1)] text-[var(--text-secondary)]"
                 >
                   <X className="w-5 h-5" />
                 </button>
               </div>
-              <nav className="space-y-2 font-['Inter',sans-serif]">
+              <nav className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] space-y-2 font-['Inter',sans-serif]">
                 {toc.map((heading) => (
                   <button
                     key={heading.id}

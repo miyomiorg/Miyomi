@@ -3,7 +3,8 @@ import { useParams } from 'react-router-dom';
 import { useBlogPost } from '@/hooks/useBlogPost';
 import { useBlogPosts } from '@/hooks/useBlogPosts';
 import { BackButton } from '../components/BackButton';
-import { Globe, Clock, Eye, Calendar, UserCircle, Share, Flag, Sparkles, ChevronRight, ThumbsUp, ThumbsDown, ExternalLink, MessageCircle, Bookmark, Heart, Pin, ArrowUp, Youtube, Github } from 'lucide-react';
+import { Globe, Clock, Eye, Calendar, UserCircle, Share, Flag, Sparkles, ChevronRight, ThumbsUp, ThumbsDown, ExternalLink, MessageCircle, Bookmark, Heart, Pin, Youtube, Github } from 'lucide-react';
+import { BackToTopButton } from '../components/BackToTopButton';
 import { SITE_NAME } from '../config/site';
 import { sanitizeBlogHtml } from '../lib/sanitize';
 import { ReportModal } from '../components/ReportModal';
@@ -25,7 +26,6 @@ export function BlogDetailPage({ onNavigate }: { onNavigate?: (path: string) => 
     const [isFeedbackOpen, setIsFeedbackOpen] = useState(false);
     const [headings, setHeadings] = useState<{ id: string, text: string, level: number }[]>([]);
     const [finalHtml, setFinalHtml] = useState('');
-    const [showScrollTop, setShowScrollTop] = useState(false);
     const [activeHeadingId, setActiveHeadingId] = useState<string>('');
 
     // Smart redirect: if accessed via UUID/ID instead of slug, update URL to canonical slug
@@ -39,8 +39,6 @@ export function BlogDetailPage({ onNavigate }: { onNavigate?: (path: string) => 
 
     useEffect(() => {
         const handleScroll = () => {
-            setShowScrollTop(window.scrollY > 400);
-            
             if (headings.length > 0) {
                 const scrollPosition = window.scrollY + 150;
                 let currentActive = headings[0]?.id || '';
@@ -60,10 +58,6 @@ export function BlogDetailPage({ onNavigate }: { onNavigate?: (path: string) => 
         handleScroll();
         return () => window.removeEventListener('scroll', handleScroll);
     }, [headings, finalHtml]);
-
-    const scrollToTop = () => {
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-    };
 
     useEffect(() => {
         if (!post?.content) { setHeadings([]); setFinalHtml(''); return; }
@@ -347,15 +341,7 @@ export function BlogDetailPage({ onNavigate }: { onNavigate?: (path: string) => 
                 </aside>
             </div>
 
-            {/* Scroll to Top Button */}
-            <button
-                onClick={scrollToTop}
-                className={`fixed z-50 p-3.5 rounded-2xl bg-[var(--bg-surface)] border border-[var(--divider)] shadow-[0_8px_30px_rgb(0,0,0,0.12)] text-[var(--text-secondary)] hover:text-[#a855f7] hover:border-[#a855f7]/50 transition-all duration-300 flex items-center justify-center ${showScrollTop ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10 pointer-events-none'
-                    } right-4 bottom-24 md:right-8 md:bottom-8`}
-                aria-label="Scroll to top"
-            >
-                <ArrowUp className="w-5 h-5" />
-            </button>
+            <BackToTopButton />
 
             <ReportModal
                 isOpen={isReportOpen}

@@ -2,6 +2,7 @@ import { AlertCircle, Smartphone, Puzzle, BookOpen, Link as LinkIcon, Heart, Use
 import { m as motion } from 'motion/react';
 import { useState, useEffect, type ReactNode } from 'react';
 import { FeedbackPanel } from '../components/FeedbackPanel';
+import { BackToTopButton } from '../components/BackToTopButton';
 import { dataService } from '../services/dataService';
 import type { GuideCategoryData } from '../types/data';
 import { Link, useLocation } from 'react-router-dom';
@@ -463,6 +464,7 @@ export function AboutPage() {
         </motion.section>
 
       </div>
+      <BackToTopButton />
     </div>
   );
 }
