@@ -82,12 +82,15 @@ export function DetailActions({ targetType, targetId, targetName, onReportClick,
 // Match the muted Back-button styling (text-secondary → brand on hover).
 // Mobile: Material 3 "connected button group" — 40px icon buttons (same size as
 // the round mobile Back button) with 4px gaps; the outer corners of the first and
-// last buttons are fully rounded, inner corners stay near-square. Icons on the
+// last buttons are fully rounded, inner corners keep a small 4px radius. The outer
+// radius is exactly half the 40px height, not `rounded-*-full`: an infinite radius
+// makes the browser scale every corner of the box down (CSS overlapping-curves
+// rule), which flattens the 4px inner corners to square. Icons on the
 // rounded ends are nudged 2px inward so they look optically centred.
 // Desktop (sm+): unchanged labelled buttons.
 const buttonClass = [
     'inline-flex items-center justify-center gap-1.5 border border-[var(--divider)] bg-[var(--bg-surface)] text-sm text-[var(--text-secondary)] hover:text-[var(--brand)] transition-colors',
-    'max-sm:h-10 max-sm:w-10 max-sm:rounded-[4px] max-sm:first:rounded-l-full max-sm:last:rounded-r-full max-sm:first:[&_svg]:translate-x-0.5 max-sm:last:[&_svg]:-translate-x-0.5 max-sm:shadow-sm max-sm:hover:border-[var(--brand)] max-sm:[&_svg]:h-5 max-sm:[&_svg]:w-5',
+    'max-sm:h-10 max-sm:w-10 max-sm:rounded-[4px] max-sm:first:rounded-l-[20px] max-sm:last:rounded-r-[20px] max-sm:first:[&_svg]:translate-x-0.5 max-sm:last:[&_svg]:-translate-x-0.5 max-sm:shadow-sm max-sm:hover:border-[var(--brand)] max-sm:[&_svg]:h-5 max-sm:[&_svg]:w-5',
     'sm:min-h-11 sm:rounded-xl sm:px-3 sm:py-2',
 ].join(' ');
 
