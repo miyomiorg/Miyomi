@@ -54,7 +54,7 @@ export function DetailActions({ targetType, targetId, targetName, onReportClick,
     const addNewPath = () => (targetType === 'guide' ? '/submit-guide' : '/contribute?step=select');
 
     return (
-        <div className="flex flex-wrap items-center gap-2" aria-label={`${targetName} actions`}>
+        <div role="group" className="flex items-center gap-1 sm:flex-wrap sm:gap-2" aria-label={`${targetName} actions`}>
             {onAddClick ? (
                 <ActionButton label="Add" onClick={onAddClick} iconOnly={iconOnly}>
                     <PlusCircle className="h-4 w-4" />
@@ -80,8 +80,16 @@ export function DetailActions({ targetType, targetId, targetName, onReportClick,
 }
 
 // Match the muted Back-button styling (text-secondary → brand on hover).
-const buttonClass =
-    'inline-flex min-h-11 items-center justify-center gap-1.5 rounded-xl border border-[var(--divider)] bg-[var(--bg-surface)] px-3 py-2 text-sm text-[var(--text-secondary)] hover:text-[var(--brand)] transition-colors';
+// Mobile: Material 3 "connected button group" — 40px icon buttons (same size as
+// the round mobile Back button) with 4px gaps; the outer corners of the first and
+// last buttons are fully rounded, inner corners stay near-square. Icons on the
+// rounded ends are nudged 2px inward so they look optically centred.
+// Desktop (sm+): unchanged labelled buttons.
+const buttonClass = [
+    'inline-flex items-center justify-center gap-1.5 border border-[var(--divider)] bg-[var(--bg-surface)] text-sm text-[var(--text-secondary)] hover:text-[var(--brand)] transition-colors',
+    'max-sm:h-10 max-sm:w-10 max-sm:rounded-[4px] max-sm:first:rounded-l-full max-sm:last:rounded-r-full max-sm:first:[&_svg]:translate-x-0.5 max-sm:last:[&_svg]:-translate-x-0.5 max-sm:shadow-sm max-sm:hover:border-[var(--brand)] max-sm:[&_svg]:h-5 max-sm:[&_svg]:w-5',
+    'sm:min-h-11 sm:rounded-xl sm:px-3 sm:py-2',
+].join(' ');
 
 // Module-level so it is not remounted on every DetailActions render.
 function ActionButton({ label, onClick, iconOnly, children }: { label: string; onClick: () => void; iconOnly: boolean; children: ReactNode }) {
