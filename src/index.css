@@ -214,8 +214,11 @@ html {
   overflow-x: auto;
 }
 
-/* Global smooth transition when switching themes */
-.theme-transitioning * {
+/* Global smooth transition when switching themes. Every element (and its
+   pseudo-elements) shares one timing so nothing changes ahead of the rest. */
+.theme-transitioning *,
+.theme-transitioning *::before,
+.theme-transitioning *::after {
   transition-property: background-color, border-color, color, fill, stroke, box-shadow !important;
   transition-timing-function: ease-in-out !important;
   transition-duration: 200ms !important;
@@ -223,7 +226,9 @@ html {
 
 /* Make it perfectly instant on mobile devices */
 @media (max-width: 768px) {
-  .theme-transitioning * {
+  .theme-transitioning *,
+  .theme-transitioning *::before,
+  .theme-transitioning *::after {
     transition-duration: 0ms !important;
   }
 }

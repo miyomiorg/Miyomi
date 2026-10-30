@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type PropsWithChildren } from 'react';
+import { createContext, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState, type PropsWithChildren } from 'react';
 import { useThemeEngine, ThemeEngineContext } from '@/hooks/useThemeEngine';
 
 export type ThemeMode = 'light' | 'dark' | 'auto';
@@ -48,38 +48,41 @@ function applyTheme(theme: Theme, animate: boolean) {
 export function ThemeProvider({ children }: PropsWithChildren) {
   // Initialised synchronously from storage so the first render already
   // matches what /theme-init.js painted (no light→dark flash).
-  const [themeMode, setThemeMode] = useState<ThemeMode>(readStoredMode);
+  const [themeMode, setThemeModeState] = useState<ThemeMode>(readStoredMode);
   const [theme, setTheme] = useState<Theme>(() => resolveTheme(readStoredMode()));
+  // The engine writes the active theme's per-mode CSS variables inline on <html>
+  // in a layout effect keyed on `theme`.
   const themeEngine = useThemeEngine(theme);
   const isFirstApply = useRef(true);
 
-  useEffect(() => {
-    const active = resolveTheme(themeMode);
-    setTheme(active);
-    applyTheme(active, !isFirstApply.current);
+  // The light/dark class swap is ALSO a layout effect on `theme`, so the class and
+  // the inline variables change in the same commit, before paint. (Previously the
+  // class flipped one render earlier than the variables, so for one or more frames
+  // part of the UI showed the new theme and the rest the old one.)
+  useLayoutEffect(() => {
+    applyTheme(theme, !isFirstApply.current);
     isFirstApply.current = false;
-    try { localStorage.setItem(MODE_KEY, themeMode); } catch { /* optional */ }
-  }, [themeMode]);
+  }, [theme]);
+
+  // Resolve the theme in the same update as the mode, not in a follow-up effect.
+  const setThemeMode = useCallback((mode: ThemeMode) => {
+    setThemeModeState(mode);
+    setTheme(resolveTheme(mode));
+    try { localStorage.setItem(MODE_KEY, mode); } catch { /* optional */ }
+  }, []);
 
   // Follow the OS setting while in auto mode.
   useEffect(() => {
     if (themeMode !== 'auto') return;
     const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-    const handleChange = () => {
-      const active: Theme = mediaQuery.matches ? 'dark' : 'light';
-      setTheme(active);
-      applyTheme(active, true);
-    };
+    const handleChange = () => setTheme(mediaQuery.matches ? 'dark' : 'light');
     mediaQuery.addEventListener('change', handleChange);
     return () => mediaQuery.removeEventListener('change', handleChange);
   }, [themeMode]);
 
   const toggleTheme = useCallback(() => {
-    setThemeMode((prev) => {
-      const current = resolveTheme(prev);
-      return current === 'light' ? 'dark' : 'light';
-    });
-  }, []);
+    setThemeMode(theme === 'light' ? 'dark' : 'light');
+  }, [theme, setThemeMode]);
 
   const value = useMemo(() => ({ themeMode, theme, setThemeMode, toggleTheme }), [themeMode, theme, toggleTheme]);
 

@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, useMemo, useCallback, useRef, type PropsWithChildren } from 'react';
+import { createContext, useContext, useEffect, useLayoutEffect, useState, useMemo, useCallback, useRef, type PropsWithChildren } from 'react';
 import { themesApi, adminThemesApi } from '@/services/api';
 import type { Tables, Json } from '@/types/db';
 import { SEASONAL_CONFIG, isSeasonalActive } from '@/config/seasonal';
@@ -235,7 +235,9 @@ export function useThemeEngine(colorMode: 'light' | 'dark' = 'light'): ThemeEngi
         [activeTheme]
     );
 
-    useEffect(() => {
+    // Layout effect: must land in the same commit/paint as ThemeProvider's
+    // light/dark class swap, or variable-driven colors lag behind the rest.
+    useLayoutEffect(() => {
         const root = document.documentElement;
 
         themes.forEach(t => root.classList.remove(t.slug));
