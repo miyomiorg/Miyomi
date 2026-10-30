@@ -731,8 +731,8 @@ export function AppDetailPage({ appId, onNavigate }: AppDetailPageProps) {
                     <div className="mb-3">
                       <YouTubeEmbed url={tutorial.url} title={tutorial.title} />
                     </div>
-                    <div className="flex items-start gap-3">
-                      <div className="mt-0.5 flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-[var(--chip-bg)] text-[var(--brand)]">
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-[var(--chip-bg)] text-[var(--brand)]">
                         <PlayCircle className="w-5 h-5" />
                       </div>
                       <div className="min-w-0">
