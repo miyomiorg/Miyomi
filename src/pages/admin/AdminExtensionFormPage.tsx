@@ -243,7 +243,7 @@ export function AdminExtensionFormPage() {
             invalidateTableCache('apps');
 
             if (!id) {
-                navigate(`/admin/extensions/${savedId}`, { replace: true });
+                navigate(savedId ? `/admin/extensions/${savedId}/edit` : '/admin/extensions', { replace: true });
             }
         } catch (err: any) {
             toast.error('Failed to save extension: ' + err.message);

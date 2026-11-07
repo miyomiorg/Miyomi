@@ -258,7 +258,7 @@ export function AdminAppFormPage() {
             invalidateTableCache('extensions');
 
             if (!id) {
-                navigate(`/admin/apps/${savedId}`, { replace: true });
+                navigate(savedId ? `/admin/apps/${savedId}/edit` : '/admin/apps', { replace: true });
             }
         } catch (err: any) {
             toast.error('Failed to save app: ' + err.message);
