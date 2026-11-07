@@ -1,7 +1,7 @@
 ﻿import { asc, eq } from 'drizzle-orm';
 import { Hono } from 'hono';
 import { createDb } from '../../lib/db.ts';
-import { fail, isoNow, ok, requireAdmin, requireMinRole, type AppEnv } from '../../lib/http.ts';
+import { fail, isoNow, ok, requireAdmin, requireMinRole, requireResource, type AppEnv } from '../../lib/http.ts';
 import { adminLogs, donationSettings, settings } from '../../db/schema.ts';
 import { sendTelegramText } from '../../lib/telegram.ts';
 
@@ -137,7 +137,7 @@ settingsRouter.delete('/settings/:key', requireAdmin(), requireMinRole('admin'),
 // â”€â”€ Donation settings (ports of AdminDonationsPage upserts) â”€â”€â”€â”€â”€â”€
 
 /** GET /admin/donation-settings */
-settingsRouter.get('/donation-settings', requireAdmin(), requireMinRole('admin'), async (c) => {
+settingsRouter.get('/donation-settings', requireAdmin(), requireResource('donations', 'read'), async (c) => {
   try {
     const rows = await createDb(c.env.DB).select().from(donationSettings);
     return ok(c, rows);
@@ -148,7 +148,7 @@ settingsRouter.get('/donation-settings', requireAdmin(), requireMinRole('admin')
 });
 
 /** PUT /admin/donation-settings/:key { value } â€” upsert on key */
-settingsRouter.put('/donation-settings/:key', requireAdmin(), requireMinRole('admin'), async (c) => {
+settingsRouter.put('/donation-settings/:key', requireAdmin(), requireResource('donations', 'write'), async (c) => {
   try {
     const key = c.req.param('key');
     const body = (await c.req.json().catch(() => null)) as { value?: unknown } | null;

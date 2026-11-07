@@ -4,6 +4,7 @@ import { createDb } from '../../lib/db.ts';
 import { stripSubmitterPrivileged } from '../../lib/sanitize.ts';
 import { fail, isoNow, ok, pagination, requireAdmin, requireResource, type AppEnv } from '../../lib/http.ts';
 import { adminLogs, apps, extensions, guides, submissions } from '../../db/schema.ts';
+import { denyReview, GUIDE_REVIEW_RESOURCE, reviewTypeScope } from './review-access.ts';
 import {
   generateSlug,
   prepareAppPayload,
@@ -18,14 +19,19 @@ import {
 
 export const submissionsRouter = new Hono<AppEnv>();
 
+const BASE = 'submissions';
+const ANY = [BASE, GUIDE_REVIEW_RESOURCE];
+
 /** GET /admin/submissions?status=&type= — pending first, newest within status */
-submissionsRouter.get('/', requireAdmin(), requireResource('submissions', 'read'), async (c) => {
+submissionsRouter.get('/', requireAdmin(), requireResource(ANY, 'read'), async (c) => {
   try {
+    const scope = reviewTypeScope(c, BASE, submissions.submissionType, 'read', c.req.query('type') || undefined);
+    if (scope.denied) return scope.denied;
     const db = createDb(c.env.DB);
     const { limit, offset } = pagination(c, 200);
     const conds = [];
     if (c.req.query('status')) conds.push(eq(submissions.status, c.req.query('status')!));
-    if (c.req.query('type')) conds.push(eq(submissions.submissionType, c.req.query('type')!));
+    if (scope.cond) conds.push(scope.cond);
     const where = conds.length ? and(...conds) : undefined;
     const [rows, counts] = await Promise.all([
       db
@@ -45,11 +51,13 @@ submissionsRouter.get('/', requireAdmin(), requireResource('submissions', 'read'
 });
 
 /** GET /admin/submissions/:id */
-submissionsRouter.get('/:id', requireAdmin(), requireResource('submissions', 'read'), async (c) => {
+submissionsRouter.get('/:id', requireAdmin(), requireResource(ANY, 'read'), async (c) => {
   try {
     const db = createDb(c.env.DB);
     const [row] = await db.select().from(submissions).where(eq(submissions.id, c.req.param('id'))).limit(1);
     if (!row) return fail(c, 404, 'Submission not found');
+    const denied = denyReview(c, BASE, row.submissionType, 'read');
+    if (denied) return denied;
     return ok(c, row);
   } catch (error) {
     console.error('[submissions] get failed:', error);
@@ -65,13 +73,15 @@ submissionsRouter.get('/:id', requireAdmin(), requireResource('submissions', 're
  *  - upsert contributor profile
  *  - remove the submission
  */
-submissionsRouter.post('/:id/approve', requireAdmin(), requireResource('submissions', 'write'), async (c) => {
+submissionsRouter.post('/:id/approve', requireAdmin(), requireResource(ANY, 'write'), async (c) => {
   try {
     const id = c.req.param('id');
     const body = (await c.req.json().catch(() => ({}))) as { editedData?: Record<string, unknown> };
     const db = createDb(c.env.DB);
     const [sub] = await db.select().from(submissions).where(eq(submissions.id, id)).limit(1);
     if (!sub) return fail(c, 404, 'Submission not found');
+    const denied = denyReview(c, BASE, sub.submissionType, 'write');
+    if (denied) return denied;
 
     // Submission payloads arrive in snake_case; the prepare* helpers read camelCase.
     // Admin-edited data is trusted; stored public data is re-stripped of
@@ -178,11 +188,15 @@ submissionsRouter.post('/:id/approve', requireAdmin(), requireResource('submissi
 });
 
 /** POST /admin/submissions/:id/reject { adminNotes? } */
-submissionsRouter.post('/:id/reject', requireAdmin(), requireResource('submissions', 'write'), async (c) => {
+submissionsRouter.post('/:id/reject', requireAdmin(), requireResource(ANY, 'write'), async (c) => {
   try {
     const id = c.req.param('id');
     const body = (await c.req.json().catch(() => ({}))) as { adminNotes?: string };
     const db = createDb(c.env.DB);
+    const [existing] = await db.select({ type: submissions.submissionType }).from(submissions).where(eq(submissions.id, id)).limit(1);
+    if (!existing) return fail(c, 404, 'Submission not found');
+    const denied = denyReview(c, BASE, existing.type, 'write');
+    if (denied) return denied;
     await db
       .update(submissions)
       .set({
@@ -201,7 +215,7 @@ submissionsRouter.post('/:id/reject', requireAdmin(), requireResource('submissio
 });
 
 /** PATCH /admin/submissions/:id — edit submitted data before approval */
-submissionsRouter.patch('/:id', requireAdmin(), requireResource('submissions', 'write'), async (c) => {
+submissionsRouter.patch('/:id', requireAdmin(), requireResource(ANY, 'write'), async (c) => {
   try {
     const id = c.req.param('id');
     const body = (await c.req.json().catch(() => null)) as Record<string, unknown> | null;
@@ -209,6 +223,8 @@ submissionsRouter.patch('/:id', requireAdmin(), requireResource('submissions', '
     const db = createDb(c.env.DB);
     const [existing] = await db.select().from(submissions).where(eq(submissions.id, id)).limit(1);
     if (!existing) return fail(c, 404, 'Submission not found');
+    const denied = denyReview(c, BASE, existing.submissionType, 'write');
+    if (denied) return denied;
     await db.update(submissions).set({
       submittedData: typeof body.submittedData === 'object' && body.submittedData !== null ? (body.submittedData as object) : existing.submittedData,
       author: typeof body.author === 'string' ? body.author : existing.author,
@@ -223,10 +239,15 @@ submissionsRouter.patch('/:id', requireAdmin(), requireResource('submissions', '
 });
 
 /** DELETE /admin/submissions/:id */
-submissionsRouter.delete('/:id', requireAdmin(), requireResource('submissions', 'delete'), async (c) => {
+submissionsRouter.delete('/:id', requireAdmin(), requireResource(ANY, 'delete'), async (c) => {
   try {
+    const id = c.req.param('id');
     const db = createDb(c.env.DB);
-    await db.delete(submissions).where(eq(submissions.id, c.req.param('id')));
+    const [existing] = await db.select({ type: submissions.submissionType }).from(submissions).where(eq(submissions.id, id)).limit(1);
+    if (!existing) return ok(c, null);
+    const denied = denyReview(c, BASE, existing.type, 'delete');
+    if (denied) return denied;
+    await db.delete(submissions).where(eq(submissions.id, id));
     return ok(c, null);
   } catch (error) {
     console.error('[submissions] delete failed:', error);
@@ -235,15 +256,16 @@ submissionsRouter.delete('/:id', requireAdmin(), requireResource('submissions', 
 });
 
 /** DELETE /admin/submissions?status=pending|approved|rejected|all — bulk clear */
-submissionsRouter.delete('/', requireAdmin(), requireResource('submissions', 'delete'), async (c) => {
+submissionsRouter.delete('/', requireAdmin(), requireResource(ANY, 'delete'), async (c) => {
   try {
+    const scope = reviewTypeScope(c, BASE, submissions.submissionType, 'delete');
+    if (scope.denied) return scope.denied;
     const db = createDb(c.env.DB);
     const status = c.req.query('status');
-    if (status && status !== 'all') {
-      await db.delete(submissions).where(eq(submissions.status, status));
-    } else {
-      await db.delete(submissions);
-    }
+    const conds = [];
+    if (status && status !== 'all') conds.push(eq(submissions.status, status));
+    if (scope.cond) conds.push(scope.cond);
+    await db.delete(submissions).where(conds.length ? and(...conds) : undefined);
     return ok(c, null);
   } catch (error) {
     console.error('[submissions] bulk delete failed:', error);

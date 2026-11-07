@@ -3,6 +3,7 @@ import { Palette, Plus, ChevronDown, ChevronUp, Sparkles, Snowflake, Leaf, Cherr
 import { AdminButton, AdminInput, AdminFormField, AdminSelect, StatusBadge, EmptyState, AdminTextarea } from '@/components/admin/AdminFormElements';
 import { useThemeEngineContext, type ThemeMode, type ParticleConfig, type ThemeAssets, type ThemeCssVariables, type ThemeRecord } from '@/hooks/useThemeEngine';
 import { adminThemesApi } from '@/services/api';
+import { useResourceAccess } from '@/hooks/useAdmin';
 import { toast } from 'sonner';
 
 function hexToHSL(hex: string): { h: number; s: number; l: number } {
@@ -276,6 +277,7 @@ function ThemePreview({ theme, isActive }: { theme: ThemeRecord; isActive: boole
 export function AdminThemesPage() {
   const engine = useThemeEngineContext();
   const { themes, activeTheme, themeMode, activateTheme, deactivateTheme, setThemeMode, refetch } = engine;
+  const { canWrite, canDelete, writeTitle, deleteTitle } = useResourceAccess('themes');
   const [builderOpen, setBuilderOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [activatingId, setActivatingId] = useState<string | null>(null);
@@ -635,7 +637,8 @@ Output ONLY valid JSON matching this exact structure:
                     variant={isActive ? 'destructive' : 'primary'}
                     className="w-full"
                     onClick={() => isActive ? handleDeactivate(theme.id) : handleActivate(theme.id)}
-                    disabled={isLoading}
+                    disabled={!canWrite || isLoading}
+                    title={writeTitle}
                   >
                     {isLoading ? 'Processing…' : isActive ? 'Deactivate' : 'Activate'}
                   </AdminButton>
@@ -650,9 +653,10 @@ Output ONLY valid JSON matching this exact structure:
                     </button>
                     <button
                       onClick={() => handleDelete(theme.id, theme.name)}
-                      className="px-3 py-1.5 text-xs font-semibold rounded-lg border transition-colors hover:bg-red-50 hover:border-red-200 hover:text-red-600 flex items-center justify-center"
+                      disabled={!canDelete}
+                      className="px-3 py-1.5 text-xs font-semibold rounded-lg border transition-colors hover:bg-red-50 hover:border-red-200 hover:text-red-600 flex items-center justify-center disabled:opacity-40 disabled:cursor-not-allowed"
                       style={{ borderColor: 'var(--divider)', color: 'var(--text-secondary)' }}
-                      title="Delete Theme"
+                      title={canDelete ? 'Delete Theme' : deleteTitle}
                     >
                       <Trash2 className="w-3.5 h-3.5" />
                     </button>
@@ -913,7 +917,8 @@ Output ONLY valid JSON matching this exact structure:
                     variant="primary"
                     className="w-full"
                     onClick={handleCreateTheme}
-                    disabled={saving || !newName.trim() || !newSlug.trim()}
+                    disabled={!canWrite || saving || !newName.trim() || !newSlug.trim()}
+                    title={writeTitle}
                   >
                     {saving ? (editingId ? 'Saving…' : 'Creating…') : (
                       <span className="flex items-center justify-center gap-2">

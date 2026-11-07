@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { adminBlogApi, authorProfileApi } from '@/services/api';
 import { collectPages } from '@/services/api/pagination';
 import { invalidateTableCache } from '@/hooks/useAdminCache';
+import { useResourceAccess } from '@/hooks/useAdmin';
 import { ApiError } from '@/services/api/http';
 import { AdminRichTextEditor } from '@/components/admin/AdminRichTextEditor';
 import { AdminInput, AdminButton, AdminSelect, AdminTextarea, AdminFormField, Label, AdminToggle } from '@/components/admin/AdminFormElements';
@@ -22,6 +23,7 @@ const emptyPost = {
 export function AdminBlogPostEditorPage() {
     const { id: routeId } = useParams<{ id: string }>();
     const navigate = useNavigate();
+    const { canWrite, writeTitle } = useResourceAccess('blog_posts');
     const [insertedId, setInsertedId] = useState<string | null>(null);
     const activeId = routeId || insertedId;
     const [form, setForm] = useState(emptyPost);
@@ -194,7 +196,7 @@ export function AdminBlogPostEditorPage() {
 
     // Auto-save effect
     useEffect(() => {
-        if (loading) return; // Don't auto-save while initially loading
+        if (loading || !canWrite) return; // Don't auto-save while initially loading
         if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
         
         autoSaveTimerRef.current = setTimeout(() => {
@@ -206,7 +208,7 @@ export function AdminBlogPostEditorPage() {
         return () => {
             if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
         };
-    }, [form, loading]);
+    }, [form, loading, canWrite]);
 
     if (loading) return <div className="p-8 text-center text-[var(--text-secondary)]">Loading...</div>;
 
@@ -232,19 +234,19 @@ export function AdminBlogPostEditorPage() {
                 <div className="flex items-center gap-3">
                     {form.status === 'published' ? (
                         <>
-                            <AdminButton variant="secondary" onClick={() => handleSave(false, 'draft')} disabled={saving}>
+                            <AdminButton variant="secondary" onClick={() => handleSave(false, 'draft')} disabled={!canWrite || saving} title={writeTitle}>
                                 Unpublish to Draft
                             </AdminButton>
-                            <AdminButton onClick={() => handleSave(false, 'published')} disabled={saving}>
+                            <AdminButton onClick={() => handleSave(false, 'published')} disabled={!canWrite || saving} title={writeTitle}>
                                 <Save className="w-4 h-4 mr-2" /> Update Post
                             </AdminButton>
                         </>
                     ) : (
                         <>
-                            <AdminButton variant="secondary" onClick={() => handleSave(false, 'draft')} disabled={saving}>
+                            <AdminButton variant="secondary" onClick={() => handleSave(false, 'draft')} disabled={!canWrite || saving} title={writeTitle}>
                                 <Save className="w-4 h-4 mr-2" /> Save Draft
                             </AdminButton>
-                            <AdminButton onClick={() => handleSave(false, 'published')} disabled={saving}>
+                            <AdminButton onClick={() => handleSave(false, 'published')} disabled={!canWrite || saving} title={writeTitle}>
                                 <Globe className="w-4 h-4 mr-2" /> Publish Post
                             </AdminButton>
                         </>

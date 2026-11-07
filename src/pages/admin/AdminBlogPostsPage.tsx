@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { adminBlogApi } from '@/services/api';
 import { useAdminLogger } from '@/hooks/useAdminLogger';
 import { useAdminCache } from '@/hooks/useAdminCache';
+import { useResourceAccess } from '@/hooks/useAdmin';
 import type { Tables } from '@/types/db';
 import { Plus, Pencil, Trash2, FileText } from 'lucide-react';
 import { AdminSearchBar } from '@/components/admin/AdminSearchBar';
@@ -12,6 +13,7 @@ import { toast } from 'sonner';
 
 export function AdminBlogPostsPage() {
   const { logAction } = useAdminLogger();
+  const { canWrite, canDelete, writeTitle, deleteTitle } = useResourceAccess('blog_posts');
   const { data: blogPosts, loading, invalidateCache } = useAdminCache<any>({ table: 'blog_posts' as any, orderBy: 'created_at' });
   const [search, setSearch] = useState('');
   const navigate = useNavigate();
@@ -69,7 +71,7 @@ export function AdminBlogPostsPage() {
         <h1 className="text-2xl font-bold font-['Poppins',sans-serif]" style={{ color: 'var(--text-primary)' }}>Blog Posts</h1>
         <div className="flex items-center gap-3 w-full sm:w-auto">
           <AdminSearchBar value={search} onChange={setSearch} placeholder="Search posts…" />
-          <AdminButton onClick={openCreate}><Plus className="w-4 h-4" /> Add Post</AdminButton>
+          <AdminButton onClick={openCreate} disabled={!canWrite} title={writeTitle}><Plus className="w-4 h-4" /> Add Post</AdminButton>
         </div>
       </div>
 
@@ -113,7 +115,7 @@ export function AdminBlogPostsPage() {
                     </td>
                     <td className="px-6 py-4 text-right space-x-2">
                       <button onClick={() => openEdit(b)} className="p-2 hover:bg-[var(--bg-elev-1)] rounded-lg text-[var(--text-secondary)] hover:text-[var(--brand)] transition-colors"><Pencil className="w-4 h-4" /></button>
-                      <button onClick={() => setDeleteTarget({ id: b.id, title: b.title })} className="p-2 hover:bg-[var(--bg-elev-1)] rounded-lg text-[var(--text-secondary)] hover:text-red-500 transition-colors"><Trash2 className="w-4 h-4" /></button>
+                      <button onClick={() => setDeleteTarget({ id: b.id, title: b.title })} disabled={!canDelete} title={deleteTitle} className="p-2 hover:bg-[var(--bg-elev-1)] rounded-lg text-[var(--text-secondary)] hover:text-red-500 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"><Trash2 className="w-4 h-4" /></button>
                     </td>
                   </tr>
                 ))

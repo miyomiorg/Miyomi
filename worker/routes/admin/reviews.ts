@@ -21,8 +21,21 @@ import {
   syncAppCompatibility,
   syncExtensionCompatibility,
 } from './content.ts';
+import { denyReview, GUIDE_REVIEW_RESOURCE, reviewTypeScope } from './review-access.ts';
 
 export const reviewsRouter = new Hono<AppEnv>();
+
+const SUGGESTIONS = 'edit_suggestions';
+const ANY_SUGGESTIONS = [SUGGESTIONS, GUIDE_REVIEW_RESOURCE];
+
+async function suggestionType(db: ReturnType<typeof createDb>, id: string): Promise<string | null> {
+  const [row] = await db
+    .select({ type: publicEditSuggestions.targetType })
+    .from(publicEditSuggestions)
+    .where(eq(publicEditSuggestions.id, id))
+    .limit(1);
+  return row?.type ?? null;
+}
 
 // â”€â”€ Reports (content reports from the public ReportModal) â”€â”€â”€â”€â”€â”€â”€â”€
 
@@ -163,13 +176,15 @@ reviewsRouter.delete('/feedback/:id', requireAdmin(), requireResource('feedbacks
 
 // â”€â”€ Public edit suggestions â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-reviewsRouter.get('/suggestions', requireAdmin(), requireResource('edit_suggestions', 'read'), async (c) => {
+reviewsRouter.get('/suggestions', requireAdmin(), requireResource(ANY_SUGGESTIONS, 'read'), async (c) => {
   try {
+    const scope = reviewTypeScope(c, SUGGESTIONS, publicEditSuggestions.targetType, 'read', c.req.query('targetType') || undefined);
+    if (scope.denied) return scope.denied;
     const db = createDb(c.env.DB);
     const { limit, offset } = pagination(c, 200);
     const conds = [];
     if (c.req.query('status')) conds.push(eq(publicEditSuggestions.status, c.req.query('status')!));
-    if (c.req.query('targetType')) conds.push(eq(publicEditSuggestions.targetType, c.req.query('targetType')!));
+    if (scope.cond) conds.push(scope.cond);
     const where = conds.length ? and(...conds) : undefined;
     const [rows, counts] = await Promise.all([
       db.select().from(publicEditSuggestions).where(where).orderBy(desc(publicEditSuggestions.createdAt)).limit(limit).offset(offset),
@@ -183,7 +198,7 @@ reviewsRouter.get('/suggestions', requireAdmin(), requireResource('edit_suggesti
 });
 
 /** GET /admin/suggestions/:id */
-reviewsRouter.get('/suggestions/:id', requireAdmin(), requireResource('edit_suggestions', 'read'), async (c) => {
+reviewsRouter.get('/suggestions/:id', requireAdmin(), requireResource(ANY_SUGGESTIONS, 'read'), async (c) => {
   try {
     const db = createDb(c.env.DB);
     const [row] = await db
@@ -192,6 +207,8 @@ reviewsRouter.get('/suggestions/:id', requireAdmin(), requireResource('edit_sugg
       .where(eq(publicEditSuggestions.id, c.req.param('id')))
       .limit(1);
     if (!row) return fail(c, 404, 'Edit suggestion not found');
+    const denied = denyReview(c, SUGGESTIONS, row.targetType, 'read');
+    if (denied) return denied;
     return ok(c, row);
   } catch (error) {
     console.error('[suggestions] get failed:', error);
@@ -205,13 +222,15 @@ reviewsRouter.get('/suggestions/:id', requireAdmin(), requireResource('edit_sugg
  * (optionally edited) data to the live entity, preserves counters,
  * syncs groups/compat, and removes the suggestion.
  */
-reviewsRouter.post('/suggestions/:id/approve', requireAdmin(), requireResource('edit_suggestions', 'write'), async (c) => {
+reviewsRouter.post('/suggestions/:id/approve', requireAdmin(), requireResource(ANY_SUGGESTIONS, 'write'), async (c) => {
   try {
     const id = c.req.param('id');
     const body = (await c.req.json().catch(() => ({}))) as { editedData?: Record<string, unknown> };
     const db = createDb(c.env.DB);
     const [s] = await db.select().from(publicEditSuggestions).where(eq(publicEditSuggestions.id, id)).limit(1);
     if (!s) return fail(c, 404, 'Suggestion not found');
+    const denied = denyReview(c, SUGGESTIONS, s.targetType, 'write');
+    if (denied) return denied;
 
     // Form/suggestion payloads arrive in snake_case; the prepare* helpers read
     // camelCase. Convert once so no field is silently dropped on approval.
@@ -285,11 +304,15 @@ reviewsRouter.post('/suggestions/:id/approve', requireAdmin(), requireResource('
 });
 
 /** POST /admin/suggestions/:id/reject { adminNote? } */
-reviewsRouter.post('/suggestions/:id/reject', requireAdmin(), requireResource('edit_suggestions', 'write'), async (c) => {
+reviewsRouter.post('/suggestions/:id/reject', requireAdmin(), requireResource(ANY_SUGGESTIONS, 'write'), async (c) => {
   try {
     const id = c.req.param('id');
     const body = (await c.req.json().catch(() => ({}))) as { adminNote?: string } | null;
     const db = createDb(c.env.DB);
+    const type = await suggestionType(db, id);
+    if (!type) return fail(c, 404, 'Suggestion not found');
+    const denied = denyReview(c, SUGGESTIONS, type, 'write');
+    if (denied) return denied;
     await db
       .update(publicEditSuggestions)
       .set({
@@ -308,7 +331,7 @@ reviewsRouter.post('/suggestions/:id/reject', requireAdmin(), requireResource('e
 });
 
 /** PATCH /admin/suggestions/:id { status?, submittedData? } — reopen / edit data */
-reviewsRouter.patch('/suggestions/:id', requireAdmin(), requireResource('edit_suggestions', 'write'), async (c) => {
+reviewsRouter.patch('/suggestions/:id', requireAdmin(), requireResource(ANY_SUGGESTIONS, 'write'), async (c) => {
   try {
     const id = c.req.param('id');
     const body = (await c.req.json().catch(() => null)) as
@@ -318,6 +341,10 @@ reviewsRouter.patch('/suggestions/:id', requireAdmin(), requireResource('edit_su
       return fail(c, 400, 'status or submittedData is required');
     }
     const db = createDb(c.env.DB);
+    const type = await suggestionType(db, id);
+    if (!type) return fail(c, 404, 'Suggestion not found');
+    const denied = denyReview(c, SUGGESTIONS, type, 'write');
+    if (denied) return denied;
     const values: Record<string, unknown> = { updatedAt: isoNow() };
     if (body.status !== undefined) values.status = body.status;
     if (body.submittedData !== undefined) values.submittedData = body.submittedData;
@@ -332,10 +359,15 @@ reviewsRouter.patch('/suggestions/:id', requireAdmin(), requireResource('edit_su
   }
 });
 
-reviewsRouter.delete('/suggestions/:id', requireAdmin(), requireResource('edit_suggestions', 'delete'), async (c) => {
+reviewsRouter.delete('/suggestions/:id', requireAdmin(), requireResource(ANY_SUGGESTIONS, 'delete'), async (c) => {
   try {
+    const id = c.req.param('id');
     const db = createDb(c.env.DB);
-    await db.delete(publicEditSuggestions).where(eq(publicEditSuggestions.id, c.req.param('id')));
+    const type = await suggestionType(db, id);
+    if (!type) return ok(c, null);
+    const denied = denyReview(c, SUGGESTIONS, type, 'delete');
+    if (denied) return denied;
+    await db.delete(publicEditSuggestions).where(eq(publicEditSuggestions.id, id));
     return ok(c, null);
   } catch (error) {
     console.error('[suggestions] delete failed:', error);
@@ -344,15 +376,16 @@ reviewsRouter.delete('/suggestions/:id', requireAdmin(), requireResource('edit_s
 });
 
 /** DELETE /admin/suggestions?status=pending|rejected|approved|all — bulk clear */
-reviewsRouter.delete('/suggestions', requireAdmin(), requireResource('edit_suggestions', 'delete'), async (c) => {
+reviewsRouter.delete('/suggestions', requireAdmin(), requireResource(ANY_SUGGESTIONS, 'delete'), async (c) => {
   try {
+    const scope = reviewTypeScope(c, SUGGESTIONS, publicEditSuggestions.targetType, 'delete');
+    if (scope.denied) return scope.denied;
     const db = createDb(c.env.DB);
     const status = c.req.query('status');
-    if (status && status !== 'all') {
-      await db.delete(publicEditSuggestions).where(eq(publicEditSuggestions.status, status));
-    } else {
-      await db.delete(publicEditSuggestions);
-    }
+    const conds = [];
+    if (status && status !== 'all') conds.push(eq(publicEditSuggestions.status, status));
+    if (scope.cond) conds.push(scope.cond);
+    await db.delete(publicEditSuggestions).where(conds.length ? and(...conds) : undefined);
     return ok(c, null);
   } catch (error) {
     console.error('[suggestions] bulk delete failed:', error);

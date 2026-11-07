@@ -290,7 +290,8 @@ adminExtraRouter.delete('/logs', requireAdmin(), requireSuperAdmin(), async (c) 
 });
 
 /** POST /admin/logs — record an admin action (port of useAdminLogger inserts) */
-adminExtraRouter.post('/logs', requireAdmin(), requireMinRole('admin'), async (c) => {
+// Moderators record their own actions too; reading the log stays admin+.
+adminExtraRouter.post('/logs', requireAdmin(), requireMinRole('moderator'), async (c) => {
   try {
     const body = (await c.req.json().catch(() => null)) as Record<string, unknown> | null;
     if (!body || typeof body.action !== 'string' || typeof body.resourceType !== 'string') {

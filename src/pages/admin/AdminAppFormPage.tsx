@@ -15,6 +15,7 @@ import { detectGitProvider } from '@/utils/gitProviders';
 
 import { SharedAppForm } from '@/components/forms/SharedAppForm';
 import { RepositoryNote } from '@/components/RepositoryNote';
+import { useResourceAccess } from '@/hooks/useAdmin';
 
 function slugify(text: string): string {
     return text
@@ -49,6 +50,7 @@ export function AdminAppFormPage() {
     const { id } = useParams();
     const navigate = useNavigate();
     const { logAction } = useAdminLogger();
+    const { canWrite, writeTitle } = useResourceAccess('apps');
     const [form, setForm] = useState(emptyApp);
     const [loading, setLoading] = useState(!!id);
     const [saving, setSaving] = useState(false);
@@ -182,6 +184,7 @@ export function AdminAppFormPage() {
     }
 
     async function handleSave() {
+        if (!canWrite) return;
         setSaving(true);
         if (Object.values(errors).some(v => !!v)) {
             toast.error("Please fix duplicate entries before saving.");
@@ -284,7 +287,7 @@ export function AdminAppFormPage() {
                 </div>
                 <div className="flex gap-3">
                     <AdminButton variant="secondary" onClick={() => navigate('/admin/apps')}>Cancel</AdminButton>
-                    <AdminButton onClick={handleSave} disabled={!form.name || saving}>
+                    <AdminButton onClick={handleSave} disabled={!canWrite || !form.name || saving} title={writeTitle}>
                         {saving ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Save className="w-4 h-4 mr-2" />}
                         Save App
                     </AdminButton>
@@ -292,7 +295,7 @@ export function AdminAppFormPage() {
             </div>
 
             {id && <div className="mb-4">
-                <RepositoryNote id={id} note={(form as any).moderator_note} severity={(form as any).note_severity} sticky={(form as any).notice_sticky} targetType="app" canEdit />
+                <RepositoryNote id={id} note={(form as any).moderator_note} severity={(form as any).note_severity} sticky={(form as any).notice_sticky} targetType="app" canEdit={canWrite} />
             </div>}
             <SharedAppForm 
                 form={form} 

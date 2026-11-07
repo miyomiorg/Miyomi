@@ -4,6 +4,7 @@ import { adminFaqsApi } from '@/services/api';
 import { toast } from 'sonner';
 import { useAdminLogger } from '@/hooks/useAdminLogger';
 import { useAdminCache } from '@/hooks/useAdminCache';
+import { useResourceAccess } from '@/hooks/useAdmin';
 import type { Tables } from '@/types/db';
 import { Plus, Pencil, Trash2, HelpCircle } from 'lucide-react';
 import { AdminSearchBar } from '@/components/admin/AdminSearchBar';
@@ -13,6 +14,7 @@ import { AdminButton, EmptyState } from '@/components/admin/AdminFormElements';
 export function AdminFAQsPage() {
   const navigate = useNavigate();
   const { logAction } = useAdminLogger();
+  const { canWrite, canDelete, writeTitle, deleteTitle } = useResourceAccess('faqs');
   const { data: faqs, loading, invalidateCache } = useAdminCache<Tables<'faqs'>>({ table: 'faqs', orderBy: 'order_index' });
   const [search, setSearch] = useState('');
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
@@ -43,7 +45,7 @@ export function AdminFAQsPage() {
         <h1 className="text-2xl font-bold font-['Poppins',sans-serif]" style={{ color: 'var(--text-primary)' }}>FAQs</h1>
         <div className="flex items-center gap-3 w-full sm:w-auto">
           <AdminSearchBar value={search} onChange={setSearch} placeholder="Search FAQs…" />
-          <AdminButton onClick={() => navigate('/admin/faqs/new')}><Plus className="w-4 h-4" /> Add</AdminButton>
+          <AdminButton onClick={() => navigate('/admin/faqs/new')} disabled={!canWrite} title={writeTitle}><Plus className="w-4 h-4" /> Add</AdminButton>
         </div>
       </div>
 
@@ -77,7 +79,7 @@ export function AdminFAQsPage() {
                 <button onClick={(e) => {
                   e.stopPropagation();
                   setDeleteTarget({ id: faq.id, name: faq.question });
-                }} className="p-2 rounded-lg transition-colors" style={{ color: 'var(--text-secondary)' }}><Trash2 className="w-4 h-4" /></button>
+                }} disabled={!canDelete} title={deleteTitle} className="p-2 rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed" style={{ color: 'var(--text-secondary)' }}><Trash2 className="w-4 h-4" /></button>
               </div>
             </div>
           ))}

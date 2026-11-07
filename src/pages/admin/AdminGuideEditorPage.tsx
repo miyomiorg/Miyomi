@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { adminGuidesApi } from '@/services/api';
 import { collectPages } from '@/services/api/pagination';
 import { invalidateTableCache } from '@/hooks/useAdminCache';
+import { useResourceAccess } from '@/hooks/useAdmin';
 import { AdminRichTextEditor } from '@/components/admin/AdminRichTextEditor';
 import { AdminInput, AdminButton, AdminSelect, AdminTextarea, AdminFormField, Label } from '@/components/admin/AdminFormElements';
 import { ArrowLeft, Save, AlertCircle, ChevronsUpDown, Check, PlusCircle, X, HelpCircle, Copy, ChevronDown, ChevronUp } from 'lucide-react';
@@ -30,6 +31,7 @@ const emptyGuide = {
 export function AdminGuideEditorPage() {
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
+    const { canWrite, writeTitle } = useResourceAccess('guides');
     const [form, setForm] = useState(emptyGuide);
     const [loading, setLoading] = useState(!!id);
     const [saving, setSaving] = useState(false);
@@ -202,7 +204,7 @@ Guidelines:
                 </button>
                 <div className="flex items-center gap-3">
                     <span className="text-xs font-mono text-[var(--text-secondary)]">ID: {id || 'NEW'}</span>
-                    <AdminButton onClick={handleSave} disabled={saving}>
+                    <AdminButton onClick={handleSave} disabled={!canWrite || saving} title={writeTitle}>
                         <Save className="w-4 h-4" /> {saving ? 'Saving...' : 'Save Guide'}
                     </AdminButton>
                 </div>

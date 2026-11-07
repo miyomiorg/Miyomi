@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { adminEditSuggestionsApi } from '@/services/api';
 import { collectPages } from '@/services/api/pagination';
 import { useAdminLogger } from '@/hooks/useAdminLogger';
+import { useResourceAccess, NO_WRITE_TITLE } from '@/hooks/useAdmin';
 import { PenTool, User, Check, X as XIcon, Eye, Trash2, RotateCcw, Package, Puzzle, FileText, StickyNote } from 'lucide-react';
 import { AdminButton, StatusBadge, EmptyState } from '@/components/admin/AdminFormElements';
 import { ConfirmDialog } from '@/components/admin/ConfirmDialog';
@@ -13,6 +14,7 @@ import { getFieldDiff } from '@/utils/diffUtils';
 export function AdminEditSuggestionsPage() {
   const navigate = useNavigate();
   const { logAction } = useAdminLogger();
+  const { canDelete, deleteTitle, hasPermission } = useResourceAccess(['edit_suggestions', 'guide_submissions']);
   const [suggestions, setSuggestions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -188,18 +190,21 @@ export function AdminEditSuggestionsPage() {
         <div className="flex flex-wrap gap-3">
           {counts.pending > 0 && (
             <AdminButton variant="secondary" onClick={() => setBulkDeleteTarget('pending')}
+              disabled={!canDelete} title={deleteTitle}
               className="hover:border-yellow-500/50 hover:bg-yellow-500/10 hover:text-yellow-600 transition-all font-medium">
               <Trash2 className="w-4 h-4 mr-2" /> Clear Pending ({counts.pending})
             </AdminButton>
           )}
           {counts.rejected > 0 && (
             <AdminButton variant="secondary" onClick={() => setBulkDeleteTarget('rejected')}
+              disabled={!canDelete} title={deleteTitle}
               className="hover:border-red-500/50 hover:bg-red-500/10 hover:text-red-500 transition-all font-medium">
               <Trash2 className="w-4 h-4 mr-2" /> Clear Rejected ({counts.rejected})
             </AdminButton>
           )}
           {counts.all > 0 && (
             <AdminButton variant="destructive" onClick={() => setBulkDeleteTarget('all')}
+              disabled={!canDelete} title={deleteTitle}
               className="shadow-lg shadow-red-500/20 hover:shadow-red-500/30 transition-all hover:scale-105">
               <Trash2 className="w-4 h-4 mr-2" /> Clear All
             </AdminButton>
@@ -223,6 +228,8 @@ export function AdminEditSuggestionsPage() {
             const name = getItemName(sub);
             const fieldCount = getChangedFieldCount(sub);
             const submitted = (sub.submitted_data as any) || {};
+            const canWriteItem = hasPermission(sub.target_type === 'guide' ? 'guide_submissions' : 'edit_suggestions', 'write');
+            const writeItemTitle = canWriteItem ? undefined : NO_WRITE_TITLE;
             return (
               <div key={sub.id} className="rounded-xl border p-5 transition-all hover:border-[var(--brand)] hover:shadow-lg hover:shadow-[var(--brand)]/5 group bg-[var(--bg-surface)] border-[var(--divider)]">
                 <div className="flex items-start justify-between mb-4">
@@ -288,10 +295,12 @@ export function AdminEditSuggestionsPage() {
                   {sub.status === 'pending' && (
                     <>
                       <AdminButton onClick={() => setActionTarget({ id: sub.id, action: 'approve', suggestion: sub })}
+                        disabled={!canWriteItem} title={writeItemTitle}
                         className="bg-green-600 hover:bg-green-700 text-white border-none shadow-lg shadow-green-500/20">
                         <Check className="w-4 h-4 mr-2" /> Approve & Apply
                       </AdminButton>
                       <AdminButton variant="destructive" onClick={() => setActionTarget({ id: sub.id, action: 'reject' })}
+                        disabled={!canWriteItem} title={writeItemTitle}
                         className="hover:scale-105 transition-transform">
                         <XIcon className="w-4 h-4 mr-2" /> Reject
                       </AdminButton>
@@ -301,10 +310,12 @@ export function AdminEditSuggestionsPage() {
                   {sub.status === 'rejected' && (
                     <>
                       <AdminButton variant="secondary" onClick={() => handleRestore(sub)}
+                        disabled={!canWriteItem} title={writeItemTitle}
                         className="hover:border-yellow-500/50 hover:bg-yellow-500/10 hover:text-yellow-600 transition-all">
                         <RotateCcw className="w-4 h-4 mr-2" /> Make Pending
                       </AdminButton>
                       <AdminButton onClick={() => setActionTarget({ id: sub.id, action: 'approve', suggestion: sub })}
+                        disabled={!canWriteItem} title={writeItemTitle}
                         className="bg-green-600 hover:bg-green-700 text-white border-none shadow-lg shadow-green-500/20">
                         <Check className="w-4 h-4 mr-2" /> Approve & Apply
                       </AdminButton>

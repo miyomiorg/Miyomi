@@ -349,22 +349,33 @@ export function requireMinRole(min: Role): MiddlewareHandler {
   };
 }
 
+export type ResourceAction = 'read' | 'write' | 'delete';
+
+/**
+ * Whether the session may perform `action` on any of `resource`.
+ * super_admin/admin always may; moderator needs the matching can_* flag.
+ */
+export function hasResourceAccess(c: Context<AppEnv>, resource: string | string[], action: ResourceAction): boolean {
+  const role = c.get('role');
+  if (role === 'super_admin' || role === 'admin') return true;
+  if (role !== 'moderator') return false;
+  const perms = c.get('permissions') || [];
+  const resources = Array.isArray(resource) ? resource : [resource];
+  return perms.some(p => resources.includes(p.resource) &&
+    (action === 'read' ? p.can_read : action === 'write' ? p.can_write : p.can_delete));
+}
+
 /**
  * 403 unless the session may perform `action` on `resource`.
  * super_admin/admin pass; moderator needs the matching can_* flag.
  */
-export function requireResource(resource: string | string[], action: 'read' | 'write' | 'delete'): MiddlewareHandler {
+export function requireResource(resource: string | string[], action: ResourceAction): MiddlewareHandler {
   return async (c, next) => {
     const role = c.get('role');
-    if (role === 'super_admin' || role === 'admin') return next();
-    if (role === 'moderator') {
-      const perms = c.get('permissions') || [];
-      const resources = Array.isArray(resource) ? resource : [resource];
-      const allowed = perms.some(p => resources.includes(p.resource) &&
-        (action === 'read' ? p.can_read : action === 'write' ? p.can_write : p.can_delete));
-      if (!allowed) return fail(c, 403, 'Insufficient privileges for this resource');
-      return next();
+    if (role !== 'super_admin' && role !== 'admin' && role !== 'moderator') {
+      return fail(c, 403, 'Insufficient privileges');
     }
-    return fail(c, 403, 'Insufficient privileges');
+    if (!hasResourceAccess(c, resource, action)) return fail(c, 403, 'Insufficient privileges for this resource');
+    return next();
   };
 }

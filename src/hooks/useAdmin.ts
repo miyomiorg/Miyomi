@@ -52,3 +52,27 @@ export function useAdmin() {
     user,
   };
 }
+
+export const NO_WRITE_TITLE = 'Read-only access: you do not have write permission';
+export const NO_DELETE_TITLE = 'You do not have delete permission';
+
+/**
+ * Write/delete flags for an admin page's resource(s). Action buttons stay
+ * visible but are disabled (with an explanatory tooltip) when not granted;
+ * the server enforces the same rules.
+ */
+export function useResourceAccess(resource: string | string[]) {
+  const { hasPermission } = useAdmin();
+  const resources = Array.isArray(resource) ? resource : [resource];
+  const canWrite = resources.some((r) => hasPermission(r, 'write'));
+  const canDelete = resources.some((r) => hasPermission(r, 'delete'));
+  return {
+    canWrite,
+    canDelete,
+    /** Tooltip for a disabled write action (undefined when allowed). */
+    writeTitle: canWrite ? undefined : NO_WRITE_TITLE,
+    /** Tooltip for a disabled delete action (undefined when allowed). */
+    deleteTitle: canDelete ? undefined : NO_DELETE_TITLE,
+    hasPermission,
+  };
+}

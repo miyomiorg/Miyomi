@@ -1,6 +1,7 @@
 import { useEffect, useState, useMemo } from 'react';
 import { adminNoticesApi } from '@/services/api';
 import type { Tables } from '@/types/db';
+import { useResourceAccess } from '@/hooks/useAdmin';
 import { Plus, Pencil, Trash2, Bell, CalendarDays } from 'lucide-react';
 import { AdminSearchBar } from '@/components/admin/AdminSearchBar';
 import { AdminModal } from '@/components/admin/AdminModal';
@@ -24,6 +25,7 @@ function formatNoticeDate(value?: string | null) {
 }
 
 export function AdminNoticesPage() {
+  const { canWrite, canDelete, writeTitle, deleteTitle } = useResourceAccess('notices');
   const [notices, setNotices] = useState<Tables<'notices'>[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -96,7 +98,7 @@ export function AdminNoticesPage() {
         <h1 className="text-2xl font-bold font-['Poppins',sans-serif]" style={{ color: 'var(--text-primary)' }}>Notices</h1>
         <div className="flex items-center gap-3 w-full sm:w-auto">
           <AdminSearchBar value={search} onChange={setSearch} placeholder="Search notices…" />
-          <AdminButton onClick={openCreate}><Plus className="w-4 h-4" /> Add</AdminButton>
+          <AdminButton onClick={openCreate} disabled={!canWrite} title={writeTitle}><Plus className="w-4 h-4" /> Add</AdminButton>
         </div>
       </div>
 
@@ -139,7 +141,9 @@ export function AdminNoticesPage() {
                     e.stopPropagation();
                     toggleActive(notice.id, notice.active);
                   }}
-                    className="px-2.5 py-1.5 text-xs rounded-lg border font-medium transition-colors"
+                    disabled={!canWrite}
+                    title={writeTitle}
+                    className="px-2.5 py-1.5 text-xs rounded-lg border font-medium transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                     style={{ borderColor: 'var(--divider)', color: 'var(--text-secondary)' }}
                   >
                     {notice.active ? 'Deactivate' : 'Activate'}
@@ -151,7 +155,7 @@ export function AdminNoticesPage() {
                   <button onClick={(e) => {
                     e.stopPropagation();
                     setDeleteTarget({ id: notice.id, name: notice.title });
-                  }} className="p-2 rounded-lg transition-colors" style={{ color: 'var(--text-secondary)' }}><Trash2 className="w-4 h-4" /></button>
+                  }} disabled={!canDelete} title={deleteTitle} className="p-2 rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed" style={{ color: 'var(--text-secondary)' }}><Trash2 className="w-4 h-4" /></button>
                 </div>
               </div>
             );
@@ -199,7 +203,7 @@ export function AdminNoticesPage() {
           </div>
           <div className="flex justify-end gap-2 pt-2">
             <AdminButton variant="secondary" onClick={() => setModalOpen(false)}>Cancel</AdminButton>
-            <AdminButton onClick={handleSave} disabled={!form.title || !form.message || saving}>{saving ? 'Saving…' : editingId ? 'Update' : 'Create'}</AdminButton>
+            <AdminButton onClick={handleSave} disabled={!canWrite || !form.title || !form.message || saving} title={writeTitle}>{saving ? 'Saving…' : editingId ? 'Update' : 'Create'}</AdminButton>
           </div>
         </div>
       </AdminModal>

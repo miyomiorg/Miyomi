@@ -18,8 +18,9 @@ export const dashboardRouter = new Hono<AppEnv>();
  * GET /admin/dashboard — port of AdminDashboardPage: counts, recent
  * updates, and per-admin contribution stats.
  */
-// No moderator resource mapping in the frontend → admin+ only (RLS parity: is_admin)
-dashboardRouter.get('/', requireAdmin(), requireMinRole('admin'), async (c) => {
+// Open to moderators too (the sidebar always shows Dashboard): only aggregate
+// counts are returned, and non-super admins see just their own activity.
+dashboardRouter.get('/', requireAdmin(), requireMinRole('moderator'), async (c) => {
   try {
     const db = createDb(c.env.DB);
     const adminId = c.get('adminId')!;

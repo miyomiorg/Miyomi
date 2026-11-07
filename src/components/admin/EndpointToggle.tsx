@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
-import { adminSettingsApi } from '@/services/api';
+import { adminSettingsApi, settingsApi } from '@/services/api';
 import { useAdminLogger } from '@/hooks/useAdminLogger';
+import { useAdmin } from '@/hooks/useAdmin';
 import { Power, Settings2, Save } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -12,6 +13,9 @@ interface EndpointToggleProps {
 
 export function EndpointToggle({ endpointKey, title, description }: EndpointToggleProps) {
   const { logAction } = useAdminLogger();
+  // Site settings are admin+; moderators see the current state read-only.
+  const { isAdmin } = useAdmin();
+  const lockedTitle = isAdmin ? undefined : 'Only admins can change this setting';
   const [enabled, setEnabled] = useState(true);
   const [reason, setReason] = useState('');
   const [loading, setLoading] = useState(true);
@@ -19,20 +23,28 @@ export function EndpointToggle({ endpointKey, title, description }: EndpointTogg
 
   useEffect(() => {
     fetchSettings();
-  }, [endpointKey]);
+  }, [endpointKey, isAdmin]);
 
   async function fetchSettings() {
     setLoading(true);
     try {
-      const all = await adminSettingsApi.list();
-      const enabledData = all.find((s) => s.key === `${endpointKey}_enabled`);
-      const reasonData = all.find((s) => s.key === `${endpointKey}_disabled_reason`);
-
-      if (enabledData) {
-        setEnabled(enabledData.value === 'true' || enabledData.value === true);
+      let enabledValue: unknown;
+      let reasonValue: unknown;
+      if (isAdmin) {
+        const all = await adminSettingsApi.list();
+        enabledValue = all.find((s) => s.key === `${endpointKey}_enabled`)?.value;
+        reasonValue = all.find((s) => s.key === `${endpointKey}_disabled_reason`)?.value;
+      } else {
+        const pub = await settingsApi.public();
+        enabledValue = pub[`${endpointKey}_enabled`];
+        reasonValue = pub[`${endpointKey}_disabled_reason`];
       }
-      if (reasonData && reasonData.value != null) {
-        setReason(String(reasonData.value));
+
+      if (enabledValue !== undefined && enabledValue !== null) {
+        setEnabled(enabledValue === 'true' || enabledValue === true);
+      }
+      if (reasonValue != null) {
+        setReason(String(reasonValue));
       }
     } catch (error) {
       console.error('Error fetching endpoint settings:', error);
@@ -96,8 +108,9 @@ export function EndpointToggle({ endpointKey, title, description }: EndpointTogg
           <span className="text-sm font-medium text-[var(--text-secondary)]">Off</span>
           <button
             onClick={() => handleToggle(!enabled)}
-            disabled={saving}
-            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none disabled:opacity-50 ${enabled ? 'bg-[var(--brand)]' : 'bg-[var(--bg-elev-2)]'}`}
+            disabled={saving || !isAdmin}
+            title={lockedTitle}
+            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed ${enabled ? 'bg-[var(--brand)]' : 'bg-[var(--bg-elev-2)]'}`}
           >
             <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${enabled ? 'translate-x-6' : 'translate-x-1'}`} />
           </button>
@@ -116,13 +129,15 @@ export function EndpointToggle({ endpointKey, title, description }: EndpointTogg
               type="text"
               value={reason}
               onChange={(e) => setReason(e.target.value)}
+              readOnly={!isAdmin}
               placeholder="E.g., Feedback is temporarily disabled for maintenance."
               className="flex-1 bg-[var(--bg-elev-1)] border border-[var(--divider)] rounded-lg px-4 py-2 text-sm text-[var(--text-primary)] focus:outline-none focus:border-[var(--brand)] transition-colors"
             />
             <button
               onClick={handleReasonSave}
-              disabled={saving}
-              className="flex items-center justify-center bg-[var(--bg-elev-2)] hover:bg-[var(--chip-bg)] text-[var(--text-primary)] px-4 py-2 rounded-lg text-sm font-medium transition-colors border border-[var(--divider)] disabled:opacity-50"
+              disabled={saving || !isAdmin}
+              title={lockedTitle}
+              className="flex items-center justify-center bg-[var(--bg-elev-2)] hover:bg-[var(--chip-bg)] text-[var(--text-primary)] px-4 py-2 rounded-lg text-sm font-medium transition-colors border border-[var(--divider)] disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <Save className="w-4 h-4 mr-2" />
               Save Msg

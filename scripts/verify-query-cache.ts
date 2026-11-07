@@ -273,6 +273,39 @@ try {
   assert.equal(adminAppList.items.find((a: any) => a.id === 'app')?.moderatorNote, 'App review needed');
   assert.equal((await request('/api/admin/apps/app/note', write({ note: '', severity: 'warning' }))).response.status, 200);
   assert.equal(sqlite.prepare("SELECT moderator_note FROM apps WHERE id = 'app'").get()?.moderator_note, null);
+
+  // Moderator review queues: guide records are governed by `guide_submissions`,
+  // app/extension records by `submissions` / `edit_suggestions`.
+  sqlite.exec(`INSERT INTO submissions (id, submission_type, status, submitted_data, created_at, updated_at) VALUES
+      ('sub-guide', 'guide', 'pending', '{"title":"G"}', '2026-01-01', '2026-01-01'),
+      ('sub-app', 'app', 'pending', '{"name":"A"}', '2026-01-01', '2026-01-01');
+    INSERT INTO public_edit_suggestions (id, target_type, target_id, submitted_data, original_data_snapshot, status, created_at, updated_at) VALUES
+      ('sug-guide', 'guide', 'guide', '{}', '{}', 'pending', '2026-01-01', '2026-01-01'),
+      ('sug-app', 'app', 'app', '{}', '{}', 'pending', '2026-01-01', '2026-01-01');
+    INSERT INTO moderator_permissions (id, user_id, resource, can_read, can_write, can_delete) VALUES ('perm-guides', 'mod', 'guide_submissions', 1, 0, 0);`);
+  const mod = { headers: { Cookie: `miyomi_session=${modToken}` } };
+  const listIds = async (path: string, init = mod) => {
+    const r = await request(path, init);
+    return { status: r.response.status, ids: r.response.status === 200 ? (await r.response.json()).data.items.map((i: any) => i.id).sort() : [] };
+  };
+  const modPost = (path: string) => request(path, { method: 'POST', headers: mod.headers });
+  assert.deepEqual(await listIds('/api/admin/submissions?type=guide&limit=200'), { status: 200, ids: ['sub-guide'] }, 'guide_submissions grants the community guides queue');
+  assert.deepEqual(await listIds('/api/admin/suggestions?targetType=guide&limit=200'), { status: 200, ids: ['sug-guide'] });
+  assert.deepEqual(await listIds('/api/admin/submissions'), { status: 200, ids: ['sub-guide'] }, 'unfiltered lists only include permitted types');
+  assert.equal((await listIds('/api/admin/submissions?type=app')).status, 403);
+  assert.equal((await request('/api/admin/submissions/sub-app', mod)).response.status, 403);
+  assert.equal((await request('/api/admin/submissions/sub-guide', mod)).response.status, 200);
+  assert.equal((await modPost('/api/admin/submissions/sub-guide/reject')).response.status, 403, 'read-only access cannot reject');
+  sqlite.exec("UPDATE moderator_permissions SET can_write = 1 WHERE id = 'perm-guides'");
+  assert.equal((await modPost('/api/admin/suggestions/sug-guide/reject')).response.status, 200);
+  assert.equal((await modPost('/api/admin/suggestions/sug-app/reject')).response.status, 403);
+  assert.equal(sqlite.prepare("SELECT status FROM public_edit_suggestions WHERE id = 'sug-app'").get()?.status, 'pending');
+  assert.deepEqual(await listIds('/api/admin/submissions', auth), { status: 200, ids: ['sub-app', 'sub-guide'] }, 'admins still see every type');
+  assert.equal((await request('/api/admin/dashboard', mod)).response.status, 200, 'moderators can open the dashboard');
+  const modLog = await request('/api/admin/logs', { method: 'POST', headers: { ...mod.headers, 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'update', resourceType: 'guide' }) });
+  assert.equal(modLog.response.status, 201, 'moderators record their own actions');
+  assert.equal((await request('/api/admin/logs', mod)).response.status, 403, 'reading the activity log stays admin-only');
+
   sqlite.exec("UPDATE admins SET totp_secret = NULL WHERE id = 'admin'");
   assert.equal((await request('/api/admin/settings', auth)).response.status, 403, '2FA changes take effect on next request');
 

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { adminFeedbackApi } from '@/services/api';
 import { collectPages } from '@/services/api/pagination';
 import { useAdminLogger } from '@/hooks/useAdminLogger';
+import { useAdmin, useResourceAccess } from '@/hooks/useAdmin';
 import { MessageSquare, Check, Trash2 } from 'lucide-react';
 import { AdminButton, StatusBadge, EmptyState } from '@/components/admin/AdminFormElements';
 import { EndpointToggle } from '@/components/admin/EndpointToggle';
@@ -10,6 +11,8 @@ import { toast } from 'sonner';
 
 export function AdminFeedbacksPage() {
   const { logAction } = useAdminLogger();
+  const { isSuperAdmin } = useAdmin();
+  const { canWrite, writeTitle } = useResourceAccess('feedbacks');
   const [feedbacks, setFeedbacks] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showClearConfirm, setShowClearConfirm] = useState(false);
@@ -57,7 +60,8 @@ export function AdminFeedbacksPage() {
           <p className="text-[var(--text-secondary)] mt-1">Review user feedback and issues.</p>
         </div>
         {feedbacks.length > 0 && (
-          <AdminButton variant="destructive" onClick={() => setShowClearConfirm(true)}>
+          <AdminButton variant="destructive" onClick={() => setShowClearConfirm(true)}
+            disabled={!isSuperAdmin} title={isSuperAdmin ? undefined : 'Only super admins can clear all feedbacks'}>
             <Trash2 className="w-4 h-4 mr-2" /> Clear All Feedbacks
           </AdminButton>
         )}
@@ -95,6 +99,8 @@ export function AdminFeedbacksPage() {
                 {feedback.status === 'new' && (
                   <AdminButton
                     onClick={() => handleAcknowledge(feedback.id)}
+                    disabled={!canWrite}
+                    title={writeTitle}
                     className="bg-blue-600 hover:bg-blue-700 text-white border-none"
                   >
                     <Check className="w-4 h-4 mr-2" /> Acknowledge

@@ -6,6 +6,7 @@ import { AdminModal } from '@/components/admin/AdminModal';
 import { ConfirmDialog } from '@/components/admin/ConfirmDialog';
 import { AdminFormField, AdminInput, AdminTextarea, AdminButton, StatusBadge, EmptyState } from '@/components/admin/AdminFormElements';
 import { toast } from 'sonner';
+import { useResourceAccess } from '@/hooks/useAdmin';
 
 /* ─── types ─── */
 interface DonationRow {
@@ -33,6 +34,7 @@ const emptyDonor = { donor_name: '', amount: 0, currency: 'USD', message: '', pa
 
 /* ═══════════════════════════════════════════════ */
 export function AdminDonationsPage() {
+  const { canWrite, canDelete, writeTitle, deleteTitle } = useResourceAccess('donations');
   const [tab, setTab] = useState<'donators' | 'goal' | 'methods' | 'transparency' | 'where_funds' | 'display' | 'currencies'>('donators');
 
   // ── donators state ──
@@ -249,7 +251,7 @@ export function AdminDonationsPage() {
         <>
           <div className="flex items-center gap-3 mb-4">
             <AdminSearchBar value={search} onChange={setSearch} placeholder="Search donors…" />
-            <AdminButton onClick={openCreate}><Plus className="w-4 h-4" /> Add</AdminButton>
+            <AdminButton onClick={openCreate} disabled={!canWrite} title={writeTitle}><Plus className="w-4 h-4" /> Add</AdminButton>
           </div>
 
           {loadingD ? (
@@ -276,11 +278,11 @@ export function AdminDonationsPage() {
                     {d.message && <p className="text-xs mt-0.5 truncate" style={{ color: 'var(--text-secondary)' }}>{d.message}</p>}
                   </div>
                   <div className="flex items-center gap-1 flex-shrink-0">
-                    <button onClick={() => togglePublic(d.id, d.is_public)} className="p-2 rounded-lg transition-colors" style={{ color: 'var(--text-secondary)' }} title={d.is_public ? 'Make private' : 'Make public'}>
+                    <button onClick={() => togglePublic(d.id, d.is_public)} disabled={!canWrite} className="p-2 rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed" style={{ color: 'var(--text-secondary)' }} title={canWrite ? (d.is_public ? 'Make private' : 'Make public') : writeTitle}>
                       {d.is_public ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
                     </button>
                     <button onClick={() => openEdit(d)} className="p-2 rounded-lg transition-colors" style={{ color: 'var(--text-secondary)' }}><Pencil className="w-4 h-4" /></button>
-                    <button onClick={() => setDeleteTarget({ id: d.id, name: d.donor_name })} className="p-2 rounded-lg transition-colors" style={{ color: 'var(--text-secondary)' }}><Trash2 className="w-4 h-4" /></button>
+                    <button onClick={() => setDeleteTarget({ id: d.id, name: d.donor_name })} disabled={!canDelete} title={deleteTitle} className="p-2 rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed" style={{ color: 'var(--text-secondary)' }}><Trash2 className="w-4 h-4" /></button>
                   </div>
                 </div>
               ))}
@@ -314,7 +316,7 @@ export function AdminDonationsPage() {
               </div>
               <div className="flex justify-end gap-2 pt-2">
                 <AdminButton variant="secondary" onClick={() => setModalOpen(false)}>Cancel</AdminButton>
-                <AdminButton onClick={handleSaveDonor} disabled={!form.donor_name || saving}>{saving ? 'Saving…' : editingId ? 'Update' : 'Create'}</AdminButton>
+                <AdminButton onClick={handleSaveDonor} disabled={!canWrite || !form.donor_name || saving} title={writeTitle}>{saving ? 'Saving…' : editingId ? 'Update' : 'Create'}</AdminButton>
               </div>
             </div>
           </AdminModal>
@@ -371,7 +373,7 @@ export function AdminDonationsPage() {
                 const saveGoal = { ...goal, autoCalc: autoCalcGoal, currentAmount: autoCalcGoal ? Math.round(calcUsdTotal() * 100) / 100 : goal.currentAmount };
                 saveSetting('goal', saveGoal);
                 setGoal(saveGoal);
-              }} disabled={savingS}>{savingS ? 'Saving…' : 'Save Goal'}</AdminButton>
+              }} disabled={!canWrite || savingS} title={writeTitle}>{savingS ? 'Saving…' : 'Save Goal'}</AdminButton>
             </div>
           </div>
         </div>
@@ -382,7 +384,7 @@ export function AdminDonationsPage() {
         <div className="rounded-xl border p-6" style={{ background: 'var(--bg-surface)', borderColor: 'var(--divider)' }}>
           <div className="flex items-center justify-between mb-4">
             <h2 className="font-semibold" style={{ color: 'var(--text-primary)' }}>Payment Methods</h2>
-            <AdminButton onClick={openMethodCreate}><Plus className="w-4 h-4" /> Add</AdminButton>
+            <AdminButton onClick={openMethodCreate} disabled={!canWrite} title={writeTitle}><Plus className="w-4 h-4" /> Add</AdminButton>
           </div>
           {methods.length === 0 ? (
             <EmptyState icon={CreditCard} title="No methods" description="Add a payment method" />
@@ -399,9 +401,9 @@ export function AdminDonationsPage() {
                       {m.type === 'link' ? (m.url === '#' ? 'No URL set' : m.url) : `Details: ${[m.details?.number, m.details?.email, m.details?.address].filter(Boolean).join(', ') || 'Not configured'}`}
                     </p>
                   </div>
-                  <button onClick={() => toggleMethod(i)} className="px-2.5 py-1 text-xs rounded-lg border font-medium" style={{ borderColor: 'var(--divider)', color: 'var(--text-secondary)' }}>{m.enabled ? 'Disable' : 'Enable'}</button>
+                  <button onClick={() => toggleMethod(i)} disabled={!canWrite} title={writeTitle} className="px-2.5 py-1 text-xs rounded-lg border font-medium disabled:opacity-40 disabled:cursor-not-allowed" style={{ borderColor: 'var(--divider)', color: 'var(--text-secondary)' }}>{m.enabled ? 'Disable' : 'Enable'}</button>
                   <button onClick={() => openMethodEdit(i)} className="p-1.5 rounded-lg" style={{ color: 'var(--text-secondary)' }}><Pencil className="w-4 h-4" /></button>
-                  <button onClick={() => removeMethod(i)} className="p-1.5 rounded-lg" style={{ color: 'var(--text-secondary)' }}><Trash2 className="w-4 h-4" /></button>
+                  <button onClick={() => removeMethod(i)} disabled={!canWrite} title={writeTitle} className="p-1.5 rounded-lg disabled:opacity-40 disabled:cursor-not-allowed" style={{ color: 'var(--text-secondary)' }}><Trash2 className="w-4 h-4" /></button>
                 </div>
               ))}
             </div>
@@ -482,7 +484,7 @@ export function AdminDonationsPage() {
               </label>
               <div className="flex justify-end gap-2 pt-2">
                 <AdminButton variant="secondary" onClick={() => setMethodModalOpen(false)}>Cancel</AdminButton>
-                <AdminButton onClick={saveMethod} disabled={!methodForm.label}>Save</AdminButton>
+                <AdminButton onClick={saveMethod} disabled={!canWrite || !methodForm.label} title={writeTitle}>Save</AdminButton>
               </div>
             </div>
           </AdminModal>
@@ -494,7 +496,7 @@ export function AdminDonationsPage() {
         <div className="rounded-xl border p-6" style={{ background: 'var(--bg-surface)', borderColor: 'var(--divider)' }}>
           <div className="flex items-center justify-between mb-4">
             <h2 className="font-semibold" style={{ color: 'var(--text-primary)' }}>Transparency Items</h2>
-            <AdminButton onClick={openTransCreate}><Plus className="w-4 h-4" /> Add</AdminButton>
+            <AdminButton onClick={openTransCreate} disabled={!canWrite} title={writeTitle}><Plus className="w-4 h-4" /> Add</AdminButton>
           </div>
           {transparency.length === 0 ? (
             <EmptyState icon={Eye} title="No items" description="Add transparency line items" />
@@ -505,7 +507,7 @@ export function AdminDonationsPage() {
                   <div className="flex-1"><span className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{t.label}</span></div>
                   <span className="text-sm" style={{ color: 'var(--text-secondary)' }}>{t.value}</span>
                   <button onClick={() => openTransEdit(i)} className="p-1.5 rounded-lg" style={{ color: 'var(--text-secondary)' }}><Pencil className="w-4 h-4" /></button>
-                  <button onClick={() => removeTrans(i)} className="p-1.5 rounded-lg" style={{ color: 'var(--text-secondary)' }}><Trash2 className="w-4 h-4" /></button>
+                  <button onClick={() => removeTrans(i)} disabled={!canWrite} title={writeTitle} className="p-1.5 rounded-lg disabled:opacity-40 disabled:cursor-not-allowed" style={{ color: 'var(--text-secondary)' }}><Trash2 className="w-4 h-4" /></button>
                 </div>
               ))}
             </div>
@@ -516,7 +518,7 @@ export function AdminDonationsPage() {
               <AdminFormField label="Value" required><AdminInput value={transForm.value} onChange={e => setTransForm(f => ({ ...f, value: e.target.value }))} placeholder="$25/month" /></AdminFormField>
               <div className="flex justify-end gap-2 pt-2">
                 <AdminButton variant="secondary" onClick={() => setTransModalOpen(false)}>Cancel</AdminButton>
-                <AdminButton onClick={saveTrans} disabled={!transForm.label || !transForm.value}>Save</AdminButton>
+                <AdminButton onClick={saveTrans} disabled={!canWrite || !transForm.label || !transForm.value} title={writeTitle}>Save</AdminButton>
               </div>
             </div>
           </AdminModal>
@@ -528,7 +530,7 @@ export function AdminDonationsPage() {
         <div className="rounded-xl border p-6" style={{ background: 'var(--bg-surface)', borderColor: 'var(--divider)' }}>
           <div className="flex items-center justify-between mb-4">
             <h2 className="font-semibold" style={{ color: 'var(--text-primary)' }}>Where Funds Go Items</h2>
-            <AdminButton onClick={openFundCreate}><Plus className="w-4 h-4" /> Add</AdminButton>
+            <AdminButton onClick={openFundCreate} disabled={!canWrite} title={writeTitle}><Plus className="w-4 h-4" /> Add</AdminButton>
           </div>
           {whereFundsGo.length === 0 ? (
             <EmptyState icon={Eye} title="No items" description="Add where funds go items" />
@@ -539,7 +541,7 @@ export function AdminDonationsPage() {
                   <div className="flex-1"><span className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{t.label}</span></div>
                   <span className="text-sm" style={{ color: 'var(--text-secondary)' }}>{t.value}</span>
                   <button onClick={() => openFundEdit(i)} className="p-1.5 rounded-lg" style={{ color: 'var(--text-secondary)' }}><Pencil className="w-4 h-4" /></button>
-                  <button onClick={() => removeFund(i)} className="p-1.5 rounded-lg" style={{ color: 'var(--text-secondary)' }}><Trash2 className="w-4 h-4" /></button>
+                  <button onClick={() => removeFund(i)} disabled={!canWrite} title={writeTitle} className="p-1.5 rounded-lg disabled:opacity-40 disabled:cursor-not-allowed" style={{ color: 'var(--text-secondary)' }}><Trash2 className="w-4 h-4" /></button>
                 </div>
               ))}
             </div>
@@ -550,7 +552,7 @@ export function AdminDonationsPage() {
               <AdminFormField label="Value" required><AdminInput value={fundForm.value} onChange={e => setFundForm(f => ({ ...f, value: e.target.value }))} placeholder="~100%" /></AdminFormField>
               <div className="flex justify-end gap-2 pt-2">
                 <AdminButton variant="secondary" onClick={() => setFundModalOpen(false)}>Cancel</AdminButton>
-                <AdminButton onClick={saveFund} disabled={!fundForm.label || !fundForm.value}>Save</AdminButton>
+                <AdminButton onClick={saveFund} disabled={!canWrite || !fundForm.label || !fundForm.value} title={writeTitle}>Save</AdminButton>
               </div>
             </div>
           </AdminModal>
@@ -571,7 +573,7 @@ export function AdminDonationsPage() {
               Show donation goal progress bar on public page
             </label>
             <div className="flex justify-end pt-2">
-              <AdminButton onClick={() => saveSetting('display', display)} disabled={savingS}>{savingS ? 'Saving…' : 'Save Display Settings'}</AdminButton>
+              <AdminButton onClick={() => saveSetting('display', display)} disabled={!canWrite || savingS} title={writeTitle}>{savingS ? 'Saving…' : 'Save Display Settings'}</AdminButton>
             </div>
           </div>
         </div>
@@ -585,7 +587,7 @@ export function AdminDonationsPage() {
               <h2 className="font-semibold" style={{ color: 'var(--text-primary)' }}>Currency Settings</h2>
               <p className="text-xs mt-1" style={{ color: 'var(--text-secondary)' }}>Manage currencies and exchange rates (relative to USD)</p>
             </div>
-            <AdminButton onClick={openCurrCreate}><Plus className="w-4 h-4" /> Add</AdminButton>
+            <AdminButton onClick={openCurrCreate} disabled={!canWrite} title={writeTitle}><Plus className="w-4 h-4" /> Add</AdminButton>
           </div>
           {currencies.length === 0 ? (
             <EmptyState icon={Coins} title="No currencies" description="Add your first currency" />
@@ -602,7 +604,7 @@ export function AdminDonationsPage() {
                     <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>{c.name} · Rate: {c.rate}</p>
                   </div>
                   <button onClick={() => openCurrEdit(i)} className="p-1.5 rounded-lg" style={{ color: 'var(--text-secondary)' }}><Pencil className="w-4 h-4" /></button>
-                  {!c.isPrimary && <button onClick={() => removeCurr(i)} className="p-1.5 rounded-lg" style={{ color: 'var(--text-secondary)' }}><Trash2 className="w-4 h-4" /></button>}
+                  {!c.isPrimary && <button onClick={() => removeCurr(i)} disabled={!canWrite} title={writeTitle} className="p-1.5 rounded-lg disabled:opacity-40 disabled:cursor-not-allowed" style={{ color: 'var(--text-secondary)' }}><Trash2 className="w-4 h-4" /></button>}
                 </div>
               ))}
             </div>
@@ -620,7 +622,7 @@ export function AdminDonationsPage() {
               </label>
               <div className="flex justify-end gap-2 pt-2">
                 <AdminButton variant="secondary" onClick={() => setCurrModalOpen(false)}>Cancel</AdminButton>
-                <AdminButton onClick={saveCurr} disabled={!currForm.code || !currForm.symbol}>Save</AdminButton>
+                <AdminButton onClick={saveCurr} disabled={!canWrite || !currForm.code || !currForm.symbol} title={writeTitle}>Save</AdminButton>
               </div>
             </div>
           </AdminModal>

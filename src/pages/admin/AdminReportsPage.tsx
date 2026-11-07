@@ -2,6 +2,7 @@ import { useEffect, useState, useMemo } from 'react';
 import { adminReportsApi } from '@/services/api';
 import { collectPages } from '@/services/api/pagination';
 import { useAdminLogger } from '@/hooks/useAdminLogger';
+import { useResourceAccess } from '@/hooks/useAdmin';
 import { Flag, Check, Trash2, Eye, ShieldAlert, Monitor, User, Globe, Hash } from 'lucide-react';
 import { AdminButton, StatusBadge, EmptyState } from '@/components/admin/AdminFormElements';
 import { ConfirmDialog } from '@/components/admin/ConfirmDialog';
@@ -35,6 +36,7 @@ interface ReportData {
 
 export function AdminReportsPage() {
   const { logAction } = useAdminLogger();
+  const { canWrite, canDelete, writeTitle, deleteTitle } = useResourceAccess('reports');
   const [reports, setReports] = useState<ReportData[]>([]);
   const [loading, setLoading] = useState(true);
   
@@ -193,6 +195,8 @@ export function AdminReportsPage() {
                 {activeTab === 'pending' && (
                   <AdminButton
                     onClick={() => setActionTarget({ id: report.id, action: 'complete' })}
+                    disabled={!canWrite}
+                    title={writeTitle}
                     className="bg-green-600 hover:bg-green-700 text-white border-none"
                   >
                     <Check className="w-4 h-4 mr-2" /> Mark Done
@@ -202,6 +206,8 @@ export function AdminReportsPage() {
                 <AdminButton
                     variant="destructive"
                     onClick={() => setActionTarget({ id: report.id, action: 'delete' })}
+                    disabled={!canDelete}
+                    title={deleteTitle}
                 >
                     <Trash2 className="w-4 h-4 mr-2" /> Delete
                 </AdminButton>

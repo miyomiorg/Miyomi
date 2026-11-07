@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { adminGroupsApi, adminAppsApi, adminExtensionsApi } from '@/services/api';
 import { collectPages } from '@/services/api/pagination';
 import { useAdminLogger } from '@/hooks/useAdminLogger';
+import { useResourceAccess } from '@/hooks/useAdmin';
 import { Layers, Plus, Trash2, Edit2, Save, X, Puzzle, Package } from 'lucide-react';
 import { AdminButton, EmptyState, Label } from '@/components/admin/AdminFormElements';
 import { AdminInput, AdminTextarea } from '@/components/admin/AdminFormElements';
@@ -39,6 +40,7 @@ const emptyForm: GroupFormState = {
 
 export function AdminCompatGroupsPage() {
     const { logAction } = useAdminLogger();
+    const { canWrite, canDelete, writeTitle, deleteTitle } = useResourceAccess('apps');
     const [groups, setGroups] = useState<CompatGroup[]>([]);
     const [loading, setLoading] = useState(true);
     const [editingId, setEditingId] = useState<string | null>(null); // null = creating new
@@ -102,6 +104,7 @@ export function AdminCompatGroupsPage() {
     }
 
     async function handleSave() {
+        if (!canWrite) return;
         if (!form.name.trim()) {
             toast.error('Group name is required');
             return;
@@ -144,7 +147,7 @@ export function AdminCompatGroupsPage() {
     }
 
     async function handleDelete() {
-        if (!deleteTarget) return;
+        if (!deleteTarget || !canDelete) return;
         try {
             const group = groups.find(g => g.id === deleteTarget);
             await adminGroupsApi.remove(deleteTarget);
@@ -165,7 +168,7 @@ export function AdminCompatGroupsPage() {
                     <h1 className="text-2xl font-bold font-['Poppins',sans-serif] text-[var(--text-primary)]">Compatibility Groups</h1>
                     <p className="text-[var(--text-secondary)] mt-1">Manage app–extension compatibility through group tags.</p>
                 </div>
-                <AdminButton onClick={openCreateForm}>
+                <AdminButton onClick={openCreateForm} disabled={!canWrite} title={writeTitle}>
                     <Plus className="w-4 h-4" /> New Group
                 </AdminButton>
             </div>
@@ -328,6 +331,8 @@ export function AdminCompatGroupsPage() {
                                         <AdminButton
                                             variant="destructive"
                                             onClick={() => { setShowForm(false); setDeleteTarget(editingId); }}
+                                            disabled={!canDelete}
+                                            title={deleteTitle}
                                         >
                                             <Trash2 className="w-4 h-4" /> Delete
                                         </AdminButton>
@@ -335,7 +340,7 @@ export function AdminCompatGroupsPage() {
                                 </div>
                                 <div className="flex gap-3">
                                     <AdminButton variant="secondary" onClick={() => setShowForm(false)}>Cancel</AdminButton>
-                                    <AdminButton onClick={handleSave} disabled={saving}>
+                                    <AdminButton onClick={handleSave} disabled={!canWrite || saving} title={writeTitle}>
                                         {saving ? (
                                             <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
                                         ) : (

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { adminSubmissionsApi } from '@/services/api';
 import { collectPages } from '@/services/api/pagination';
 import { useAdminLogger } from '@/hooks/useAdminLogger';
+import { useResourceAccess, NO_WRITE_TITLE } from '@/hooks/useAdmin';
 import type { Tables } from '@/types/db';
 import { Inbox, User, Check, X as XIcon, Eye, Trash2, AlertTriangle, RotateCcw, Package, Puzzle, StickyNote, FileText } from 'lucide-react';
 import { AdminButton, StatusBadge, EmptyState } from '@/components/admin/AdminFormElements';
@@ -13,6 +14,7 @@ import { toast } from 'sonner';
 export function AdminSubmissionsPage() {
   const navigate = useNavigate();
   const { logAction } = useAdminLogger();
+  const { canDelete, deleteTitle, hasPermission } = useResourceAccess(['submissions', 'guide_submissions']);
   const [submissions, setSubmissions] = useState<Tables<'submissions'>[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -189,24 +191,28 @@ export function AdminSubmissionsPage() {
         <div className="flex flex-wrap gap-3">
           {counts.pending > 0 && (
             <AdminButton variant="secondary" onClick={() => setBulkDeleteTarget('pending')}
+              disabled={!canDelete} title={deleteTitle}
               className="hover:border-yellow-500/50 hover:bg-yellow-500/10 hover:text-yellow-600 transition-all font-medium">
               <Trash2 className="w-4 h-4 mr-2" /> Clear Pending ({counts.pending})
             </AdminButton>
           )}
           {counts.rejected > 0 && (
             <AdminButton variant="secondary" onClick={() => setBulkDeleteTarget('rejected')}
+              disabled={!canDelete} title={deleteTitle}
               className="hover:border-red-500/50 hover:bg-red-500/10 hover:text-red-500 transition-all font-medium">
               <Trash2 className="w-4 h-4 mr-2" /> Clear Rejected ({counts.rejected})
             </AdminButton>
           )}
           {counts.active > 0 && (
             <AdminButton variant="secondary" onClick={() => setBulkDeleteTarget('approved')}
+              disabled={!canDelete} title={deleteTitle}
               className="hover:border-green-500/50 hover:bg-green-500/10 hover:text-green-500 transition-all font-medium">
               <Trash2 className="w-4 h-4 mr-2" /> Clear Approved ({counts.active})
             </AdminButton>
           )}
           {counts.all > 0 && (
             <AdminButton variant="destructive" onClick={() => setBulkDeleteTarget('all')}
+              disabled={!canDelete} title={deleteTitle}
               className="shadow-lg shadow-red-500/20 hover:shadow-red-500/30 transition-all hover:scale-105">
               <Trash2 className="w-4 h-4 mr-2" /> Clear All
             </AdminButton>
@@ -228,6 +234,8 @@ export function AdminSubmissionsPage() {
         <div className="grid gap-4">
           {filteredSubmissions.map(sub => {
             const data = (sub.submitted_data as any) || {};
+            const canWriteItem = hasPermission(sub.submission_type === 'guide' ? 'guide_submissions' : 'submissions', 'write');
+            const writeItemTitle = canWriteItem ? undefined : NO_WRITE_TITLE;
             return (
               <div key={sub.id} className="rounded-xl border p-5 transition-all hover:border-[var(--brand)] hover:shadow-lg hover:shadow-[var(--brand)]/5 group bg-[var(--bg-surface)] border-[var(--divider)]">
                 <div className="flex items-start justify-between mb-4">
@@ -295,6 +303,7 @@ export function AdminSubmissionsPage() {
                     <>
                       <AdminButton
                         onClick={() => setActionTarget({ id: sub.id, action: 'approve', submission: sub })}
+                        disabled={!canWriteItem} title={writeItemTitle}
                         className="bg-green-600 hover:bg-green-700 text-white border-none shadow-lg shadow-green-500/20"
                       >
                         <Check className="w-4 h-4 mr-2" /> Publish
@@ -302,6 +311,7 @@ export function AdminSubmissionsPage() {
                       <AdminButton
                         variant="destructive"
                         onClick={() => setActionTarget({ id: sub.id, action: 'reject' })}
+                        disabled={!canWriteItem} title={writeItemTitle}
                         className="hover:scale-105 transition-transform"
                       >
                         <XIcon className="w-4 h-4 mr-2" /> Reject
@@ -312,11 +322,13 @@ export function AdminSubmissionsPage() {
                   {sub.status === 'rejected' && (
                     <>
                       <AdminButton variant="secondary" onClick={() => handleRestore(sub)}
+                        disabled={!canWriteItem} title={writeItemTitle}
                         className="hover:border-yellow-500/50 hover:bg-yellow-500/10 hover:text-yellow-600 transition-all">
                         <RotateCcw className="w-4 h-4 mr-2" /> Make Pending
                       </AdminButton>
                       <AdminButton
                         onClick={() => setActionTarget({ id: sub.id, action: 'approve', submission: sub })}
+                        disabled={!canWriteItem} title={writeItemTitle}
                         className="bg-green-600 hover:bg-green-700 text-white border-none shadow-lg shadow-green-500/20"
                       >
                         <Check className="w-4 h-4 mr-2" /> Publish

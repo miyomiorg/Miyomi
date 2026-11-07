@@ -10,9 +10,11 @@ import { ConfirmDialog } from '@/components/admin/ConfirmDialog';
 import { AdminButton, StatusBadge, EmptyState } from '@/components/admin/AdminFormElements';
 import { useAdminCache } from '@/hooks/useAdminCache';
 import { AdminNoteBadge } from '@/components/AdminNoteBadge';
+import { useResourceAccess } from '@/hooks/useAdmin';
 
 export function AdminExtensionsPage() {
   const navigate = useNavigate();
+  const { canWrite, canDelete, writeTitle, deleteTitle } = useResourceAccess('extensions');
   const { data: extensions, loading, invalidateCache, updateCacheOptimistically } = useAdminCache<Tables<'extensions'>>({
     table: 'extensions',
     orderBy: 'name'
@@ -64,7 +66,7 @@ export function AdminExtensionsPage() {
         <h1 className="text-2xl font-bold font-['Poppins',sans-serif]" style={{ color: 'var(--text-primary)' }}>Extensions</h1>
         <div className="flex items-center gap-3 w-full sm:w-auto">
           <AdminSearchBar value={search} onChange={handleSearchChange} placeholder="Search extensions…" />
-          <AdminButton onClick={() => navigate('/admin/extensions/new')}><Plus className="w-4 h-4" /> Add</AdminButton>
+          <AdminButton onClick={() => navigate('/admin/extensions/new')} disabled={!canWrite} title={writeTitle}><Plus className="w-4 h-4" /> Add</AdminButton>
         </div>
       </div>
 
@@ -170,16 +172,20 @@ export function AdminExtensionsPage() {
                         >
                           <Pencil className="w-4 h-4" />
                         </button>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setDeleteTarget({ id: ext.id, name: ext.name });
-                          }}
-                          className="p-2 rounded-lg transition-colors"
-                          style={{ color: "var(--text-secondary)" }}
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
+                        <span className="inline-flex" onClick={(e) => e.stopPropagation()}>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setDeleteTarget({ id: ext.id, name: ext.name });
+                            }}
+                            disabled={!canDelete}
+                            title={deleteTitle}
+                            className="p-2 rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                            style={{ color: "var(--text-secondary)" }}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </span>
                       </div>
                     </td>
                   </tr>

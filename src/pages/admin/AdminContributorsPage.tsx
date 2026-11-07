@@ -5,6 +5,7 @@ import { AdminModal } from '@/components/admin/AdminModal';
 import { ConfirmDialog } from '@/components/admin/ConfirmDialog';
 import { AdminFormField, AdminInput, AdminButton, EmptyState } from '@/components/admin/AdminFormElements';
 import { toast } from 'sonner';
+import { useResourceAccess } from '@/hooks/useAdmin';
 
 type Contributor = {
   id: string;
@@ -16,6 +17,7 @@ type Contributor = {
 };
 
 export function AdminContributorsPage() {
+  const { canWrite, canDelete, writeTitle, deleteTitle } = useResourceAccess('contributors');
   const [contributors, setContributors] = useState<Contributor[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -191,7 +193,7 @@ export function AdminContributorsPage() {
                         <AdminButton variant="secondary" onClick={() => openEdit(c)}>
                           <Pencil className="w-4 h-4" />
                         </AdminButton>
-                        <AdminButton variant="destructive" onClick={() => setDeleteTarget(c)}>
+                        <AdminButton variant="destructive" onClick={() => setDeleteTarget(c)} disabled={!canDelete} title={deleteTitle}>
                           <Trash2 className="w-4 h-4" />
                         </AdminButton>
                       </div>
@@ -234,7 +236,7 @@ export function AdminContributorsPage() {
 
           <div className="flex gap-3 justify-end pt-4 mt-6 border-t border-[var(--divider)]">
             <AdminButton type="button" variant="secondary" onClick={() => setEditTarget(null)}>Cancel</AdminButton>
-            <AdminButton type="submit" variant="primary" disabled={editSaving}>
+            <AdminButton type="submit" variant="primary" disabled={!canWrite || editSaving} title={writeTitle}>
               {editSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Save Changes'}
             </AdminButton>
           </div>

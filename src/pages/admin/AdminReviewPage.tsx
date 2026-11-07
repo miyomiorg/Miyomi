@@ -4,7 +4,7 @@ import { adminSubmissionsApi, adminEditSuggestionsApi } from '@/services/api';
 import { useAdminLogger } from '@/hooks/useAdminLogger';
 import { ArrowLeft, Save, Loader2, Check, X as XIcon, RotateCcw, User, StickyNote, AlertTriangle, FileText } from 'lucide-react';
 import { AdminButton, StatusBadge } from '@/components/admin/AdminFormElements';
-import { useAdmin } from '@/hooks/useAdmin';
+import { useAdmin, NO_WRITE_TITLE } from '@/hooks/useAdmin';
 import { ConfirmDialog } from '@/components/admin/ConfirmDialog';
 import { SharedAppForm } from '@/components/forms/SharedAppForm';
 import { SharedExtensionForm } from '@/components/forms/SharedExtensionForm';
@@ -202,6 +202,10 @@ export function AdminReviewPage({ mode }: ReviewPageProps) {
 
     const itemType = getItemType();
     const itemName = getItemName();
+    const recordType = mode === 'submission' ? record.submission_type : record.target_type;
+    const reviewResource = recordType === 'guide' ? 'guide_submissions' : (mode === 'submission' ? 'submissions' : 'edit_suggestions');
+    const canWrite = hasPermission(reviewResource, 'write');
+    const writeTitle = canWrite ? undefined : NO_WRITE_TITLE;
 
     return (
         <div className="max-w-5xl mx-auto pb-12 animate-in fade-in duration-500">
@@ -224,7 +228,7 @@ export function AdminReviewPage({ mode }: ReviewPageProps) {
                 </div>
                 <div className="flex gap-3 flex-wrap">
                     <AdminButton variant="secondary" onClick={() => navigate(backPath)}>Cancel</AdminButton>
-                    <AdminButton onClick={handleSaveEdits} disabled={saving}>
+                    <AdminButton onClick={handleSaveEdits} disabled={!canWrite || saving} title={writeTitle}>
                         {saving ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Save className="w-4 h-4 mr-2" />}
                         Save Edits
                     </AdminButton>
@@ -374,50 +378,44 @@ export function AdminReviewPage({ mode }: ReviewPageProps) {
             <div className="mb-8 p-4 rounded-2xl bg-[var(--bg-surface)] border border-[var(--divider)] flex flex-wrap gap-3 items-center">
                 <span className="text-sm font-semibold text-[var(--text-secondary)] mr-auto">Actions</span>
 
-                {(() => {
-                    const canWrite = hasPermission(mode === 'submission' ? 'submissions' : 'edit_suggestions', 'write');
-                    const canDelete = hasPermission(mode === 'submission' ? 'submissions' : 'edit_suggestions', 'delete');
+                {record.status === 'pending' && (
+                    <>
+                        <AdminButton
+                            onClick={() => setActionTarget({ action: 'approve' })}
+                            disabled={!canWrite}
+                            title={writeTitle}
+                            className="bg-green-600 hover:bg-green-700 text-white border-none shadow-lg shadow-green-500/20"
+                        >
+                            <Check className="w-4 h-4 mr-2" /> {mode === 'submission' ? 'Publish' : 'Approve & Apply'}
+                        </AdminButton>
+                        <AdminButton
+                            variant="destructive"
+                            disabled={!canWrite}
+                            title={writeTitle}
+                            onClick={() => setActionTarget({ action: 'reject' })}
+                        >
+                            <XIcon className="w-4 h-4 mr-2" /> Reject
+                        </AdminButton>
+                    </>
+                )}
 
-                    return (
-                        <>
-                            {record.status === 'pending' && (
-                                <>
-                                    <AdminButton
-                                        onClick={() => setActionTarget({ action: 'approve' })}
-                                        disabled={!canWrite}
-                                        className="bg-green-600 hover:bg-green-700 text-white border-none shadow-lg shadow-green-500/20"
-                                    >
-                                        <Check className="w-4 h-4 mr-2" /> {mode === 'submission' ? 'Publish' : 'Approve & Apply'}
-                                    </AdminButton>
-                                    <AdminButton
-                                        variant="destructive"
-                                        disabled={!canWrite && !canDelete} // Rejecting is a status update, usually write, but requires permission
-                                        onClick={() => setActionTarget({ action: 'reject' })}
-                                    >
-                                        <XIcon className="w-4 h-4 mr-2" /> Reject
-                                    </AdminButton>
-                                </>
-                            )}
-
-                            {record.status === 'rejected' && (
-                                <>
-                                    <AdminButton variant="secondary" onClick={handleRestore} disabled={!canWrite}
-                                        className="hover:border-yellow-500/50 hover:bg-yellow-500/10 hover:text-yellow-600 transition-all"
-                                    >
-                                        <RotateCcw className="w-4 h-4 mr-2" /> Make Pending
-                                    </AdminButton>
-                                    <AdminButton
-                                        onClick={() => setActionTarget({ action: 'approve' })}
-                                        disabled={!canWrite}
-                                        className="bg-green-600 hover:bg-green-700 text-white border-none shadow-lg shadow-green-500/20"
-                                    >
-                                        <Check className="w-4 h-4 mr-2" /> {mode === 'submission' ? 'Publish' : 'Approve & Apply'}
-                                    </AdminButton>
-                                </>
-                            )}
-                        </>
-                    );
-                })()}
+                {record.status === 'rejected' && (
+                    <>
+                        <AdminButton variant="secondary" onClick={handleRestore} disabled={!canWrite} title={writeTitle}
+                            className="hover:border-yellow-500/50 hover:bg-yellow-500/10 hover:text-yellow-600 transition-all"
+                        >
+                            <RotateCcw className="w-4 h-4 mr-2" /> Make Pending
+                        </AdminButton>
+                        <AdminButton
+                            onClick={() => setActionTarget({ action: 'approve' })}
+                            disabled={!canWrite}
+                            title={writeTitle}
+                            className="bg-green-600 hover:bg-green-700 text-white border-none shadow-lg shadow-green-500/20"
+                        >
+                            <Check className="w-4 h-4 mr-2" /> {mode === 'submission' ? 'Publish' : 'Approve & Apply'}
+                        </AdminButton>
+                    </>
+                )}
 
                 {record.status === 'approved' && (
                     <div className="px-4 py-2 rounded-lg bg-green-500/10 text-green-500 font-medium flex items-center gap-2 border border-green-500/20">

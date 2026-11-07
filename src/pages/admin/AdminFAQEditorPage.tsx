@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { adminFaqsApi } from '@/services/api';
 import { invalidateTableCache } from '@/hooks/useAdminCache';
 import { useAdminLogger } from '@/hooks/useAdminLogger';
+import { useResourceAccess } from '@/hooks/useAdmin';
 import { AdminRichTextEditor } from '@/components/admin/AdminRichTextEditor';
 import { AdminMarkdownEditor } from '@/components/admin/AdminMarkdownEditor';
 import { AdminInput, AdminButton, AdminFormField } from '@/components/admin/AdminFormElements';
@@ -21,6 +22,7 @@ export function AdminFAQEditorPage() {
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
     const { logAction } = useAdminLogger();
+    const { canWrite, writeTitle } = useResourceAccess('faqs');
     const [form, setForm] = useState(emptyFaq);
     const [loading, setLoading] = useState(!!id);
     const [saving, setSaving] = useState(false);
@@ -110,7 +112,7 @@ export function AdminFAQEditorPage() {
                 </button>
                 <div className="flex items-center gap-3">
                     <span className="text-xs font-mono text-[var(--text-secondary)]">ID: {id || 'NEW'}</span>
-                    <AdminButton onClick={handleSave} disabled={saving || !form.question}>
+                    <AdminButton onClick={handleSave} disabled={!canWrite || saving || !form.question} title={writeTitle}>
                         <Save className="w-4 h-4" /> {saving ? 'Saving...' : 'Save FAQ'}
                     </AdminButton>
                 </div>

@@ -11,52 +11,87 @@ type AdminWithRole = AdminAccountRow & { role?: string };
 type Role = 'super_admin' | 'admin' | 'moderator';
 
 /* ── Subcomponents ── */
-const RESOURCES = [
-  'apps', 'extensions', 'guides', 'blog_posts', 'faqs', 'contributors',
-  'submissions', 'guide_submissions', 'edit_suggestions', 'reports',
-  'feedbacks', 'notices', 'donations', 'themes'
+type Perm = { read: boolean; write: boolean; delete: boolean };
+
+const RESOURCES: Array<{ key: string; label: string }> = [
+  { key: 'apps', label: 'Apps & compat groups' },
+  { key: 'extensions', label: 'Extensions' },
+  { key: 'guides', label: 'Guides' },
+  { key: 'blog_posts', label: 'Blog posts' },
+  { key: 'faqs', label: 'FAQs' },
+  { key: 'contributors', label: 'Contributors' },
+  { key: 'submissions', label: 'App/extension submissions' },
+  { key: 'edit_suggestions', label: 'App/extension edits' },
+  { key: 'guide_submissions', label: 'Community guides' },
+  { key: 'reports', label: 'Reports' },
+  { key: 'feedbacks', label: 'Feedbacks' },
+  { key: 'likes', label: 'Likes' },
+  { key: 'notices', label: 'Notices' },
+  { key: 'donations', label: 'Donations' },
+  { key: 'themes', label: 'Themes' },
 ];
+
+/** Shown (and saved) for resources that have no stored row yet. */
+const DEFAULT_PERM: Perm = { read: true, write: false, delete: false };
+
+function accessLabel(p: Perm): { text: string; color: string } {
+  if (!p.read && !p.write && !p.delete) return { text: 'No access', color: '#6B7280' };
+  if (!p.write && !p.delete) return { text: 'Read-only', color: '#F59E0B' };
+  if (p.delete) return { text: 'Full', color: '#EF4444' };
+  return { text: 'Read & write', color: '#10B981' };
+}
 
 function PermissionsPanel({
   perms,
   onChange
 }: {
-  perms: Record<string, { read: boolean; write: boolean; delete: boolean }>;
-  onChange: (p: any) => void;
+  perms: Record<string, Perm>;
+  onChange: (p: Record<string, Perm>) => void;
 }) {
-  const togglePerm = (resource: string, action: 'read' | 'write' | 'delete', val: boolean) => {
+  const togglePerm = (resource: string, label: string, action: 'read' | 'write' | 'delete', val: boolean) => {
     if (action === 'delete' && val) {
-      if (!window.confirm(`WARNING: Granting delete permission allows this moderator to permanently remove ${resource}. Are you absolutely sure?`)) {
+      if (!window.confirm(`WARNING: Granting delete permission allows this moderator to permanently remove ${label}. Are you absolutely sure?`)) {
         return;
       }
     }
-    const current = perms[resource] || { read: true, write: false, delete: false };
-    onChange({ ...perms, [resource]: { ...current, [action]: val } });
+    const current = perms[resource] || DEFAULT_PERM;
+    const next = { ...current, [action]: val };
+    // Write/delete are meaningless without read; dropping read drops them too.
+    if (action !== 'read' && val) next.read = true;
+    if (action === 'read' && !val) { next.write = false; next.delete = false; }
+    onChange({ ...perms, [resource]: next });
   };
 
   return (
     <div className="space-y-3 mt-4 border rounded-xl p-4 bg-[var(--bg-elev-1)] border-[var(--divider)]">
       <h3 className="text-sm font-semibold text-[var(--text-primary)] mb-2">Moderator Permissions</h3>
       <div className="max-h-60 overflow-y-auto space-y-2 pr-2 custom-scrollbar">
-        {RESOURCES.map(res => {
-          const p = perms[res] || { read: true, write: false, delete: false };
+        {RESOURCES.map(({ key: res, label }) => {
+          const p = perms[res] || DEFAULT_PERM;
+          const access = accessLabel(p);
           return (
-            <div key={res} className="flex items-center justify-between py-2 border-b border-[var(--divider)] last:border-0">
-              <span className="text-xs font-medium text-[var(--text-secondary)] uppercase tracking-wider w-32 truncate">{res.replace('_', ' ')}</span>
-              <div className="flex items-center gap-4">
+            <div key={res} className="flex items-center justify-between gap-3 py-2 border-b border-[var(--divider)] last:border-0">
+              <div className="min-w-0 flex flex-col gap-1">
+                <span className="text-xs font-medium text-[var(--text-secondary)] uppercase tracking-wider truncate">{label}</span>
+                <span className="self-start text-[10px] font-semibold px-1.5 py-0.5 rounded-full"
+                  style={{ background: `color-mix(in srgb, ${access.color} 15%, transparent)`, color: access.color }}>
+                  {access.text}
+                </span>
+              </div>
+              <div className="flex items-center gap-4 flex-shrink-0">
                 <label className="flex items-center gap-1.5 text-xs text-[var(--text-primary)] cursor-pointer">
                   <input type="checkbox" className="w-3.5 h-3.5 rounded border-[var(--divider)] text-[var(--brand)] focus:ring-[var(--brand)]"
-                    checked={p.read} onChange={e => togglePerm(res, 'read', e.target.checked)} />
+                    checked={p.read} onChange={e => togglePerm(res, label, 'read', e.target.checked)} />
                   Read
                 </label>
                 <label className="flex items-center gap-1.5 text-xs text-[var(--text-primary)] cursor-pointer">
                   <input type="checkbox" className="w-3.5 h-3.5 rounded border-[var(--divider)] text-[var(--brand)] focus:ring-[var(--brand)]"
-                    checked={p.write} onChange={e => togglePerm(res, 'write', e.target.checked)} />
+                    checked={p.write} onChange={e => togglePerm(res, label, 'write', e.target.checked)} />
                   Write
                 </label>
                 <label className="flex items-center gap-1.5 text-xs text-red-500 cursor-pointer">
                   <input type="checkbox" className="w-3.5 h-3.5 rounded border-[var(--divider)] text-red-500 focus:ring-red-500"
-                    checked={p.delete} onChange={e => togglePerm(res, 'delete', e.target.checked)} />
+                    checked={p.delete} onChange={e => togglePerm(res, label, 'delete', e.target.checked)} />
                   Delete
                 </label>
               </div>
@@ -132,7 +167,7 @@ export function AdminUsersPage() {
   /* Edit modal */
   const [editTarget, setEditTarget] = useState<AdminWithRole | null>(null);
   const [editForm, setEditForm] = useState({ display_name: '', role: 'admin' as Role, password: '' });
-  const [editPerms, setEditPerms] = useState<Record<string, { read: boolean; write: boolean; delete: boolean }>>({});
+  const [editPerms, setEditPerms] = useState<Record<string, Perm>>({});
   const [editSaving, setEditSaving] = useState(false);
   const [editError, setEditError] = useState('');
 
@@ -189,7 +224,7 @@ export function AdminUsersPage() {
       role: (admin.role as Role) || 'admin',
       password: '',
     });
-    const perms: Record<string, { read: boolean; write: boolean; delete: boolean }> = {};
+    const perms: Record<string, Perm> = {};
     (admin.permissions ?? []).forEach(p => {
       perms[p.resource] = { read: p.can_read, write: p.can_write, delete: p.can_delete };
     });
@@ -209,10 +244,12 @@ export function AdminUsersPage() {
       }
 
       if (editForm.role === 'moderator') {
-        const permissions = Object.entries(editPerms).map(([resource, p]) => {
-          const perm = p as { read: boolean; write: boolean; delete: boolean };
+        // Save every listed resource exactly as the panel shows it, so rows the
+        // admin never touched (displayed as the default) are stored too.
+        const permissions = RESOURCES.map(({ key }) => {
+          const perm = editPerms[key] || DEFAULT_PERM;
           return {
-            resource,
+            resource: key,
             can_read: perm.read,
             can_write: perm.write,
             can_delete: perm.delete,

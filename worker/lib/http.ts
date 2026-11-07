@@ -64,6 +64,7 @@ export const isoNow = () => new Date().toISOString();
 // (Safe despite the import cycle: auth.ts only touches http.ts exports at
 // request time, never during module evaluation.)
 export {
+  hasResourceAccess,
   requireAdmin,
   requireMinRole,
   requireResource,

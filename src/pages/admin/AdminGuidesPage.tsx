@@ -4,6 +4,7 @@ import { adminGuidesApi, adminSettingsApi } from '@/services/api';
 import { toast } from 'sonner';
 import { useAdminLogger } from '@/hooks/useAdminLogger';
 import { useAdminCache } from '@/hooks/useAdminCache';
+import { useAdmin, useResourceAccess } from '@/hooks/useAdmin';
 import type { Tables } from '@/types/db';
 import { Plus, Pencil, Trash2, BookOpen } from 'lucide-react';
 import { AdminSearchBar } from '@/components/admin/AdminSearchBar';
@@ -16,6 +17,9 @@ const emptyGuide = { title: '', description: '', content: '', author: '', catego
 
 export function AdminGuidesPage() {
   const { logAction } = useAdminLogger();
+  // Guide notice settings live in the admin+ site settings table.
+  const { isAdmin } = useAdmin();
+  const { canWrite, canDelete, writeTitle, deleteTitle } = useResourceAccess('guides');
   const { data: guides, loading, invalidateCache } = useAdminCache<Tables<'guides'>>({ table: 'guides', orderBy: 'title' });
   const [search, setSearch] = useState('');
   const navigate = useNavigate();
@@ -98,7 +102,7 @@ export function AdminGuidesPage() {
           {activeTab === 'list' && (
             <>
               <AdminSearchBar value={search} onChange={setSearch} placeholder="Search guides…" />
-              <AdminButton onClick={openCreate}><Plus className="w-4 h-4" /> Add</AdminButton>
+              <AdminButton onClick={openCreate} disabled={!canWrite} title={writeTitle}><Plus className="w-4 h-4" /> Add</AdminButton>
             </>
           )}
         </div>
@@ -115,7 +119,7 @@ export function AdminGuidesPage() {
         >
           All Guides
         </button>
-        <button
+        {isAdmin && <button
           className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
             activeTab === 'settings'
               ? 'border-[var(--brand)] text-[var(--brand)]'
@@ -127,10 +131,10 @@ export function AdminGuidesPage() {
           }}
         >
           Settings
-        </button>
+        </button>}
       </div>
 
-      {activeTab === 'settings' && (
+      {isAdmin && activeTab === 'settings' && (
         <div className="max-w-3xl space-y-8 animate-in fade-in duration-300">
           <div className="bg-[var(--bg-surface)] border border-[var(--divider)] rounded-2xl p-6">
             <h2 className="text-lg font-semibold font-['Poppins',sans-serif] text-[var(--text-primary)] mb-4">Global Guide Notice Box</h2>
@@ -206,7 +210,7 @@ export function AdminGuidesPage() {
                         <button onClick={(e) => {
                           e.stopPropagation();
                           setDeleteTarget({ id: g.id, name: g.title });
-                        }} className="p-2 rounded-lg transition-colors" style={{ color: 'var(--text-secondary)' }}><Trash2 className="w-4 h-4" /></button>
+                        }} disabled={!canDelete} title={deleteTitle} className="p-2 rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed" style={{ color: 'var(--text-secondary)' }}><Trash2 className="w-4 h-4" /></button>
                       </div>
                     </td>
                   </tr>

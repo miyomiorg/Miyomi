@@ -10,12 +10,12 @@ import { AdminSearchBar } from '@/components/admin/AdminSearchBar';
 import { ConfirmDialog } from '@/components/admin/ConfirmDialog';
 import { AdminButton, StatusBadge, EmptyState } from '@/components/admin/AdminFormElements';
 import { useAdminCache } from '@/hooks/useAdminCache';
-import { useAdmin } from '@/hooks/useAdmin';
+import { useResourceAccess } from '@/hooks/useAdmin';
 import { AdminNoteBadge } from '@/components/AdminNoteBadge';
 
 export function AdminAppsPage() {
   const navigate = useNavigate();
-  const { hasPermission } = useAdmin();
+  const { canWrite, canDelete, writeTitle, deleteTitle } = useResourceAccess('apps');
   const { data: apps, loading, invalidateCache, updateCacheOptimistically } = useAdminCache<Tables<'apps'>>({
     table: 'apps',
     orderBy: 'name'
@@ -72,11 +72,9 @@ export function AdminAppsPage() {
           </div>
           <div className="flex items-center gap-3 w-full sm:w-auto">
             <AdminSearchBar value={search} onChange={handleSearchChange} placeholder="Search apps…" />
-            {hasPermission('apps', 'write') && (
-              <AdminButton onClick={() => navigate('/admin/apps/new')}>
-                <Plus className="w-4 h-4" /> Add
-              </AdminButton>
-            )}
+            <AdminButton onClick={() => navigate('/admin/apps/new')} disabled={!canWrite} title={writeTitle}>
+              <Plus className="w-4 h-4" /> Add
+            </AdminButton>
           </div>
         </div>
 
@@ -193,34 +191,34 @@ export function AdminAppsPage() {
                     </td>
                     <td className="px-4 py-3 text-right">
                       <div className="flex items-center justify-end gap-1.5">
-                        {hasPermission('apps', 'write') && (
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              navigate(`/admin/apps/${app.id}/edit`);
-                            }}
-                            className="p-2 rounded-lg transition-colors"
-                            style={{ color: "var(--text-secondary)" }}
-                            onMouseEnter={(e) => (e.currentTarget.style.color = "var(--brand)")}
-                            onMouseLeave={(e) => (e.currentTarget.style.color = "var(--text-secondary)")}
-                          >
-                            <Pencil className="w-4 h-4" />
-                          </button>
-                        )}
-                        {hasPermission('apps', 'delete') && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigate(`/admin/apps/${app.id}/edit`);
+                          }}
+                          className="p-2 rounded-lg transition-colors"
+                          style={{ color: "var(--text-secondary)" }}
+                          onMouseEnter={(e) => (e.currentTarget.style.color = "var(--brand)")}
+                          onMouseLeave={(e) => (e.currentTarget.style.color = "var(--text-secondary)")}
+                        >
+                          <Pencil className="w-4 h-4" />
+                        </button>
+                        <span className="inline-flex" onClick={(e) => e.stopPropagation()}>
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
                               setDeleteTarget({ id: app.id, name: app.name });
                             }}
-                            className="p-2 rounded-lg transition-colors hover:bg-red-500/10 hover:text-red-500"
+                            disabled={!canDelete}
+                            title={deleteTitle}
+                            className="p-2 rounded-lg transition-colors hover:bg-red-500/10 hover:text-red-500 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent"
                             style={{ color: "var(--text-secondary)" }}
-                            onMouseEnter={(e) => (e.currentTarget.style.color = "var(--destructive)")}
+                            onMouseEnter={(e) => { if (!e.currentTarget.disabled) e.currentTarget.style.color = "var(--destructive)"; }}
                             onMouseLeave={(e) => (e.currentTarget.style.color = "var(--text-secondary)")}
                           >
                             <Trash2 className="w-4 h-4" />
                           </button>
-                        )}
+                        </span>
                       </div>
                     </td>
                   </tr>

@@ -5,7 +5,7 @@ import { ThemeToggle } from '@/components/ThemeToggle';
 import {
   LayoutDashboard, AppWindow, Puzzle, BookOpen, HelpCircle,
   Inbox, Heart, Bell, Palette, Settings, Users, LogOut, Menu, X, ScrollText, Shield, DollarSign,
-  PenTool, Flag, MessageSquare, Layers, Bot, FileText, UserCircle, ChevronDown, BarChart3
+  PenTool, Flag, MessageSquare, Layers, Bot, FileText, UserCircle, ChevronDown, BarChart3, Eye
 } from 'lucide-react';
 import { Suspense, useState, useEffect } from 'react';
 
@@ -45,7 +45,7 @@ const navSections: NavSection[] = [
     items: [
       { path: '/admin/contributors', label: 'Contributors', icon: UserCircle },
       { path: '/admin/submissions', label: 'Submissions', icon: Inbox },
-      { path: '/admin/guide-submissions', label: 'Guides', icon: BookOpen },
+      { path: '/admin/guide-submissions', label: 'Community Guides', icon: BookOpen },
       { path: '/admin/edit-suggestions', label: 'Edits', icon: PenTool },
       { path: '/admin/reports', label: 'Reports', icon: Flag },
       { path: '/admin/feedbacks', label: 'Feedbacks', icon: MessageSquare },
@@ -107,6 +107,15 @@ export function AdminLayout() {
     '/admin/donations': 'donations',
     '/admin/themes': 'themes',
   };
+
+  const isReadOnly = (resource: string | undefined) =>
+    !!resource && isModerator && hasPermission(resource, 'read') && !hasPermission(resource, 'write');
+
+  const currentNavPath = Object.keys(pathToResource).find(
+    p => location.pathname === p || location.pathname.startsWith(p + '/')
+  );
+  const currentReadOnly = isReadOnly(currentNavPath && pathToResource[currentNavPath]);
+  const currentLabel = navSections.flatMap(s => s.items).find(i => i.path === currentNavPath)?.label;
 
   useEffect(() => {
     try {
@@ -198,6 +207,11 @@ export function AdminLayout() {
                     >
                       <Icon className="w-4 h-4 flex-shrink-0" />
                       <span className="truncate">{item.label}</span>
+                      {isReadOnly(pathToResource[item.path]) && (
+                        <span className="ml-auto flex-shrink-0 inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-amber-500/15 text-amber-500" title="Read-only access">
+                          <Eye className="w-3 h-3" /> Read-only
+                        </span>
+                      )}
                     </button>
                   );
                 })}
@@ -253,6 +267,15 @@ export function AdminLayout() {
 
         <main className="flex-1 overflow-y-auto bg-[var(--bg-page)] p-4 sm:p-6 lg:p-8">
           <div className="max-w-7xl mx-auto">
+            {currentReadOnly && (
+              <div className="mb-6 flex items-start gap-3 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-500">
+                <Eye className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                <div>
+                  <span className="font-semibold">Read-only access.</span>{' '}
+                  You can view {currentLabel ? <strong>{currentLabel}</strong> : 'this section'}, but any changes will be rejected. Ask a super admin for write access.
+                </div>
+              </div>
+            )}
             {/* Admin pages are lazy chunks; only the content area suspends. */}
             <Suspense fallback={<div className="flex items-center justify-center py-24"><div className="h-8 w-8 animate-spin rounded-full border-2 border-[var(--divider)] border-t-[var(--brand)]" /></div>}>
               <Outlet />

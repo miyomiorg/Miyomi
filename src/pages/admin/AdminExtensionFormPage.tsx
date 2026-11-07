@@ -16,6 +16,7 @@ import { InstallUrlsInput, type InstallUrlEntry } from '@/components/admin/Insta
 import { FlagDisplay } from '@/components/FlagDisplay';
 import { SharedExtensionForm } from '@/components/forms/SharedExtensionForm';
 import { RepositoryNote } from '@/components/RepositoryNote';
+import { useResourceAccess } from '@/hooks/useAdmin';
 
 function slugify(text: string): string {
     return text
@@ -51,6 +52,7 @@ export function AdminExtensionFormPage() {
     const { id } = useParams();
     const navigate = useNavigate();
     const { logAction } = useAdminLogger();
+    const { canWrite, writeTitle } = useResourceAccess('extensions');
     const [form, setForm] = useState(emptyExt);
     const [loading, setLoading] = useState(!!id);
     const [saving, setSaving] = useState(false);
@@ -157,6 +159,7 @@ export function AdminExtensionFormPage() {
     }
 
     async function handleSave() {
+        if (!canWrite) return;
         setSaving(true);
         // Errors are updated in real-time by useEffect
         if (Object.values(errors).some(v => !!v)) {
@@ -269,7 +272,7 @@ export function AdminExtensionFormPage() {
                 </div>
                 <div className="flex gap-3">
                     <AdminButton variant="secondary" onClick={() => navigate('/admin/extensions')}>Cancel</AdminButton>
-                    <AdminButton onClick={handleSave} disabled={!form.name || saving}>
+                    <AdminButton onClick={handleSave} disabled={!canWrite || !form.name || saving} title={writeTitle}>
                         {saving ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Save className="w-4 h-4 mr-2" />}
                         Save Extension
                     </AdminButton>
@@ -277,7 +280,7 @@ export function AdminExtensionFormPage() {
             </div>
 
             {id && <div className="mb-4">
-                <RepositoryNote id={id} note={(form as any).moderator_note} severity={(form as any).note_severity} sticky={(form as any).notice_sticky} canEdit />
+                <RepositoryNote id={id} note={(form as any).moderator_note} severity={(form as any).note_severity} sticky={(form as any).notice_sticky} canEdit={canWrite} />
             </div>}
             <SharedExtensionForm 
                 form={form} 

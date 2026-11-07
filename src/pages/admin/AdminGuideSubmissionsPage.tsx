@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { adminSubmissionsApi, adminEditSuggestionsApi } from '@/services/api';
 import { collectPages } from '@/services/api/pagination';
 import { useAdminLogger } from '@/hooks/useAdminLogger';
+import { useResourceAccess } from '@/hooks/useAdmin';
 import { Inbox, User, Check, X as XIcon, Eye, Trash2, AlertTriangle, RotateCcw, FileText, StickyNote } from 'lucide-react';
 import { AdminButton, StatusBadge, EmptyState } from '@/components/admin/AdminFormElements';
 import { ConfirmDialog } from '@/components/admin/ConfirmDialog';
@@ -11,6 +12,7 @@ import { toast } from 'sonner';
 export function AdminGuideSubmissionsPage() {
   const navigate = useNavigate();
   const { logAction } = useAdminLogger();
+  const { canWrite, writeTitle } = useResourceAccess('guide_submissions');
   const [submissions, setSubmissions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -218,6 +220,7 @@ export function AdminGuideSubmissionsPage() {
                     <>
                       <AdminButton
                         onClick={() => setActionTarget({ id: sub.id, action: 'approve', type: sub._type, data: sub })}
+                        disabled={!canWrite} title={writeTitle}
                         className="bg-green-600 hover:bg-green-700 text-white border-none shadow-lg shadow-green-500/20"
                       >
                         <Check className="w-4 h-4 mr-2" /> Publish Guide
@@ -226,6 +229,7 @@ export function AdminGuideSubmissionsPage() {
                       <AdminButton
                         variant="destructive"
                         onClick={() => setActionTarget({ id: sub.id, action: 'reject', type: sub._type })}
+                        disabled={!canWrite} title={writeTitle}
                       >
                         <XIcon className="w-4 h-4 mr-2" /> Reject
                       </AdminButton>
